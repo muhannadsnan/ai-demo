@@ -102,3 +102,73 @@ half, and the half that decides whether the feature survives contact with users.
 **Evaluation ("evals")** — a test suite for AI behaviour: fixed inputs, expected
 properties, a score. `npm run eval` is one. Without it you are guessing about
 every change you make.
+
+---
+
+## Delivery and operations
+
+These come up in `server-drift/`, not in the AI code. Included here because they
+are project-wide vocabulary.
+
+**SSR (server-side rendering)** — the server sends finished HTML instead of a
+blank page plus JavaScript. Faster first paint, and search engines can read it.
+Nuxt does this by default.
+
+**SSE (Server-Sent Events)** — a one-way HTTP connection held open so the server
+can push text as it is produced. It is why an AI answer appears word by word
+instead of all at once after ten seconds. One direction only, server to browser;
+for two-way you would need WebSockets.
+
+**Image** — a read-only template containing an operating system, a runtime and
+your compiled application. Built once. Like a class, or a `.iso`.
+
+**Container** — a running instance of an image. Like an object. One image can
+run many containers.
+
+**Volume** — storage that lives outside the container, so data survives when the
+container is replaced. Databases belong in volumes. Never in images.
+
+**Compose file** — one YAML file describing several containers and how they
+connect, so `docker compose up` starts the whole stack instead of you typing
+five `docker run` commands by hand.
+
+**Kubernetes** — a system for scheduling containers across a *fleet* of machines,
+restarting and rescheduling them automatically. Useful when you have many
+services on many servers, or a team that needs self-service deploys. For one
+server running one application it is pure overhead.
+
+**Caddy** — a web server and reverse proxy. Its distinguishing feature is that
+it obtains and renews HTTPS certificates automatically with no configuration.
+The nginx equivalent needs certbot, a cron job and a renewal hook.
+
+**Reverse proxy** — the server that receives public traffic and forwards it to
+your application. Terminates HTTPS, so the app itself never handles certificates.
+
+**Ops (operations)** — everything after the code is written: deploying it,
+watching it, backing it up, restoring it, and fixing it at 23:00. A separate
+discipline from development, and the one `server-drift/` exists to demonstrate.
+
+**Ingest** — fetching data from an external source, validating it and loading it
+into your own database. The same thing as an import routine; just the word the
+data-engineering world uses.
+
+**Meilisearch** — a standalone search engine run as its own service. You push
+documents into it and it returns typo-tolerant results instantly. An alternative
+to PostgreSQL's built-in full-text search, at the cost of one more service to
+operate.
+
+**Runbook** — a document listing named failure modes and the exact command to
+run for each, written to be usable by someone who did not build the system.
+
+**Restore** — rebuilding a working database from a backup. Note that *making* a
+backup and *restoring* one are different operations, and only the second proves
+anything.
+
+**Restore drill** — deliberately performing a restore as practice, and recording
+how long it took. A backup nobody has ever restored is a hypothesis, not a
+safety net.
+
+**PITR (point-in-time recovery)** — rewinding a database to an exact moment
+("10:42, just before the bad UPDATE") rather than only to last night's dump. It
+requires continuously archiving the transaction log, not just periodic dumps.
+

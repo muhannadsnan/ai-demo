@@ -1,0 +1,85 @@
+# STAGE 2 SKELETON — not used yet.
+#
+# An overlay, applied on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.data.yml up -d
+#
+# The `ingest` service below references a job script that does not exist yet.
+# It is here so the shape is settled before the data project starts, not
+# because it runs today.
+
+services:
+  db:
+    # Pinned to a minor version on purpose. "postgres:latest" means a major
+    # version upgrade can arrive during an unrelated deploy and refuse to start
+    # on the old data directory.
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+
+    volumes:
+      # The data lives in a named volume, NOT in the image. Replacing the
+      # container leaves this untouched; `docker compose down -v` destroys it.
+      - db_data:/var/lib/postgresql/data
+
+    # No published port. Only containers on the `internal` network can reach
+    # the database. To connect from your laptop, tunnel over SSH rather than
+    # exposing 5432 to the internet.
+    expose:
+      - "5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-appdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+    networks: [internal]
+
+  ingest:
+    # Same image as the app: same language, same codebase, one build to keep
+    # updated. Split this into its own Dockerfile only when its dependencies
+    # genuinely diverge (a Python data stack, say).
+    image: ai-demo:${APP_VERSION:-local}
+    build:
+      context: ..
+      dockerfile: server-drift/Dockerfile
+
+    # Never started by `up`. The host scheduler runs it per job:
+    #   docker compose run --rm ingest import enheter
+    # See SCHEDULING.md.
+    profiles: [manual]
+
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-appdb}
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # An import must not be able to starve the database it is writing into.
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+    networks: [internal]
+
+volumes:
+  db_data:
+
+networks:
+  internal:

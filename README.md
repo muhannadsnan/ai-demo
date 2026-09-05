@@ -99,7 +99,7 @@ server/                   Everything with an API key near it
   utils/rag/                Chunking, vector maths, the index
   utils/guardrails.ts       Rate limiting and input validation
 
-knowledge/                The corpus that gets indexed — replace with your own
+knowledge/                Fictional corpus (invented company) — replace with your own
 server-drift/             Docker image, compose stack, deploy runbook
 scripts/eval-retrieval.mjs Retrieval regression suite
 ```

@@ -67,6 +67,10 @@ This is the part most people get wrong. Do not stand the whole stack up at once.
 | **4** | Search (Meilisearch or Postgres FTS) | Only once you know queries are actually slow |
 | **5** | AI layer | Last, on top of everything already working |
 
+All five stages live in **this** directory — they are phases of one deployment,
+not different places. Stages 2 and 3 run on the same server as stage 1; adding
+them means adding services to the compose file, not moving anything.
+
 **Stage 1 is in this directory and works today** — it deploys the ai-demo, which
 needs no database. When a certificate fails to issue or a container cannot reach
 another, you are debugging one new thing rather than four at once.
@@ -79,12 +83,15 @@ Do not debug Let's Encrypt and a 3.4M-row import on the same evening.
 
 ```
 server-drift/
-  Dockerfile          multi-stage build; 138 MB runtime image, non-root, healthcheck
-  docker-compose.yml  stage 1: app + TLS proxy
-  Caddyfile           reverse proxy, automatic Let's Encrypt, SSE-aware
-  Makefile            deploy / rollback / logs / health
-  .env.example        copy to .env on the server
-  RUNBOOK.md          what to do when it breaks
+  Dockerfile               multi-stage build; 138 MB image, non-root, healthcheck
+  docker-compose.yml       stage 1: app + TLS proxy  (works today)
+  Caddyfile                reverse proxy, automatic Let's Encrypt, SSE-aware
+  Makefile                 deploy / rollback / logs / health
+  .env.example             copy to .env on the server
+  RUNBOOK.md               what to do when it breaks
+  SCHEDULING.md            how the import jobs get run on a schedule
+  docker-compose.data.yml  stage 2 skeleton: Postgres + ingest  (not used yet)
+  systemd/                 example timer units for the import jobs
 ```
 
 A root `.dockerignore` keeps the build context at ~500 kB instead of shipping
@@ -129,6 +136,11 @@ Disk is not the problem — any VPS gives you 40 GB. **RAM is.** A 4 GB box
 running Postgres, Meilisearch, Nuxt and an ingest job at the same time will
 swap, and the nightly ingest is exactly when it will hurt.
 
+**A VPS does not grow by itself.** You get exactly the RAM you paid for at
+provisioning time. Growing means changing plan and rebooting — on Hetzner that
+is a few minutes of downtime, and disk can only ever grow, never shrink. So
+choose with headroom rather than planning to react.
+
 Two options, both defensible:
 
 - Move to 8 GB. On Hetzner that is a couple of euros a month more, and it is the
@@ -144,6 +156,27 @@ setting on every service rather than only the ones you are worried about.
 
 ---
 
+## Which language for the import jobs
+
+Genuinely open, and the answer depends on what you want the project to say.
+
+| | Case for it | Case against |
+|---|---|---|
+| **Node** | Same language as the app, so **one image and one build** for both. Shared model and validation code. Fewest moving parts. | Weaker story if you want to be read as a data engineer. |
+| **Python** | What most data-engineering roles expect. Best libraries for messy CSV, encodings, dataframes. | A second language, a second image, duplicated model code. |
+| **Go** | Your colleague is right: one static binary, no dependency tree, a ~15 MB image, and fast. Excellent for exactly this shape of job. | More code for the boring CSV and JSON work, and a third language to keep in your head. |
+
+**Recommendation: Node**, at least to begin with. The goal is to demonstrate
+*integration and operations*, not language breadth, and one image covering both
+the app and the jobs is the clearest thing to point at. Switch a single job to
+Python or Go later if it earns it — the container boundary means that is a
+contained change, which is itself part of the argument for containers.
+
+The dependency concern behind the Go suggestion is real, and worth separating
+from the language: the fix is a lockfile, a multi-stage build, and no dev
+dependencies in the runtime image. That is already how `Dockerfile` works here —
+138 MB, of which the application is 2.3 MB.
+
 ## What actually demonstrates operations skill
 
 Nearly every portfolio project has a `docker-compose.yml`. Almost none has the
@@ -153,9 +186,10 @@ someone who has operated a system:
 - **A runbook.** Named failure modes with the command to run for each. See
   `RUNBOOK.md`.
 - **A restore that has actually been performed.** Not a backup script — a
-  documented drill with the date it was last run and how long it took. Your own
-  systems notes record point-in-time recovery as never having been exercised;
-  closing that gap here is a genuinely strong thing to be able to point at.
+  documented drill with the date it was last run and how long it took. *Making*
+  a backup and *restoring* one are different operations, and only the second
+  proves anything. Almost nobody does this, which is exactly why being able to
+  say "last restore drill: 12 March, 18 minutes" lands in an interview.
 - **Backups that are verified**, not just written. A backup nobody has restored
   is a hypothesis.
 - **Resource limits on every service**, so one process cannot starve the others.

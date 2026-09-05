@@ -6,6 +6,14 @@ by someone who did not build the system.
 Everything below is for **stage 1** (app + proxy). Database procedures arrive
 with stage 2 and are marked as such.
 
+**Is this file worth having yet?** Honestly, barely. At stage 1 the only real
+failure is "the container stopped, restart it", and a runbook for that is
+ceremony. It earns its place at stage 2, when there is a database that can fill
+a disk, imports that can hang, and certificates that can expire — failures where
+the fix is not obvious and you will not be thinking clearly. It exists now so
+the procedures get written as each service is added, rather than after the first
+outage.
+
 ---
 
 ## Routine operations

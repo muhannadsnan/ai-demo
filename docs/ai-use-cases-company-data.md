@@ -148,7 +148,7 @@ sell — and technically it is your existing cron plus a saved filter spec.
 - *"Alert me when any company in Bergen with more than 50 employees goes
   bankrupt"* → a natural-language request becomes a stored filter that runs daily.
 - Daily or weekly digest summarising what changed across a watchlist.
-- Change narration: *"Nordvik AS changed auditor and filed accounts 40 days late."*
+- Change narration: *"Eksempel AS changed auditor and filed accounts 40 days late."*
 
 ### 5 · Extraction — the input side
 
@@ -157,7 +157,7 @@ is schema-shaped and therefore checkable.
 
 - Upload a PDF annual report or contract → extract orgnr, parties, amounts,
   dates → link to companies already in the database.
-- Paste messy text (*"met someone from Nordvik Logistikk in Bergen"*) → resolve
+- Paste messy text (*"met someone from Eksempel Logistikk in Bergen"*) → resolve
   to an organisation number.
 - Normalise inconsistent company-name variants across sources.
 

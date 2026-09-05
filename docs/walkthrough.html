@@ -885,17 +885,20 @@ Authorization: Bearer sk-...
   <span class="p">api/search.post.ts</span>          <span class="g">retrieval only — no language model</span>
   <span class="p">api/ask.post.ts</span>             <span class="g">RAG: retrieve → augment → generate</span>
   <span class="p">api/health.get.ts</span>           <span class="g">which backend is actually plugged in</span>
+  <span class="p">api/trace.post.ts</span>           <span class="g">the same search, with its working shown</span>
   <span class="p">utils/ai/</span>                   <span class="g">provider abstraction (mock | openai | ollama)</span>
   <span class="p">utils/rag/</span>                  <span class="g">chunking, vector maths, the index</span>
   <span class="p">utils/guardrails.ts</span>         <span class="g">rate limiting and input validation</span>
 
 <span class="g">knowledge/</span>                    <span class="g">the corpus — swap in your own docs</span>
 <span class="g">scripts/eval-retrieval.mjs</span>    <span class="g">retrieval regression suite</span>
-<span class="g">docs/</span>                         <span class="g">six explainers, written for a first read</span>
+<span class="g">scripts/trace-search.mjs</span>      <span class="g">dumps every stage of one search to test-data/</span>
+<span class="g">docs/</span>                         <span class="g">explainers — start at 00-the-basics.md</span>
       </div>
       <p>
         The source files are commented for someone doing this for the first time — read them
-        alongside the running app. Of the six documents in <code>docs/</code>, the one most
+        alongside the running app. Start with <code>docs/00-the-basics.md</code>, which
+        explains the whole thing without jargon. Of the rest, the one most
         specific to your situation is
         <code>04-porting-this-to-codeigniter-mysql.md</code>: the same architecture as PHP 8
         classes, a cURL client, a <code>BLOB</code> column of packed float32 vectors, and
@@ -941,12 +944,14 @@ Authorization: Bearer sk-...
         <table>
           <thead><tr><th>Document</th><th>Covers</th></tr></thead>
           <tbody>
+            <tr><td class="mono"><strong>00-the-basics</strong></td><td><strong>Start here.</strong> The whole thing without jargon</td></tr>
             <tr><td class="mono">01-architecture</td><td>The request path, and why it must be shaped that way</td></tr>
             <tr><td class="mono">02-how-chat-works</td><td>Prompts, tokens, streaming, memory, cost</td></tr>
             <tr><td class="mono">03-how-ai-search-works</td><td>Embeddings and RAG, end to end</td></tr>
             <tr><td class="mono">04-porting-this-to-codeigniter-mysql</td><td>The same thing in PHP 8 and MySQL 8</td></tr>
             <tr><td class="mono">05-production-checklist</td><td>What to fix before this touches customers</td></tr>
             <tr><td class="mono">06-glossary</td><td>The vocabulary, defined plainly</td></tr>
+            <tr><td class="mono">ai-use-cases-company-data</td><td>Companion: AI features for the Norwegian company-data project</td></tr>
           </tbody>
         </table>
       </div>

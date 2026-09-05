@@ -1,0 +1,164 @@
+/* Plain CSS on purpose: no Tailwind, no UI kit. Nothing in this demo should
+   distract from the AI integration itself, and you can read every rule. */
+
+:root {
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f2;
+  --border: #e3e2df;
+  --text: #1d1c1a;
+  --text-dim: #6b6a66;
+  --accent: #b4541f;
+  --accent-soft: #fdf1ea;
+  --ok: #2f7d4f;
+  --warn: #9a6b12;
+  --radius: 10px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a19;
+    --surface: #232322;
+    --surface-2: #2c2c2a;
+    --border: #3a3a37;
+    --text: #ececea;
+    --text-dim: #a3a29d;
+    --accent: #e8834a;
+    --accent-soft: #2e211a;
+    --ok: #6cc08b;
+    --warn: #d8a94a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); }
+
+.shell { max-width: 940px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* ---- Header --------------------------------------------------------------- */
+header.top {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  margin-bottom: 28px;
+}
+.top-inner {
+  max-width: 940px; margin: 0 auto; padding: 14px 20px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.brand { font-weight: 650; letter-spacing: -0.01em; margin-right: auto; }
+nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.tabs a {
+  padding: 6px 12px; border-radius: 7px; text-decoration: none;
+  color: var(--text-dim); font-size: 14px; font-weight: 500;
+}
+nav.tabs a:hover { background: var(--surface-2); color: var(--text); }
+nav.tabs a.router-link-active { background: var(--accent-soft); color: var(--accent); }
+
+/* ---- Provider badge ------------------------------------------------------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 500 12px/1 var(--mono);
+  padding: 6px 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); }
+.dot.live { background: var(--ok); }
+.dot.mock { background: var(--warn); }
+.dot.error { background: #c0392b; }
+
+/* ---- Typography ----------------------------------------------------------- */
+h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 6px; }
+h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
+.lede { color: var(--text-dim); margin: 0 0 24px; max-width: 62ch; }
+code {
+  font: 13px/1.4 var(--mono);
+  background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
+}
+
+/* ---- Cards / panels ------------------------------------------------------- */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+}
+.card + .card { margin-top: 12px; }
+.muted { color: var(--text-dim); font-size: 13px; }
+
+/* ---- Forms ---------------------------------------------------------------- */
+.composer { display: flex; gap: 8px; align-items: flex-end; }
+textarea, input[type="text"] {
+  flex: 1; width: 100%; resize: vertical;
+  font: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 11px 13px;
+}
+textarea:focus, input[type="text"]:focus {
+  outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent;
+}
+button {
+  font: 500 14px/1 inherit; cursor: pointer;
+  background: var(--accent); color: #fff; border: 0;
+  border-radius: var(--radius); padding: 12px 18px;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+button.ghost:hover:not(:disabled) { color: var(--text); }
+
+/* ---- Chat ----------------------------------------------------------------- */
+.thread { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.msg { display: flex; gap: 12px; }
+.msg .who {
+  flex: none; width: 62px; padding-top: 2px;
+  font: 600 11px/1.4 var(--mono); text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-dim);
+}
+.msg .body { flex: 1; white-space: pre-wrap; word-break: break-word; min-width: 0; }
+.msg.user .body { color: var(--text); }
+.msg.assistant .body { color: var(--text); }
+.caret {
+  display: inline-block; width: 7px; height: 15px; vertical-align: -2px;
+  background: var(--accent); animation: blink 1s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---- Results -------------------------------------------------------------- */
+.hit { border-left: 3px solid var(--border); padding: 2px 0 2px 14px; margin-bottom: 18px; }
+.hit.top { border-left-color: var(--accent); }
+.hit-head {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  font: 500 12px/1.4 var(--mono); color: var(--text-dim); margin-bottom: 6px;
+}
+.score {
+  font-weight: 700; color: var(--accent);
+  background: var(--accent-soft); padding: 2px 7px; border-radius: 5px;
+}
+.hit-text { font-size: 14px; white-space: pre-wrap; color: var(--text); }
+
+.bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+
+/* ---- Misc ----------------------------------------------------------------- */
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 0; }
+.chip {
+  font-size: 13px; padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.chip:hover { color: var(--text); border-color: var(--accent); }
+.error-box {
+  border: 1px solid #c0392b; background: #c0392b12; color: #c0392b;
+  border-radius: var(--radius); padding: 12px 14px; font-size: 14px; margin: 12px 0;
+}
+.stats { font: 12px/1.6 var(--mono); color: var(--text-dim); }
+table.meta { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.meta td { padding: 6px 0; border-bottom: 1px solid var(--border); }
+table.meta td:first-child { color: var(--text-dim); width: 42%; }

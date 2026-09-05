@@ -1,0 +1,45 @@
+==============================================================================
+STAGE 4 · SCORE EVERY CHUNK
+==============================================================================
+
+Cosine similarity between the question vector and every chunk vector, sorted. Both vectors are unit length, so cosine is just the dot product.
+
+chunks scored   33
+time            1 ms
+hand-checked #1 0.112938   <- recomputed outside the search code
+
+rank  score     source > heading                                    shared words
+--------------------------------------------------------------------------------------------------------------
+1     0.1129    02-order-service > API                              authenticat order api use
+2     0.0807    06-incident-runbook > Orders stuck in `validated`   order
+3     0.0697    02-order-service > Known issues                     order use
+4     0.0672    03-integration-bus > Partner authentication         authenticat use
+5     0.0615    01-systems-overview > Technology constraints        use
+6     0.0515    05-database-and-migrations > Conventions            use
+7     0.0428    01-systems-overview > The system landscape          order api
+8     0.0375    02-order-service > Purpose                          order
+9     0.0277    05-database-and-migrations > Large table changes    order use
+10    0.0252    04-import-routines > Schedule                       api
+11    0.0241    02-order-service > Order states                     order
+12    0.0221    02-order-service > Rate limits and timeouts         order
+13    0.0186    04-import-routines > Common failure causes          order
+14    0.0160    05-database-and-migrations > Migration policy       use
+15    0.0151    05-database-and-migrations > Connection handling    use
+16    0.0118    04-import-routines > Encoding problems              order
+17    0.0115    06-incident-runbook > Severity levels               order
+18    0.0108    03-integration-bus > Message shape                  order
+19    0.0102    01-systems-overview > Ownership and on-call         order
+20    0.0000    01-systems-overview > Systems Overview              
+21    0.0000    01-systems-overview > Environments                  
+22    0.0000    03-integration-bus > What it does                   
+23    0.0000    03-integration-bus > Delivery guarantees            
+24    0.0000    03-integration-bus > Retry policy                   
+25    0.0000    03-integration-bus > Throughput                     
+26    0.0000    04-import-routines > Overview                       
+27    0.0000    04-import-routines > The staging pattern            
+28    0.0000    04-import-routines > Idempotency                    
+29    0.0000    05-database-and-migrations > Backups                
+30    0.0000    06-incident-runbook > Bus queue depth alarm         
+31    0.0000    06-incident-runbook > Import did not run            
+32    0.0000    06-incident-runbook > Certificate expiry            
+33    0.0000    06-incident-runbook > Escalation                    

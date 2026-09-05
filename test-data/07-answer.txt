@@ -1,0 +1,14 @@
+==============================================================================
+STAGE 7 · THE ANSWER
+==============================================================================
+
+provider   mock
+generation 1571 ms
+
+Based on the retrieved documents:
+
+- Authentication uses a service token in the `Authorization: Bearer` header; [S1]
+- The API is versioned in the path. [S1]
+- The service exposes a REST API at `https://orders.internal.nordvik.no/v2`. [S1]
+
+(Offline mock provider: these sentences were selected by weighted word overlap, not written by a language model. Set NUXT_AI_PROVIDER=openai or =ollama in .env for a real, synthesised answer.)

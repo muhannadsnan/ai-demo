@@ -1,0 +1,48 @@
+==============================================================================
+STAGE 3 · THE QUESTION BECOMES NUMBERS — the same way
+==============================================================================
+
+question  "What authentication does the order API use?"
+
+unigrams after stemming (4):
+  authenticat order api use
+
+all tokens incl. bigrams (7):
+  authenticat order api use authenticat_order order_api api_use
+
+THE VECTOR
+------------------------------------------------------------------------------
+dimensions             4096
+non-zero slots            7   (0.17% of the vector)
+zero slots             4089
+L2 magnitude              1   <- normalised to 1, so cosine == dot product
+distinct tokens           7
+hash collisions           0   (two tokens sharing one slot)
+slot map verified      true   <- every token's slot is non-zero in the real vector
+
+TOKEN -> SLOT -> VALUE
+  slot = hash(token) % 4096. No vocabulary file, no lookup table.
+
+  token                         slot    value at that slot
+  ------------------------------------------------------------
+  authenticat_order             1106    0.471752
+  order_api                     2024    0.471752
+  api_use                       1211    -0.471752
+  authenticat                   1121    -0.357251
+  api                           2695    -0.327268
+  use                           1268    0.24275
+  order                         151     -0.196701
+
+NON-ZERO SLOTS (all)
+
+  [  151] = -0.196701
+  [ 1106] = 0.471752
+  [ 1121] = -0.357251
+  [ 1211] = -0.471752
+  [ 1268] = 0.24275
+  [ 2024] = 0.471752
+  [ 2695] = -0.327268
+
+Note how few slots are filled compared with a document chunk. A short
+question is a very sparse vector — which is exactly why a chunk that
+happens to share a few rare words scores well.

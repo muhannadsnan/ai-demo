@@ -1,0 +1,18 @@
+==============================================================================
+STAGE 5 · IS ANY OF IT GOOD ENOUGH?
+==============================================================================
+
+Cosine ranking always returns something. These two floors decide whether any of it is actually worth sending to the model.
+
+top score          0.1129
+absolute floor     0.07
+relative floor     0.45 x topScore
+effective cutoff   0.07   <- max of the two
+
+KEPT (2) — these go into the prompt
+  [S1] 0.1129  02-order-service.md > API
+  [S2] 0.0807  06-incident-runbook.md > Orders stuck in `validated`
+
+DROPPED (2) — retrieved, then discarded as too weak
+        0.0697  02-order-service.md > Known issues
+        0.0672  03-integration-bus.md > Partner authentication

@@ -1,0 +1,45 @@
+==============================================================================
+STAGE 4 · SCORE EVERY CHUNK
+==============================================================================
+
+Cosine similarity between the question vector and every chunk vector, sorted. Both vectors are unit length, so cosine is just the dot product.
+
+chunks scored   33
+time            0 ms
+hand-checked #1 0.069188   <- recomputed outside the search code
+
+rank  score     source > heading                                    shared words
+--------------------------------------------------------------------------------------------------------------
+1     0.0692    03-integration-bus > Retry policy                   message after fail
+2     0.0522    05-database-and-migrations > Large table changes    message five
+3     0.0490    04-import-routines > The staging pattern            fail
+4     0.0410    02-order-service > API                              after
+5     0.0388    06-incident-runbook > Escalation                    
+6     0.0370    06-incident-runbook > Orders stuck in `validated`   
+7     0.0362    04-import-routines > Schedule                       
+8     0.0352    01-systems-overview > Environments                  happen
+9     0.0329    03-integration-bus > Message shape                  message
+10    0.0329    02-order-service > Order states                     after
+11    0.0284    05-database-and-migrations > Backups                time
+12    0.0261    01-systems-overview > The system landscape          message five
+13    0.0252    02-order-service > Purpose                          after
+14    0.0245    06-incident-runbook > Certificate expiry            five
+15    0.0238    03-integration-bus > Partner authentication         time
+16    0.0213    03-integration-bus > Throughput                     message
+17    0.0209    02-order-service > Rate limits and timeouts         after
+18    0.0173    03-integration-bus > What it does                   message
+19    0.0157    06-incident-runbook > Import did not run            fail
+20    0.0157    03-integration-bus > Delivery guarantees            message
+21    0.0151    04-import-routines > Encoding problems              fail
+22    0.0147    06-incident-runbook > Severity levels               fail
+23    0.0141    04-import-routines > Common failure causes          fail
+24    0.0137    01-systems-overview > Technology constraints        message
+25    0.0131    06-incident-runbook > Bus queue depth alarm         fail
+26    0.0000    01-systems-overview > Systems Overview              
+27    0.0000    01-systems-overview > Ownership and on-call         
+28    0.0000    02-order-service > Known issues                     
+29    0.0000    04-import-routines > Overview                       
+30    0.0000    04-import-routines > Idempotency                    
+31    0.0000    05-database-and-migrations > Conventions            
+32    0.0000    05-database-and-migrations > Migration policy       
+33    0.0000    05-database-and-migrations > Connection handling    

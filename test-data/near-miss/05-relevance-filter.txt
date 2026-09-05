@@ -1,0 +1,18 @@
+==============================================================================
+STAGE 5 · IS ANY OF IT GOOD ENOUGH?
+==============================================================================
+
+Cosine ranking always returns something. These two floors decide whether any of it is actually worth sending to the model.
+
+top score          0.0692
+absolute floor     0.07
+relative floor     0.45 x topScore
+effective cutoff   0.07   <- max of the two
+
+KEPT (0) — these go into the prompt
+
+DROPPED (4) — retrieved, then discarded as too weak
+        0.0692  03-integration-bus.md > Retry policy
+        0.0522  05-database-and-migrations.md > Large table changes
+        0.0490  04-import-routines.md > The staging pattern
+        0.0410  02-order-service.md > API

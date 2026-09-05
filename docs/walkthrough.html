@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your First AI Integration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+* { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+  /* ---- Tokens: complete light palette on bare :root ---------------------- */
+  :root {
+    --paper:    #f4f4f1;
+    --surface:  #ffffff;
+    --sunk:     #eceeea;
+    --ink:      #14181b;
+    --muted:    #5b666b;
+    --faint:    #8b959a;
+    --rule:     #dcdfda;
+    --rule-firm:#c3c8c1;
+    --accent:   #0d6b6b;
+    --accent-bg:#e4f0ee;
+    --measure:  #45568a;
+    --good:     #2c6a44;
+    --warn:     #8a5a12;
+
+    --f-display: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+    --f-body:    "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --col: 40rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:    #0f1214;
+      --surface:  #171b1e;
+      --sunk:     #1d2225;
+      --ink:      #e3e8e7;
+      --muted:    #98a2a5;
+      --faint:    #6d777a;
+      --rule:     #2a3134;
+      --rule-firm:#3c4448;
+      --accent:   #48b5ad;
+      --accent-bg:#152927;
+      --measure:  #8b9bcd;
+      --good:     #6bbd8b;
+      --warn:     #c99a46;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:    #0f1214;
+    --surface:  #171b1e;
+    --sunk:     #1d2225;
+    --ink:      #e3e8e7;
+    --muted:    #98a2a5;
+    --faint:    #6d777a;
+    --rule:     #2a3134;
+    --rule-firm:#3c4448;
+    --accent:   #48b5ad;
+    --accent-bg:#152927;
+    --measure:  #8b9bcd;
+    --good:     #6bbd8b;
+    --warn:     #c99a46;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Shell ------------------------------------------------------------- */
+  .wrap {
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: 0 1.75rem 6rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 3rem;
+  }
+  .col { max-width: 54rem; width: 100%; }
+  main { display: flex; flex-direction: column; gap: 3.25rem; }
+
+  /* ---- Masthead ---------------------------------------------------------- */
+  .masthead {
+    border-bottom: 1px solid var(--rule-firm);
+    padding: 3.5rem 0 2rem;
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.1rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.1rem;
+    max-width: 22ch;
+  }
+  .standfirst {
+    font-size: 1.075rem;
+    color: var(--muted);
+    max-width: 54ch;
+    margin: 0;
+  }
+
+  /* ---- Status strip ------------------------------------------------------ */
+  .strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-top: 2.25rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .strip div {
+    flex: 1 1 9rem;
+    padding: 0.7rem 0.9rem;
+    border-right: 1px solid var(--rule);
+  }
+  .strip div:last-child { border-right: 0; }
+  .strip dt {
+    font-family: var(--f-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 0.2rem;
+  }
+  .strip dd {
+    margin: 0;
+    font-family: var(--f-mono);
+    font-size: 0.83rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Rail -------------------------------------------------------------- */
+  .rail { display: none; }
+  .rail nav {
+    position: sticky;
+    top: 2rem;
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-top: 0.4rem;
+  }
+  .rail a {
+    color: var(--muted);
+    text-decoration: none;
+    display: flex;
+    gap: 0.55rem;
+    border-left: 2px solid var(--rule);
+    padding-left: 0.7rem;
+  }
+  .rail a:hover, .rail a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+  .rail a span { color: var(--faint); }
+
+  /* ---- Sections ---------------------------------------------------------- */
+  section { scroll-margin-top: 2rem; }
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+    letter-spacing: -0.012em;
+    line-height: 1.25;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+  }
+  h2 .num {
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    flex: none;
+  }
+  h3 {
+    font-family: var(--f-body);
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.005em;
+    margin: 1.9rem 0 0.4rem;
+  }
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0.9rem; }
+  section p, section ul, section ol, section h2, section h3 { max-width: var(--col); }
+
+  ul, ol { margin: 0 0 1rem; padding-left: 1.15rem; }
+  li { margin-bottom: 0.4rem; }
+  li::marker { color: var(--faint); }
+
+  strong { font-weight: 600; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.855em;
+    background: var(--sunk);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+
+  /* ---- Callouts ---------------------------------------------------------- */
+  .note {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 1rem 1.15rem;
+    border-radius: 0 3px 3px 0;
+    margin: 1.4rem 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    font-family: var(--f-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+  .note.flag { border-left-color: var(--warn); }
+  .note.flag .tag { color: var(--warn); }
+
+  /* ---- Figures ----------------------------------------------------------- */
+  figure {
+    margin: 2rem 0;
+    max-width: 54rem;
+  }
+  figure .frame {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 1.25rem 1rem;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; height: auto; min-width: 30rem; color: var(--ink); }
+  /* SVG presentation attributes can't read CSS custom properties, so the accent
+     marks carry a class and take their colour from the token here — which keeps
+     the diagrams legible in both themes. */
+  figure svg .ac-f  { fill: var(--accent); }
+  figure svg .ac-s  { stroke: var(--accent); }
+  figure svg .ac-fs { fill: var(--accent); stroke: var(--accent); }
+  figcaption {
+    font-size: 0.83rem;
+    color: var(--muted);
+    margin-top: 0.7rem;
+    max-width: 60ch;
+  }
+
+  /* ---- Tables ------------------------------------------------------------ */
+  .tablewrap { overflow-x: auto; margin: 1.4rem 0; max-width: 54rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.9rem 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--f-mono);
+    font-weight: 500;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    border-bottom-color: var(--rule-firm);
+    white-space: nowrap;
+  }
+  td.mono, th.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+  /* ---- Score readout ----------------------------------------------------- */
+  .scores { margin: 1.4rem 0; max-width: 54rem; display: flex; flex-direction: column; }
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr 3.2rem 7rem;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0.42rem 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.845rem;
+  }
+  .score-row .q { color: var(--ink); }
+  .score-row .v {
+    font-family: var(--f-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+    text-align: right;
+    color: var(--muted);
+  }
+  .track { height: 6px; background: var(--sunk); border-radius: 1px; position: relative; }
+  .track i { display: block; height: 100%; background: var(--measure); border-radius: 1px; }
+  .track.noise i { background: var(--faint); }
+  .legend {
+    display: flex; gap: 1.25rem; flex-wrap: wrap;
+    font-family: var(--f-mono); font-size: 0.7rem; color: var(--muted);
+    margin-top: 0.8rem;
+  }
+  .legend b { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 1px; margin-right: 0.4rem; vertical-align: -1px; }
+
+  /* ---- Terminal block ---------------------------------------------------- */
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.79rem;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.95rem 1.1rem;
+    overflow-x: auto;
+    margin: 1.3rem 0;
+    max-width: 54rem;
+  }
+  pre .c { color: var(--faint); }
+  pre .k { color: var(--accent); }
+
+  /* ---- Verified list ----------------------------------------------------- */
+  .checks { list-style: none; padding: 0; margin: 1.3rem 0; max-width: 54rem; }
+  .checks li {
+    display: grid;
+    grid-template-columns: 1.4rem 1fr;
+    gap: 0.55rem;
+    padding: 0.42rem 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  .checks li .m { color: var(--good); font-family: var(--f-mono); font-size: 0.9rem; }
+  .checks li .d { font-family: var(--f-mono); font-size: 0.79rem; color: var(--muted); display: block; }
+
+  /* ---- File map ---------------------------------------------------------- */
+  .filemap {
+    font-family: var(--f-mono);
+    font-size: 0.775rem;
+    line-height: 1.9;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    max-width: 54rem;
+    margin: 1.3rem 0;
+  }
+  .filemap .p { color: var(--ink); }
+  .filemap .g { color: var(--faint); }
+  .filemap .h { color: var(--accent); }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule-firm);
+    font-family: var(--f-mono);
+    font-size: 0.72rem;
+    color: var(--faint);
+    max-width: 54rem;
+  }
+
+  /* Wide viewports: the TOC rail appears and the reading column takes the rest.
+     This block must come after the base rules it overrides — `.rail { display: none }`
+     is declared later in the sheet at equal specificity and would otherwise win. */
+  @media (min-width: 1080px) {
+    .wrap { grid-template-columns: 12rem minmax(0, 1fr); }
+    .rail { display: block; }
+    .masthead { grid-column: 1 / -1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Nuxt 4 · Vue 3 · no vendor SDK</p>
+    <h1>Your first AI integration</h1>
+    <p class="standfirst">
+      A working demo in <code>/home/msn/ai-demo</code>, plus the reasoning behind every
+      part of it. Two features — streaming chat, and search over your own documents —
+      built the way you would build them in a product, not the way tutorials build them.
+    </p>
+    <dl class="strip">
+      <div><dt>Runs today</dt><dd>no API key</dd></div>
+      <div><dt>Retrieval</dt><dd>12 / 12 top-1</dd></div>
+      <div><dt>Corpus</dt><dd>6 docs · 33 chunks</dd></div>
+      <div><dt>Prod build</dt><dd>passing</dd></div>
+      <div><dt>Browser errors</dt><dd>none</dd></div>
+    </dl>
+  </header>
+
+  <div class="rail">
+    <nav>
+      <a href="#stand"><span>01</span> Where you stand</a>
+      <a href="#rule"><span>02</span> The one rule</a>
+      <a href="#chat"><span>03</span> Demo · chat</a>
+      <a href="#search"><span>04</span> Demo · search</a>
+      <a href="#numbers"><span>05</span> The numbers</a>
+      <a href="#switch"><span>06</span> Switching backends</a>
+      <a href="#repo"><span>07</span> What's in the repo</a>
+      <a href="#verified"><span>08</span> Verified</a>
+      <a href="#next"><span>09</span> Where next</a>
+    </nav>
+  </div>
+
+  <main class="col">
+
+    <!-- ================================================================== -->
+    <section id="stand">
+      <h2><span class="num">01</span> Where you actually stand</h2>
+      <p>
+        I checked this machine for an OpenAI key before building anything. The short
+        answer: <strong>you still do not have one.</strong>
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Checked</th><th>Result</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Environment variables</td><td class="mono">nothing</td></tr>
+            <tr><td><code>.bashrc</code>, <code>.profile</code>, <code>.zshrc</code>, fish config</td><td class="mono">nothing</td></tr>
+            <tr><td><code>.env</code> files under your home</td><td class="mono">none exist</td></tr>
+            <tr><td><code>~/.config/openai</code>, <code>~/.anthropic</code></td><td class="mono">absent</td></tr>
+            <tr><td>Ollama on <code>:11434</code></td><td class="mono">not installed</td></tr>
+            <tr><td>Outbound to <code>api.openai.com</code></td><td class="mono">reachable — HTTP 401</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        That last row is the useful one. Your network reaches the vendor fine; the 401 is
+        simply "no credential presented". Nothing is blocked at the firewall. The only
+        missing piece is the key itself, which is a conversation with your company rather
+        than an engineering problem.
+      </p>
+      <div class="note">
+        <span class="tag">So the demo does not wait for it</span>
+        <p>
+          The project ships with an <strong>offline provider</strong> as the default. It fakes the
+          language model and nothing else — the routing, validation, streaming, chunking,
+          embedding and ranking are all genuine. You can read, run and understand the entire
+          integration today, and switching to a real backend later is one line in <code>.env</code>
+          with <em>zero</em> application code changes.
+        </p>
+      </div>
+      <p>
+        And if you want a real model this week without waiting on anyone: install
+        <a href="https://ollama.com">Ollama</a>, pull <code>llama3.2</code>, set
+        <code>NUXT_AI_PROVIDER=ollama</code>. Free, local, private, and it exercises exactly the
+        same code path the paid vendor will.
+      </p>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="rule">
+      <h2><span class="num">02</span> The one rule worth memorising</h2>
+      <p>
+        Every AI feature you ever build should have this shape. The browser talks to your
+        server; only your server talks to the model vendor.
+      </p>
+
+      <figure>
+        <div class="frame">
+          <svg viewBox="0 0 900 300" role="img" aria-label="The browser posts to your server, which holds the API key and calls the model vendor; tokens stream back the same way. The key never crosses into the browser.">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+              <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="ac-f" d="M 0 0 L 10 5 L 0 10 z" fill="#0d6b6b"/>
+              </marker>
+            </defs>
+
+            <!-- trust boundaries -->
+            <line x1="250" y1="26" x2="250" y2="278" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5" opacity="0.35"/>
+            <line x1="620" y1="26" x2="620" y2="278" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5" opacity="0.35"/>
+            <text x="250" y="18" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.5">trust boundary</text>
+            <text x="620" y="18" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.5">trust boundary</text>
+
+            <!-- zone labels -->
+            <text x="20" y="48" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="currentColor" opacity="0.55">BROWSER</text>
+            <text class="ac-f" x="290" y="48" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="#0d6b6b">YOUR SERVER</text>
+            <text x="660" y="48" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="currentColor" opacity="0.55">MODEL VENDOR</text>
+
+            <!-- boxes -->
+            <rect x="20" y="62" width="190" height="58" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="115" y="88" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">Vue page</text>
+            <text x="115" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">chat.vue</text>
+
+            <rect class="ac-s" x="290" y="62" width="200" height="58" rx="3" fill="none" stroke="#0d6b6b" stroke-width="1.75"/>
+            <text x="390" y="88" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">Nitro route</text>
+            <text x="390" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">api/chat.post.ts</text>
+
+            <rect x="660" y="62" width="220" height="58" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="770" y="88" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">/v1/chat/completions</text>
+            <text x="770" y="106" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">OpenAI · Ollama · mock</text>
+
+            <!-- forward arrows -->
+            <line x1="212" y1="80" x2="286" y2="80" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar)"/>
+            <text x="249" y="72" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.75">messages[]</text>
+
+            <line class="ac-s" x1="492" y1="80" x2="656" y2="80" stroke="#0d6b6b" stroke-width="1.5" marker-end="url(#arA)"/>
+            <text class="ac-f" x="574" y="72" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#0d6b6b">Authorization: Bearer</text>
+
+            <!-- return arrows -->
+            <line x1="656" y1="104" x2="494" y2="104" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar)"/>
+            <text x="574" y="118" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.75">SSE deltas</text>
+
+            <line x1="286" y1="104" x2="214" y2="104" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar)"/>
+            <text x="249" y="118" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.75">SSE deltas</text>
+
+            <!-- what lives where -->
+            <text x="20" y="164" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.55">no key</text>
+            <text x="20" y="182" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.55">no vendor URL</text>
+            <text x="20" y="200" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.55">no system prompt</text>
+
+            <rect class="ac-f" x="290" y="146" width="200" height="112" rx="3" fill="#0d6b6b" opacity="0.07"/>
+            <text class="ac-f" x="304" y="166" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0d6b6b">API key</text>
+            <text class="ac-f" x="304" y="184" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0d6b6b">rate limits</text>
+            <text class="ac-f" x="304" y="202" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0d6b6b">input validation</text>
+            <text class="ac-f" x="304" y="220" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0d6b6b">system prompt</text>
+            <text class="ac-f" x="304" y="238" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0d6b6b">cost logging</text>
+
+            <text x="660" y="164" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.55">never sees your users</text>
+            <text x="660" y="182" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.55">swappable by config</text>
+
+            <text x="20" y="288" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.45">Everything in the shaded column exists only because you own the middle box.</text>
+          </svg>
+        </div>
+        <figcaption>
+          The key lives in exactly one place. A leaked LLM key is a metered credential on a
+          company card — scrapers find published ones within hours, which is why "just call
+          the API from the frontend" is never the shortcut it looks like.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="chat">
+      <h2><span class="num">03</span> Demo one · streaming chat</h2>
+      <p>
+        The smallest complete AI feature. Underneath the vocabulary, a chat model is one
+        HTTP endpoint that takes a list of messages and returns another message:
+      </p>
+      <pre><span class="k">POST</span> https://api.openai.com/v1/chat/completions
+Authorization: Bearer sk-...
+
+{
+  "model": "gpt-4o-mini",
+  "messages": [
+    { "role": "system",    "content": "You are a helpful assistant." },
+    { "role": "user",      "content": "What is an embedding?" }
+  ],
+  "temperature": 0.3,
+  "max_tokens": 800,
+  "stream": true
+}</pre>
+      <p>
+        That is the entire API you were blocked from two years ago. The demo calls it with
+        plain <code>fetch</code> and no SDK — deliberately, because the transferable knowledge
+        is the HTTP contract, and that is what you will re-implement in CodeIgniter with cURL.
+      </p>
+
+      <h3>Three things that surprise everyone</h3>
+      <p>
+        <strong>The model has no memory.</strong> It is a pure function of the messages you
+        send. A conversation feels continuous only because the client resends the whole
+        history every turn. Which means turn 20 pays for turns 1–19 again — cost grows
+        quadratically with conversation length, and trimming that history is <em>your</em>
+        decision, not the vendor's.
+      </p>
+      <p>
+        <strong>The system prompt must come from your server.</strong> The demo rejects any
+        <code>system</code> message sent by the browser. If the client can set it, the client
+        can replace your instructions with anything. Treat it exactly like a price field in
+        a shopping cart.
+      </p>
+      <p>
+        <strong>Streaming breaks in a specific way.</strong> TCP splits wherever it likes, so
+        a chunk can end mid-JSON. Both the server parser and the browser parser keep a buffer
+        and only process up to the last complete boundary. Skip that and it works perfectly
+        on localhost, then corrupts intermittently in production — the worst failure mode
+        there is.
+      </p>
+      <div class="note flag">
+        <span class="tag">And one that costs money</span>
+        <p>
+          If the user closes the tab, generation continues and you keep paying for tokens
+          nobody will read. <code>chat.post.ts</code> listens for <code>req.on('close')</code>
+          and aborts. Four lines; do not skip them.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="search">
+      <h2><span class="num">04</span> Demo two · search over your own documents</h2>
+      <p>
+        You asked what the "todo list app" of AI search is. This is it:
+        <strong>retrieval-augmented generation</strong> over documents you own — usually sold
+        as "chat with your docs". Nearly every AI product with a search box is an elaboration
+        of it.
+      </p>
+      <p>
+        The problem it solves: the model has never seen your internal handbook. Ask it about
+        your Integration Bus retry policy and it will either say it does not know, or produce
+        a fluent, confident, entirely invented answer. The fix is not to retrain it. The fix
+        is to find the relevant passages yourself and paste them into the prompt.
+      </p>
+
+      <figure>
+        <div class="frame">
+          <svg viewBox="0 0 900 430" role="img" aria-label="Indexing chunks documents and embeds them into vectors. A query is embedded with the same model, compared by cosine similarity against the index, filtered to the top passages, and only then sent to the language model. Everything before that last step involves no language model.">
+            <defs>
+              <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+              <marker id="ar2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="ac-f" d="M 0 0 L 10 5 L 0 10 z" fill="#0d6b6b"/>
+              </marker>
+            </defs>
+
+            <!-- lane labels -->
+            <text x="20" y="34" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="currentColor" opacity="0.5">INDEX · ONCE, AHEAD OF TIME</text>
+            <text x="20" y="184" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="currentColor" opacity="0.5">QUERY · PER REQUEST</text>
+
+            <!-- ROW 1 -->
+            <rect x="20" y="48" width="150" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="95" y="72" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">knowledge/*.md</text>
+            <text x="95" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.55">6 documents</text>
+
+            <line x1="172" y1="74" x2="246" y2="74" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+            <text x="209" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.7">by heading</text>
+
+            <rect x="250" y="48" width="120" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="310" y="72" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">33 chunks</text>
+            <text x="310" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.55">~900 chars</text>
+
+            <line x1="372" y1="74" x2="446" y2="74" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+
+            <rect class="ac-fs" x="450" y="48" width="110" height="52" rx="3" fill="#0d6b6b" fill-opacity="0.08" stroke="#0d6b6b" stroke-width="1.5"/>
+            <text class="ac-f" x="505" y="79" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#0d6b6b">embed</text>
+
+            <line x1="562" y1="74" x2="636" y2="74" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+            <text x="599" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.7">1 batch call</text>
+
+            <rect x="640" y="48" width="150" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="715" y="72" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">33 vectors</text>
+            <text x="715" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.55">the index</text>
+
+            <!-- vertical connectors -->
+            <line class="ac-s" x1="505" y1="102" x2="505" y2="194" stroke="#0d6b6b" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ar2a)"/>
+            <text class="ac-f" x="493" y="152" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="#0d6b6b">must be the same model</text>
+
+            <line x1="715" y1="102" x2="715" y2="194" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+            <text x="727" y="152" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">compared against</text>
+
+            <!-- ROW 2 -->
+            <rect x="240" y="196" width="130" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="305" y="227" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">your question</text>
+
+            <line x1="372" y1="222" x2="446" y2="222" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+
+            <rect class="ac-fs" x="450" y="196" width="110" height="52" rx="3" fill="#0d6b6b" fill-opacity="0.08" stroke="#0d6b6b" stroke-width="1.5"/>
+            <text class="ac-f" x="505" y="227" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#0d6b6b">embed</text>
+
+            <line x1="562" y1="222" x2="636" y2="222" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+
+            <rect x="640" y="196" width="150" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="715" y="220" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">cosine rank</text>
+            <text x="715" y="236" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.55">sort, take top 4</text>
+
+            <!-- elbow down to row 3 -->
+            <polyline points="715,250 715,278 95,278 95,318" fill="none" stroke="currentColor" stroke-width="1.25" marker-end="url(#ar2)"/>
+            <text x="405" y="270" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.7">drop anything below the relevance floor</text>
+
+            <!-- divider -->
+            <line x1="20" y1="300" x2="880" y2="300" stroke="currentColor" stroke-width="1" stroke-dasharray="2 4" opacity="0.3"/>
+            <text x="880" y="294" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.5">above this line: no language model anywhere</text>
+
+            <!-- ROW 3 -->
+            <rect x="20" y="320" width="150" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.75"/>
+            <text x="95" y="344" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">1–3 passages</text>
+            <text x="95" y="360" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.55">[S1] [S2] [S3]</text>
+
+            <line class="ac-s" x1="172" y1="346" x2="446" y2="346" stroke="#0d6b6b" stroke-width="1.5" marker-end="url(#ar2a)"/>
+            <text class="ac-f" x="309" y="338" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#0d6b6b">pasted into the prompt as &lt;context&gt;</text>
+
+            <rect class="ac-fs" x="450" y="320" width="340" height="52" rx="3" fill="#0d6b6b" fill-opacity="0.08" stroke="#0d6b6b" stroke-width="1.75"/>
+            <text class="ac-f" x="620" y="344" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#0d6b6b">the only language-model call</text>
+            <text class="ac-f" x="620" y="360" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#0d6b6b">answer, grounded, cited [S1]</text>
+
+            <text x="20" y="406" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.45">If the right passage is not retrieved, no model on earth rescues the answer.</text>
+          </svg>
+        </div>
+        <figcaption>
+          The whole pipeline. Note how much of it is ordinary search engineering — chunking,
+          batching, ranking, thresholding — and how late the language model actually enters.
+          The dashed link is the constraint that bites hardest in practice: vectors from two
+          different models live in incompatible spaces, and comparing them yields confident
+          nonsense rather than an error.
+        </figcaption>
+      </figure>
+
+      <h3>Why retrieval and not fine-tuning</h3>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th></th><th>Fine-tuning</th><th>Retrieval (RAG)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>What it changes</td><td>the model's weights</td><td>the prompt</td></tr>
+            <tr><td>Updating one fact</td><td>retrain</td><td>edit the file, re-index</td></tr>
+            <tr><td>Can cite sources</td><td>no</td><td><strong>yes</strong></td></tr>
+            <tr><td>Skills needed</td><td>ML engineering</td><td>backend engineering</td></tr>
+            <tr><td>Good at teaching</td><td>style, format, behaviour</td><td>facts</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        For "answer questions about our documents", retrieval wins on every row that matters.
+        Fine-tuning is for when you need a model to consistently <em>behave</em> a certain
+        way, not when you need it to <em>know</em> something.
+      </p>
+
+      <h3>Chunking is where quality is won or lost</h3>
+      <p>
+        Why not embed a whole document? Because one vector then has to represent everything
+        the document says, and ends up representing nothing in particular. Too large and the
+        relevant sentence is diluted; too small and the answer splits across two chunks so
+        neither looks relevant on its own. The demo splits on the document's own headings
+        first, then caps at ~900 characters with a small overlap.
+      </p>
+      <p>
+        One trick worth stealing: each chunk's embedded text is prefixed with
+        <code>DocTitle &gt; Heading</code>. The heading words end up inside the vector, so a
+        chunk under <code>## Retry policy</code> is findable by the word "retry" even when its
+        body never repeats it.
+      </p>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="numbers">
+      <h2><span class="num">05</span> The numbers, and why you must measure them</h2>
+      <p>
+        Cosine ranking always returns your top K — even when nothing in the corpus is
+        relevant. It has no concept of "no good answer". Skip that check and an off-topic
+        question quietly gets answered from the three least-irrelevant passages,
+        <em>complete with citations</em>. That is how a RAG system starts inventing things
+        while looking rigorous.
+      </p>
+      <p>
+        So the demo ships an evaluation suite: twelve golden question → expected-document
+        pairs, plus deliberately unanswerable questions to establish the noise floor.
+        Here is the real output of <code>npm run eval</code> on this machine:
+      </p>
+
+      <div class="scores">
+        <div class="score-row"><span class="q">Failed message retry count</span><span class="v">0.176</span><span class="track"><i style="width:48%"></i></span></div>
+        <div class="score-row"><span class="q">Import reject threshold</span><span class="v">0.091</span><span class="track"><i style="width:25%"></i></span></div>
+        <div class="score-row"><span class="q">Tables that must not be altered</span><span class="v">0.220</span><span class="track"><i style="width:60%"></i></span></div>
+        <div class="score-row"><span class="q">Orders stuck after validation</span><span class="v">0.193</span><span class="track"><i style="width:53%"></i></span></div>
+        <div class="score-row"><span class="q">Partner certificate expiry</span><span class="v">0.364</span><span class="track"><i style="width:100%"></i></span></div>
+        <div class="score-row"><span class="q">Order API authentication</span><span class="v">0.113</span><span class="track"><i style="width:31%"></i></span></div>
+        <div class="score-row"><span class="q" style="color:var(--muted)">Sourdough bread recipe</span><span class="v">0.046</span><span class="track noise"><i style="width:13%"></i></span></div>
+        <div class="score-row"><span class="q" style="color:var(--muted)">How to tune a guitar</span><span class="v">0.061</span><span class="track noise"><i style="width:17%"></i></span></div>
+        <div class="score-row"><span class="q" style="color:var(--muted)">Photosynthesis in tropical plants</span><span class="v">0.064</span><span class="track noise"><i style="width:18%"></i></span></div>
+      </div>
+      <div class="legend">
+        <span><b style="background:var(--measure)"></b>answerable from the corpus</span>
+        <span><b style="background:var(--faint)"></b>not in the corpus — the noise floor</span>
+      </div>
+
+      <p style="margin-top:1.3rem">
+        Genuine matches land between <strong>0.09 and 0.36</strong>. Off-topic questions top out
+        at <strong>0.064</strong>. The relevance floor sits at <code>0.07</code>, in the gap —
+        and that gap is uncomfortably narrow. That narrowness is itself the lesson: it is a
+        fair picture of what a purely lexical embedder can do, and a real embedding model
+        separates the two far more cleanly. Which is most of what you are paying for.
+      </p>
+      <div class="note">
+        <span class="tag">The habit to form</span>
+        <p>
+          These constants are empirical and specific to this corpus and this embedder. Never
+          copy someone else's threshold. Re-measure whenever you change the model, the chunk
+          size or the documents — and put the eval in CI, because it already exits non-zero
+          on regression. Twelve golden questions will catch more real problems than any
+          amount of eyeballing.
+        </p>
+      </div>
+      <p>
+        The other metric on that report is <strong>recall@k</strong> — was the right passage
+        anywhere in the top K. It is the one that caps your quality, because a passage that
+        is never retrieved can never be cited, however good the model is.
+      </p>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="switch">
+      <h2><span class="num">06</span> Switching backends</h2>
+      <p>
+        One line in <code>.env</code>, restart, done. No application code changes — that is
+        the entire point of the provider abstraction in <code>server/utils/ai/</code>.
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th class="mono">NUXT_AI_PROVIDER</th><th>Needs</th><th>Cost</th><th>What you get</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">mock</td>
+              <td>nothing</td><td>free</td>
+              <td>Real retrieval and streaming; replies are extractive, not generated</td>
+            </tr>
+            <tr>
+              <td class="mono">ollama</td>
+              <td>Ollama installed</td><td>free</td>
+              <td>A real language model, running on your own machine</td>
+            </tr>
+            <tr>
+              <td class="mono">openai</td>
+              <td>an API key</td><td>paid</td>
+              <td>The real thing</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The test of whether the abstraction sits in the right place: the application code
+        above it cannot tell which implementation is running.
+        <code>chat.post.ts</code> and <code>ask.post.ts</code> contain no vendor names, no model
+        names, no URLs and no keys. Preserve that property and swapping vendors stays a
+        config change forever.
+      </p>
+      <p>
+        Misconfiguration is handled explicitly too. Set <code>openai</code> without a key and
+        every endpoint returns a <code>503</code> that names the exact variable to set, rather
+        than a bare "Server Error" — worth doing, because that is the error you will hit first.
+      </p>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="repo">
+      <h2><span class="num">07</span> What's in the repo</h2>
+      <div class="filemap">
+<span class="g">app/</span>                          <span class="g">Vue 3 front end</span>
+  <span class="p">pages/chat.vue</span>              <span class="g">demo 1 — streaming chat UI</span>
+  <span class="p">pages/search.vue</span>            <span class="g">demo 2 — retrieval + RAG UI</span>
+  <span class="p">composables/useAiStream.ts</span>  <span class="g">reading an SSE stream in the browser</span>
+
+<span class="h">server/</span>                       <span class="h">everything with an API key near it</span>
+  <span class="p">api/chat.post.ts</span>            <span class="g">streaming chat endpoint</span>
+  <span class="p">api/search.post.ts</span>          <span class="g">retrieval only — no language model</span>
+  <span class="p">api/ask.post.ts</span>             <span class="g">RAG: retrieve → augment → generate</span>
+  <span class="p">api/health.get.ts</span>           <span class="g">which backend is actually plugged in</span>
+  <span class="p">utils/ai/</span>                   <span class="g">provider abstraction (mock | openai | ollama)</span>
+  <span class="p">utils/rag/</span>                  <span class="g">chunking, vector maths, the index</span>
+  <span class="p">utils/guardrails.ts</span>         <span class="g">rate limiting and input validation</span>
+
+<span class="g">knowledge/</span>                    <span class="g">the corpus — swap in your own docs</span>
+<span class="g">scripts/eval-retrieval.mjs</span>    <span class="g">retrieval regression suite</span>
+<span class="g">docs/</span>                         <span class="g">six explainers, written for a first read</span>
+      </div>
+      <p>
+        The source files are commented for someone doing this for the first time — read them
+        alongside the running app. Of the six documents in <code>docs/</code>, the one most
+        specific to your situation is
+        <code>04-porting-this-to-codeigniter-mysql.md</code>: the same architecture as PHP 8
+        classes, a cURL client, a <code>BLOB</code> column of packed float32 vectors, and
+        cosine similarity as an ordinary loop. Nothing in this demo requires Node.
+      </p>
+      <div class="note">
+        <span class="tag">The bridge to what you already do</span>
+        <p>
+          An embedding pipeline is structurally identical to your partner file imports: fetch,
+          parse, chunk, batch, skip-if-hash-unchanged, promote in a transaction, log rejects
+          for retry. You have written that shape many times. The only new failure mode is a
+          vendor returning 429, which you handle exactly like a partner rate limit.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="verified">
+      <h2><span class="num">08</span> What I actually verified</h2>
+      <ul class="checks">
+        <li><span class="m">✓</span><span>Retrieval quality<span class="d">12/12 top-1, 12/12 recall@3 against the golden set</span></span></li>
+        <li><span class="m">✓</span><span>Chat streams incrementally in a real browser<span class="d">headless Chrome: reply grew 208 → 463 chars mid-stream</span></span></li>
+        <li><span class="m">✓</span><span>RAG answers cite the correct source<span class="d">"certificates expire in April" → [S1] 06-incident-runbook.md · 0.364</span></span></li>
+        <li><span class="m">✓</span><span>Off-topic questions are refused, not answered<span class="d">all three noise queries fall below the relevance floor</span></span></li>
+        <li><span class="m">✓</span><span>Production build passes and serves correctly<span class="d">index built from knowledge/ under .output as well as in dev</span></span></li>
+        <li><span class="m">✓</span><span>Misconfiguration returns an actionable 503<span class="d">provider=openai with no key names the missing variable</span></span></li>
+        <li><span class="m">✓</span><span>No console errors or hydration mismatches<span class="d">all three pages clean after adding explicit tbody</span></span></li>
+      </ul>
+      <p>
+        Two things I could not test on this machine and you should confirm yourself: the
+        <strong>OpenAI</strong> path needs a key, and the <strong>Ollama</strong> path needs
+        Ollama installed. Both are written against the documented wire formats, and both fail
+        with a specific, actionable message rather than a stack trace — but neither has been
+        run against a live endpoint.
+      </p>
+    </section>
+
+    <!-- ================================================================== -->
+    <section id="next">
+      <h2><span class="num">09</span> Where to go from here</h2>
+      <p>Read in this order, alongside the running app:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Document</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">01-architecture</td><td>The request path, and why it must be shaped that way</td></tr>
+            <tr><td class="mono">02-how-chat-works</td><td>Prompts, tokens, streaming, memory, cost</td></tr>
+            <tr><td class="mono">03-how-ai-search-works</td><td>Embeddings and RAG, end to end</td></tr>
+            <tr><td class="mono">04-porting-this-to-codeigniter-mysql</td><td>The same thing in PHP 8 and MySQL 8</td></tr>
+            <tr><td class="mono">05-production-checklist</td><td>What to fix before this touches customers</td></tr>
+            <tr><td class="mono">06-glossary</td><td>The vocabulary, defined plainly</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Then, in rough order of value</h3>
+      <ol>
+        <li>Replace <code>knowledge/</code> with real documents from one of your systems and
+          re-run the eval. Watching retrieval quality change on material you know well is the
+          fastest way to build judgement about chunking.</li>
+        <li>Install Ollama and run the same queries. The difference between lexical and real
+          semantic matching is the single most instructive five minutes here.</li>
+        <li>Port the search endpoint to CodeIgniter against a real table. That is your actual
+          first production task, and <code>docs/04</code> is written for it.</li>
+        <li>Add <strong>hybrid search</strong> — combine embedding similarity with your existing
+          MySQL <code>FULLTEXT</code> scoring. Usually the largest single quality win available,
+          because embeddings are weak exactly where keyword matching is strong: identifiers,
+          error codes, table names. Your FULLTEXT index is not a worse version of this; it is
+          the other half of it.</li>
+        <li>Only then look at tool use and agents. They are much easier to reason about once
+          the pieces above are second nature.</li>
+      </ol>
+
+      <div class="note flag">
+        <span class="tag">Before any of it touches customers</span>
+        <p>
+          Five things, in order: authentication and per-user quotas; a budget alert set at the
+          vendor on day one; token and cost logging per request; never letting model output
+          cause a side effect without a deterministic check in between; and the eval running
+          in CI. Those five separate "we shipped an AI feature" from "we shipped an AI
+          incident".
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      Built and verified on Node 20.19.6 · Nuxt 4.4.5 · offline provider ·
+      /home/msn/ai-demo
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,141 @@
+==============================================================================
+STAGE 2 · ONE CHUNK BECOMES NUMBERS
+==============================================================================
+
+chunk    03-integration-bus.md#3
+source   03-integration-bus.md > Retry policy
+
+THE TEXT THAT GETS EMBEDDED
+------------------------------------------------------------------------------
+Integration Bus > Retry policy
+
+Failed deliveries retry with exponential backoff: 1 minute, 5 minutes, 25
+minutes, 2 hours, 10 hours. After the fifth failure the message is moved to the
+`bus_failed` table and an alert is raised in the `#integrations` Slack channel.
+There is no automatic dead-letter replay; failed messages are replayed manually
+using `php index.php bus replay --id=`.
+------------------------------------------------------------------------------
+
+TOKENISATION
+Lowercase, strip punctuation, drop stop words, stem, then add adjacent bigrams. The embedder hashes this exact list.
+
+unigrams after stemming (44):
+  integrat bus retry policy fail delivery retry exponential backoff minute minute 25 minute hour 10 hour after fifth failure message mov bus fail table alert rais integrat slack channel automatic dead letter replay fail message replay manual using php index php bus replay id
+
+with bigrams added: 87 tokens total
+
+THE VECTOR
+------------------------------------------------------------------------------
+dimensions             4096
+non-zero slots           73   (1.78% of the vector)
+zero slots             4023
+L2 magnitude              1   <- normalised to 1, so cosine == dot product
+distinct tokens          74
+hash collisions           1   (two tokens sharing one slot)
+slot map verified      true   <- every token's slot is non-zero in the real vector
+
+collisions (first 1):
+  slot   676 <- channel, delivery_retry
+
+TOKEN -> SLOT -> VALUE
+  slot = hash(token) % 4096. No vocabulary file, no lookup table.
+
+  token                         slot    value at that slot
+  ------------------------------------------------------------
+  replay                        3026    0.239082
+  channel                       676     0.227848
+  delivery_retry                676     0.227848
+  retry                         2745    -0.172487
+  fail                          1901    -0.152617
+  minute                        3945    -0.152617
+  hour                          3087    -0.12985
+  bus                           3577    -0.127328
+  php                           2223    -0.123131
+  message                       2276    0.117204
+  exponential                   616     0.113924
+  backoff                       1791    -0.113924
+  25                            416     0.113924
+  fifth                         798     0.113924
+  mov                           3193    -0.113924
+  rais                          84      0.113924
+  slack                         2343    -0.113924
+  automatic                     3812    0.113924
+  using                         1031    -0.113924
+  bus_retry                     768     0.113924
+  retry_policy                  3316    0.113924
+  policy_fail                   1668    0.113924
+  fail_delivery                 1846    0.113924
+  retry_exponential             809     -0.113924
+  exponential_backoff           3247    -0.113924
+  backoff_minute                1912    0.113924
+  minute_minute                 3638    0.113924
+  minute_25                     1727    -0.113924
+  25_minute                     193     -0.113924
+  minute_hour                   3248    0.113924
+  hour_10                       2905    -0.113924
+  10_hour                       3403    -0.113924
+  hour_after                    938     0.113924
+  after_fifth                   2063    -0.113924
+  fifth_failure                 2275    -0.113924
+  failure_message               2673    -0.113924
+  message_mov                   229     -0.113924
+  mov_bus                       2148    0.113924
+  bus_fail                      434     0.113924
+  fail_table                    2698    0.113924
+  table_alert                   1982    0.113924
+  alert_rais                    1351    -0.113924
+  rais_integrat                 1657    -0.113924
+  integrat_slack                1286    0.113924
+  slack_channel                 3939    -0.113924
+  channel_automatic             2288    0.113924
+  automatic_dead                347     -0.113924
+  letter_replay                 2193    -0.113924
+  replay_fail                   3715    -0.113924
+  fail_message                  3637    -0.113924
+  message_replay                3470    0.113924
+  replay_manual                 1305    -0.113924
+  manual_using                  808     0.113924
+  using_php                     2128    0.113924
+  bus_replay                    2285    -0.113924
+  replay_id                     890     0.113924
+  integrat                      709     -0.107106
+  failure                       817     -0.101873
+  alert                         2297    -0.101873
+  dead                          2855    -0.101873
+  letter                        3165    -0.101873
+  dead_letter                   3512    0.101873
+  php_bus                       3518    0.101873
+  policy                        2687    -0.093323
+  manual                        483     -0.093323
+  index                         2475    -0.093323
+  php_index                     2316    0.093323
+  index_php                     1948    0.093323
+  delivery                      2645    -0.086692
+  10                            2628    0.086692
+  id                            2784    0.086692
+  after                         3529    -0.081273
+  table                         3039    -0.069222
+  integrat_bus                  400     0.066091
+
+NON-ZERO SLOTS (20 strongest by absolute value)
+
+  [ 3026] = 0.239082
+  [  676] = 0.227848
+  [ 2745] = -0.172487
+  [ 1901] = -0.152617
+  [ 3945] = -0.152617
+  [ 3087] = -0.12985
+  [ 3577] = -0.127328
+  [ 2223] = -0.123131
+  [ 2276] = 0.117204
+  [   84] = 0.113924
+  [  193] = -0.113924
+  [  229] = -0.113924
+  [  347] = -0.113924
+  [  416] = 0.113924
+  [  434] = 0.113924
+  [  616] = 0.113924
+  [  768] = 0.113924
+  [  798] = 0.113924
+  [  808] = 0.113924
+  [  809] = -0.113924

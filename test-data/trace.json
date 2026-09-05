@@ -1,0 +1,1981 @@
+{
+  "question": "What authentication does the order API use?",
+  "provider": {
+    "id": "mock",
+    "chatModel": "offline-extractive",
+    "embeddingModel": "offline-tfidf-4096d",
+    "billable": false
+  },
+  "index": {
+    "documents": 6,
+    "chunks": 33,
+    "dimensions": 4096,
+    "providerId": "mock",
+    "embeddingModel": "offline-tfidf-4096d",
+    "buildMs": 26
+  },
+  "stage1_chunking": {
+    "document": "02-order-service.md",
+    "rawCharacters": 2093,
+    "chunksProduced": 5,
+    "note": "Split on the document's own ## headings, then capped at ~900 chars. Each chunk's embedded text is prefixed with \"DocTitle > Heading\" so the heading words end up inside the vector.",
+    "chunks": [
+      {
+        "id": "02-order-service.md#0",
+        "heading": "Purpose",
+        "characters": 226,
+        "embeddedText": "Order Service > Purpose\n\nOrder Service owns the lifecycle of an order after it has been accepted by Core.\nCore remains the system of record for pricing and invoicing; Order Service is\nthe system of record for fulfilment state."
+      },
+      {
+        "id": "02-order-service.md#1",
+        "heading": "Order states",
+        "characters": 595,
+        "embeddedText": "Order Service > Order states\n\nAn order moves through these states, in this order:\n\n1. `received` — created by Core, not yet validated\n2. `validated` — address and stock checks passed\n3. `picking` — assigned to a warehouse\n4. `dispatched` — handed to a carrier, tracking number issued\n5. `delivered` — carrier confirmed delivery\n6. `closed` — invoiced and reconciled\n\nTwo terminal exception states exist: `cancelled` (before dispatch) and\n`returned` (after delivery). An order can never move backwards. Attempting an\ninvalid transition returns HTTP 409 with an error code of `invalid_transition`."
+      },
+      {
+        "id": "02-order-service.md#2",
+        "heading": "API",
+        "characters": 629,
+        "embeddedText": "Order Service > API\n\nThe service exposes a REST API at `https://orders.internal.nordvik.no/v2`.\nAuthentication uses a service token in the `Authorization: Bearer` header;\ntokens are issued by Core and expire after 24 hours.\n\nKey endpoints:\n\n- `GET /orders/{id}` — full order with current state and history\n- `POST /orders/{id}/transition` — request a state change\n- `GET /orders?updated_since=` — incremental sync, max 500 per page\n- `POST /orders/{id}/cancel` — cancels if state is before `dispatched`\n\nThe API is versioned in the path. Version 1 was retired in March 2023 and any\nremaining v1 traffic is rejected with HTTP 410."
+      },
+      {
+        "id": "02-order-service.md#3",
+        "heading": "Rate limits and timeouts",
+        "characters": 282,
+        "embeddedText": "Order Service > Rate limits and timeouts\n\nClients are limited to 600 requests per minute per token. Exceeding this returns\nHTTP 429 with a `Retry-After` header in seconds. The internal HTTP timeout when\nCore calls Order Service is 5 seconds for reads and 15 seconds for transitions."
+      },
+      {
+        "id": "02-order-service.md#4",
+        "heading": "Known issues",
+        "characters": 400,
+        "embeddedText": "Order Service > Known issues\n\nThe `updated_since` cursor uses a timestamp with one second resolution. Orders\nupdated within the same second as the cursor boundary can be returned twice.\nConsumers must therefore be idempotent. This is documented behaviour, not a bug\nthat will be fixed, because changing it would require a table rewrite of\n`order_events`, which currently holds about 400 million rows."
+      }
+    ]
+  },
+  "stage2_documentVector": {
+    "chunkId": "02-order-service.md#2",
+    "source": "02-order-service.md",
+    "heading": "API",
+    "textThatGetsEmbedded": "Order Service > API\n\nThe service exposes a REST API at `https://orders.internal.nordvik.no/v2`.\nAuthentication uses a service token in the `Authorization: Bearer` header;\ntokens are issued by Core and expire after 24 hours.\n\nKey endpoints:\n\n- `GET /orders/{id}` — full order with current state and history\n- `POST /orders/{id}/transition` — request a state change\n- `GET /orders?updated_since=` — incremental sync, max 500 per page\n- `POST /orders/{id}/cancel` — cancels if state is before `dispatched`\n\nThe API is versioned in the path. Version 1 was retired in March 2023 and any\nremaining v1 traffic is rejected with HTTP 410.",
+    "tokenisation": {
+      "note": "Lowercase, strip punctuation, drop stop words, stem, then add adjacent bigrams. The embedder hashes this exact list.",
+      "unigramsAfterStemming": [
+        "order",
+        "service",
+        "api",
+        "service",
+        "expos",
+        "rest",
+        "api",
+        "http",
+        "order",
+        "internal",
+        "nordvik",
+        "v2",
+        "authenticat",
+        "use",
+        "service",
+        "token",
+        "authorizat",
+        "bearer",
+        "header",
+        "token",
+        "issu",
+        "core",
+        "expire",
+        "after",
+        "24",
+        "hour",
+        "key",
+        "endpoint",
+        "order",
+        "id",
+        "full",
+        "order",
+        "current",
+        "state",
+        "history",
+        "post",
+        "order",
+        "id",
+        "transit",
+        "request",
+        "state",
+        "change",
+        "order",
+        "updat",
+        "since",
+        "incremental",
+        "sync",
+        "max",
+        "500",
+        "per",
+        "page",
+        "post",
+        "order",
+        "id",
+        "cancel",
+        "cancel",
+        "state",
+        "before",
+        "dispatch",
+        "api",
+        "version",
+        "path",
+        "vers",
+        "retir",
+        "march",
+        "2023",
+        "any",
+        "remain",
+        "v1",
+        "traffic",
+        "reject",
+        "http",
+        "410"
+      ],
+      "totalTokensWithBigrams": 145,
+      "allTokens": [
+        "order",
+        "service",
+        "api",
+        "service",
+        "expos",
+        "rest",
+        "api",
+        "http",
+        "order",
+        "internal",
+        "nordvik",
+        "v2",
+        "authenticat",
+        "use",
+        "service",
+        "token",
+        "authorizat",
+        "bearer",
+        "header",
+        "token",
+        "issu",
+        "core",
+        "expire",
+        "after",
+        "24",
+        "hour",
+        "key",
+        "endpoint",
+        "order",
+        "id",
+        "full",
+        "order",
+        "current",
+        "state",
+        "history",
+        "post",
+        "order",
+        "id",
+        "transit",
+        "request",
+        "state",
+        "change",
+        "order",
+        "updat",
+        "since",
+        "incremental",
+        "sync",
+        "max",
+        "500",
+        "per",
+        "page",
+        "post",
+        "order",
+        "id",
+        "cancel",
+        "cancel",
+        "state",
+        "before",
+        "dispatch",
+        "api",
+        "version",
+        "path",
+        "vers",
+        "retir",
+        "march",
+        "2023",
+        "any",
+        "remain",
+        "v1",
+        "traffic",
+        "reject",
+        "http",
+        "410",
+        "order_service",
+        "service_api",
+        "api_service",
+        "service_expos",
+        "expos_rest",
+        "rest_api",
+        "api_http",
+        "http_order",
+        "order_internal",
+        "internal_nordvik",
+        "nordvik_v2",
+        "v2_authenticat",
+        "authenticat_use",
+        "use_service",
+        "service_token",
+        "token_authorizat",
+        "authorizat_bearer",
+        "bearer_header",
+        "header_token",
+        "token_issu",
+        "issu_core",
+        "core_expire",
+        "expire_after",
+        "after_24",
+        "24_hour",
+        "hour_key",
+        "key_endpoint",
+        "endpoint_order",
+        "order_id",
+        "id_full",
+        "full_order",
+        "order_current",
+        "current_state",
+        "state_history",
+        "history_post",
+        "post_order",
+        "order_id",
+        "id_transit",
+        "transit_request",
+        "request_state",
+        "state_change",
+        "change_order",
+        "order_updat",
+        "updat_since",
+        "since_incremental",
+        "incremental_sync",
+        "sync_max",
+        "max_500",
+        "500_per",
+        "per_page",
+        "page_post",
+        "post_order",
+        "order_id",
+        "id_cancel",
+        "cancel_cancel",
+        "cancel_state",
+        "state_before",
+        "before_dispatch",
+        "dispatch_api",
+        "api_version",
+        "version_path",
+        "path_vers",
+        "vers_retir",
+        "retir_march",
+        "march_2023",
+        "2023_any",
+        "any_remain",
+        "remain_v1",
+        "v1_traffic",
+        "traffic_reject",
+        "reject_http",
+        "http_410"
+      ]
+    },
+    "vector": {
+      "dimensions": 4096,
+      "nonZeroCount": 121,
+      "zeroCount": 3975,
+      "percentFilled": 2.95,
+      "l2Magnitude": 1,
+      "distinctTokens": 124,
+      "collisionCount": 3,
+      "collisions": [
+        {
+          "slot": 1120,
+          "tokens": [
+            "header",
+            "use_service"
+          ]
+        },
+        {
+          "slot": 758,
+          "tokens": [
+            "state",
+            "v1_traffic"
+          ]
+        },
+        {
+          "slot": 240,
+          "tokens": [
+            "march",
+            "current_state"
+          ]
+        }
+      ],
+      "slotMappingVerified": true,
+      "tokenSlots": [
+        {
+          "token": "state",
+          "slot": 758,
+          "valueAtSlot": 0.214485
+        },
+        {
+          "token": "v1_traffic",
+          "slot": 758,
+          "valueAtSlot": 0.214485
+        },
+        {
+          "token": "order_id",
+          "slot": 1349,
+          "valueAtSlot": -0.180255
+        },
+        {
+          "token": "march",
+          "slot": 240,
+          "valueAtSlot": 0.171785
+        },
+        {
+          "token": "current_state",
+          "slot": 240,
+          "valueAtSlot": 0.171785
+        },
+        {
+          "token": "header",
+          "slot": 1120,
+          "valueAtSlot": 0.151253
+        },
+        {
+          "token": "use_service",
+          "slot": 1120,
+          "valueAtSlot": 0.151253
+        },
+        {
+          "token": "api",
+          "slot": 2695,
+          "valueAtSlot": -0.14766
+        },
+        {
+          "token": "post",
+          "slot": 2631,
+          "valueAtSlot": -0.145428
+        },
+        {
+          "token": "cancel",
+          "slot": 3099,
+          "valueAtSlot": -0.145428
+        },
+        {
+          "token": "post_order",
+          "slot": 4000,
+          "valueAtSlot": 0.145428
+        },
+        {
+          "token": "id",
+          "slot": 2784,
+          "valueAtSlot": 0.137167
+        },
+        {
+          "token": "token",
+          "slot": 2610,
+          "valueAtSlot": 0.130045
+        },
+        {
+          "token": "order",
+          "slot": 151,
+          "valueAtSlot": -0.124581
+        },
+        {
+          "token": "http",
+          "slot": 2213,
+          "valueAtSlot": -0.110665
+        },
+        {
+          "token": "service",
+          "slot": 3684,
+          "valueAtSlot": 0.104572
+        },
+        {
+          "token": "v2",
+          "slot": 2849,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "authorizat",
+          "slot": 280,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "bearer",
+          "slot": 2896,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "24",
+          "slot": 819,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "history",
+          "slot": 479,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "incremental",
+          "slot": 51,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "sync",
+          "slot": 3994,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "version",
+          "slot": 3735,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "vers",
+          "slot": 867,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "retir",
+          "slot": 3223,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "2023",
+          "slot": 588,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "v1",
+          "slot": 1640,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "traffic",
+          "slot": 710,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "410",
+          "slot": 210,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "service_api",
+          "slot": 315,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "api_service",
+          "slot": 2619,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "service_expos",
+          "slot": 358,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "expos_rest",
+          "slot": 2457,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "api_http",
+          "slot": 1272,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "http_order",
+          "slot": 1798,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "order_internal",
+          "slot": 409,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "internal_nordvik",
+          "slot": 1306,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "nordvik_v2",
+          "slot": 1955,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "v2_authenticat",
+          "slot": 648,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "authenticat_use",
+          "slot": 2173,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "service_token",
+          "slot": 1654,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "token_authorizat",
+          "slot": 702,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "authorizat_bearer",
+          "slot": 2128,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "bearer_header",
+          "slot": 3080,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "header_token",
+          "slot": 1114,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "token_issu",
+          "slot": 807,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "issu_core",
+          "slot": 2385,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "core_expire",
+          "slot": 2412,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "expire_after",
+          "slot": 591,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "after_24",
+          "slot": 3148,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "24_hour",
+          "slot": 3226,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "hour_key",
+          "slot": 1807,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "key_endpoint",
+          "slot": 1056,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "endpoint_order",
+          "slot": 1963,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "id_full",
+          "slot": 900,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "full_order",
+          "slot": 1899,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "order_current",
+          "slot": 893,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "state_history",
+          "slot": 3701,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "history_post",
+          "slot": 2058,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "id_transit",
+          "slot": 44,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "transit_request",
+          "slot": 1030,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "request_state",
+          "slot": 2328,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "state_change",
+          "slot": 175,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "change_order",
+          "slot": 3518,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "since_incremental",
+          "slot": 2858,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "incremental_sync",
+          "slot": 2759,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "sync_max",
+          "slot": 311,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "max_500",
+          "slot": 3725,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "500_per",
+          "slot": 2924,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "per_page",
+          "slot": 2978,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "page_post",
+          "slot": 1629,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "id_cancel",
+          "slot": 1059,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "cancel_cancel",
+          "slot": 4014,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "cancel_state",
+          "slot": 305,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "state_before",
+          "slot": 948,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "dispatch_api",
+          "slot": 3572,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "api_version",
+          "slot": 3444,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "version_path",
+          "slot": 143,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "path_vers",
+          "slot": 3197,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "vers_retir",
+          "slot": 3956,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "retir_march",
+          "slot": 3515,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "march_2023",
+          "slot": 3940,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "2023_any",
+          "slot": 2145,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "any_remain",
+          "slot": 2474,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "remain_v1",
+          "slot": 2003,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "traffic_reject",
+          "slot": 2144,
+          "valueAtSlot": 0.085892
+        },
+        {
+          "token": "reject_http",
+          "slot": 1019,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "http_410",
+          "slot": 1127,
+          "valueAtSlot": -0.085892
+        },
+        {
+          "token": "expos",
+          "slot": 2690,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "authenticat",
+          "slot": 1121,
+          "valueAtSlot": -0.076807
+        },
+        {
+          "token": "issu",
+          "slot": 677,
+          "valueAtSlot": -0.076807
+        },
+        {
+          "token": "full",
+          "slot": 828,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "max",
+          "slot": 793,
+          "valueAtSlot": -0.076807
+        },
+        {
+          "token": "500",
+          "slot": 688,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "page",
+          "slot": 2678,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "path",
+          "slot": 3382,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "any",
+          "slot": 77,
+          "valueAtSlot": -0.076807
+        },
+        {
+          "token": "reject",
+          "slot": 2758,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "order_updat",
+          "slot": 1702,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "updat_since",
+          "slot": 3220,
+          "valueAtSlot": 0.076807
+        },
+        {
+          "token": "before_dispatch",
+          "slot": 649,
+          "valueAtSlot": -0.076807
+        },
+        {
+          "token": "expire",
+          "slot": 2082,
+          "valueAtSlot": 0.070361
+        },
+        {
+          "token": "key",
+          "slot": 2156,
+          "valueAtSlot": 0.070361
+        },
+        {
+          "token": "endpoint",
+          "slot": 124,
+          "valueAtSlot": 0.070361
+        },
+        {
+          "token": "transit",
+          "slot": 2900,
+          "valueAtSlot": 0.070361
+        },
+        {
+          "token": "request",
+          "slot": 2482,
+          "valueAtSlot": 0.070361
+        },
+        {
+          "token": "change",
+          "slot": 445,
+          "valueAtSlot": -0.070361
+        },
+        {
+          "token": "updat",
+          "slot": 601,
+          "valueAtSlot": -0.070361
+        },
+        {
+          "token": "since",
+          "slot": 2461,
+          "valueAtSlot": -0.070361
+        },
+        {
+          "token": "dispatch",
+          "slot": 3691,
+          "valueAtSlot": -0.070361
+        },
+        {
+          "token": "remain",
+          "slot": 605,
+          "valueAtSlot": -0.070361
+        },
+        {
+          "token": "rest_api",
+          "slot": 1256,
+          "valueAtSlot": 0.070361
+        },
+        {
+          "token": "rest",
+          "slot": 3479,
+          "valueAtSlot": -0.065361
+        },
+        {
+          "token": "internal",
+          "slot": 3328,
+          "valueAtSlot": 0.065361
+        },
+        {
+          "token": "nordvik",
+          "slot": 4034,
+          "valueAtSlot": 0.065361
+        },
+        {
+          "token": "current",
+          "slot": 3034,
+          "valueAtSlot": 0.065361
+        },
+        {
+          "token": "per",
+          "slot": 3492,
+          "valueAtSlot": 0.065361
+        },
+        {
+          "token": "after",
+          "slot": 3529,
+          "valueAtSlot": -0.061275
+        },
+        {
+          "token": "hour",
+          "slot": 3087,
+          "valueAtSlot": -0.057821
+        },
+        {
+          "token": "before",
+          "slot": 3902,
+          "valueAtSlot": 0.057821
+        },
+        {
+          "token": "use",
+          "slot": 1268,
+          "valueAtSlot": 0.05219
+        },
+        {
+          "token": "order_service",
+          "slot": 2891,
+          "valueAtSlot": -0.05219
+        },
+        {
+          "token": "core",
+          "slot": 126,
+          "valueAtSlot": 0.049829
+        }
+      ],
+      "strongestSlots": [
+        {
+          "slot": 758,
+          "value": 0.214485
+        },
+        {
+          "slot": 1349,
+          "value": -0.180255
+        },
+        {
+          "slot": 240,
+          "value": 0.171785
+        },
+        {
+          "slot": 1120,
+          "value": 0.151253
+        },
+        {
+          "slot": 2695,
+          "value": -0.14766
+        },
+        {
+          "slot": 2631,
+          "value": -0.145428
+        },
+        {
+          "slot": 3099,
+          "value": -0.145428
+        },
+        {
+          "slot": 4000,
+          "value": 0.145428
+        },
+        {
+          "slot": 2784,
+          "value": 0.137167
+        },
+        {
+          "slot": 2610,
+          "value": 0.130045
+        },
+        {
+          "slot": 151,
+          "value": -0.124581
+        },
+        {
+          "slot": 2213,
+          "value": -0.110665
+        },
+        {
+          "slot": 3684,
+          "value": 0.104572
+        },
+        {
+          "slot": 44,
+          "value": 0.085892
+        },
+        {
+          "slot": 51,
+          "value": -0.085892
+        },
+        {
+          "slot": 143,
+          "value": -0.085892
+        },
+        {
+          "slot": 175,
+          "value": -0.085892
+        },
+        {
+          "slot": 210,
+          "value": 0.085892
+        },
+        {
+          "slot": 280,
+          "value": 0.085892
+        },
+        {
+          "slot": 305,
+          "value": -0.085892
+        }
+      ],
+      "allNonZeroSlots": [
+        {
+          "slot": 44,
+          "value": 0.085892
+        },
+        {
+          "slot": 51,
+          "value": -0.085892
+        },
+        {
+          "slot": 77,
+          "value": -0.076807
+        },
+        {
+          "slot": 124,
+          "value": 0.070361
+        },
+        {
+          "slot": 126,
+          "value": 0.049829
+        },
+        {
+          "slot": 143,
+          "value": -0.085892
+        },
+        {
+          "slot": 151,
+          "value": -0.124581
+        },
+        {
+          "slot": 175,
+          "value": -0.085892
+        },
+        {
+          "slot": 210,
+          "value": 0.085892
+        },
+        {
+          "slot": 240,
+          "value": 0.171785
+        },
+        {
+          "slot": 280,
+          "value": 0.085892
+        },
+        {
+          "slot": 305,
+          "value": -0.085892
+        },
+        {
+          "slot": 311,
+          "value": -0.085892
+        },
+        {
+          "slot": 315,
+          "value": -0.085892
+        },
+        {
+          "slot": 358,
+          "value": 0.085892
+        },
+        {
+          "slot": 409,
+          "value": -0.085892
+        },
+        {
+          "slot": 445,
+          "value": -0.070361
+        },
+        {
+          "slot": 479,
+          "value": -0.085892
+        },
+        {
+          "slot": 588,
+          "value": 0.085892
+        },
+        {
+          "slot": 591,
+          "value": -0.085892
+        },
+        {
+          "slot": 601,
+          "value": -0.070361
+        },
+        {
+          "slot": 605,
+          "value": -0.070361
+        },
+        {
+          "slot": 648,
+          "value": 0.085892
+        },
+        {
+          "slot": 649,
+          "value": -0.076807
+        },
+        {
+          "slot": 677,
+          "value": -0.076807
+        },
+        {
+          "slot": 688,
+          "value": 0.076807
+        },
+        {
+          "slot": 702,
+          "value": 0.085892
+        },
+        {
+          "slot": 710,
+          "value": 0.085892
+        },
+        {
+          "slot": 758,
+          "value": 0.214485
+        },
+        {
+          "slot": 793,
+          "value": -0.076807
+        },
+        {
+          "slot": 807,
+          "value": -0.085892
+        },
+        {
+          "slot": 819,
+          "value": -0.085892
+        },
+        {
+          "slot": 828,
+          "value": 0.076807
+        },
+        {
+          "slot": 867,
+          "value": -0.085892
+        },
+        {
+          "slot": 893,
+          "value": -0.085892
+        },
+        {
+          "slot": 900,
+          "value": 0.085892
+        },
+        {
+          "slot": 948,
+          "value": 0.085892
+        },
+        {
+          "slot": 1019,
+          "value": -0.085892
+        },
+        {
+          "slot": 1030,
+          "value": 0.085892
+        },
+        {
+          "slot": 1056,
+          "value": 0.085892
+        },
+        {
+          "slot": 1059,
+          "value": -0.085892
+        },
+        {
+          "slot": 1114,
+          "value": 0.085892
+        },
+        {
+          "slot": 1120,
+          "value": 0.151253
+        },
+        {
+          "slot": 1121,
+          "value": -0.076807
+        },
+        {
+          "slot": 1127,
+          "value": -0.085892
+        },
+        {
+          "slot": 1256,
+          "value": 0.070361
+        },
+        {
+          "slot": 1268,
+          "value": 0.05219
+        },
+        {
+          "slot": 1272,
+          "value": 0.085892
+        },
+        {
+          "slot": 1306,
+          "value": 0.085892
+        },
+        {
+          "slot": 1349,
+          "value": -0.180255
+        },
+        {
+          "slot": 1629,
+          "value": -0.085892
+        },
+        {
+          "slot": 1640,
+          "value": 0.085892
+        },
+        {
+          "slot": 1654,
+          "value": 0.085892
+        },
+        {
+          "slot": 1702,
+          "value": 0.076807
+        },
+        {
+          "slot": 1798,
+          "value": 0.085892
+        },
+        {
+          "slot": 1807,
+          "value": -0.085892
+        },
+        {
+          "slot": 1899,
+          "value": -0.085892
+        },
+        {
+          "slot": 1955,
+          "value": -0.085892
+        },
+        {
+          "slot": 1963,
+          "value": -0.085892
+        },
+        {
+          "slot": 2003,
+          "value": -0.085892
+        },
+        {
+          "slot": 2058,
+          "value": 0.085892
+        },
+        {
+          "slot": 2082,
+          "value": 0.070361
+        },
+        {
+          "slot": 2128,
+          "value": 0.085892
+        },
+        {
+          "slot": 2144,
+          "value": 0.085892
+        },
+        {
+          "slot": 2145,
+          "value": -0.085892
+        },
+        {
+          "slot": 2156,
+          "value": 0.070361
+        },
+        {
+          "slot": 2173,
+          "value": -0.085892
+        },
+        {
+          "slot": 2213,
+          "value": -0.110665
+        },
+        {
+          "slot": 2328,
+          "value": 0.085892
+        },
+        {
+          "slot": 2385,
+          "value": -0.085892
+        },
+        {
+          "slot": 2412,
+          "value": 0.085892
+        },
+        {
+          "slot": 2457,
+          "value": -0.085892
+        },
+        {
+          "slot": 2461,
+          "value": -0.070361
+        },
+        {
+          "slot": 2474,
+          "value": 0.085892
+        },
+        {
+          "slot": 2482,
+          "value": 0.070361
+        },
+        {
+          "slot": 2610,
+          "value": 0.130045
+        },
+        {
+          "slot": 2619,
+          "value": -0.085892
+        },
+        {
+          "slot": 2631,
+          "value": -0.145428
+        },
+        {
+          "slot": 2678,
+          "value": 0.076807
+        },
+        {
+          "slot": 2690,
+          "value": 0.076807
+        },
+        {
+          "slot": 2695,
+          "value": -0.14766
+        },
+        {
+          "slot": 2758,
+          "value": 0.076807
+        },
+        {
+          "slot": 2759,
+          "value": -0.085892
+        },
+        {
+          "slot": 2784,
+          "value": 0.137167
+        },
+        {
+          "slot": 2849,
+          "value": -0.085892
+        },
+        {
+          "slot": 2858,
+          "value": 0.085892
+        },
+        {
+          "slot": 2891,
+          "value": -0.05219
+        },
+        {
+          "slot": 2896,
+          "value": 0.085892
+        },
+        {
+          "slot": 2900,
+          "value": 0.070361
+        },
+        {
+          "slot": 2924,
+          "value": 0.085892
+        },
+        {
+          "slot": 2978,
+          "value": 0.085892
+        },
+        {
+          "slot": 3034,
+          "value": 0.065361
+        },
+        {
+          "slot": 3080,
+          "value": 0.085892
+        },
+        {
+          "slot": 3087,
+          "value": -0.057821
+        },
+        {
+          "slot": 3099,
+          "value": -0.145428
+        },
+        {
+          "slot": 3148,
+          "value": 0.085892
+        },
+        {
+          "slot": 3197,
+          "value": -0.085892
+        },
+        {
+          "slot": 3220,
+          "value": 0.076807
+        },
+        {
+          "slot": 3223,
+          "value": -0.085892
+        },
+        {
+          "slot": 3226,
+          "value": 0.085892
+        },
+        {
+          "slot": 3328,
+          "value": 0.065361
+        },
+        {
+          "slot": 3382,
+          "value": 0.076807
+        },
+        {
+          "slot": 3444,
+          "value": 0.085892
+        },
+        {
+          "slot": 3479,
+          "value": -0.065361
+        },
+        {
+          "slot": 3492,
+          "value": 0.065361
+        },
+        {
+          "slot": 3515,
+          "value": -0.085892
+        },
+        {
+          "slot": 3518,
+          "value": 0.085892
+        },
+        {
+          "slot": 3529,
+          "value": -0.061275
+        },
+        {
+          "slot": 3572,
+          "value": 0.085892
+        },
+        {
+          "slot": 3684,
+          "value": 0.104572
+        },
+        {
+          "slot": 3691,
+          "value": -0.070361
+        },
+        {
+          "slot": 3701,
+          "value": -0.085892
+        },
+        {
+          "slot": 3725,
+          "value": -0.085892
+        },
+        {
+          "slot": 3735,
+          "value": -0.085892
+        },
+        {
+          "slot": 3902,
+          "value": 0.057821
+        },
+        {
+          "slot": 3940,
+          "value": 0.085892
+        },
+        {
+          "slot": 3956,
+          "value": 0.085892
+        },
+        {
+          "slot": 3994,
+          "value": 0.085892
+        },
+        {
+          "slot": 4000,
+          "value": 0.145428
+        },
+        {
+          "slot": 4014,
+          "value": 0.085892
+        },
+        {
+          "slot": 4034,
+          "value": 0.065361
+        }
+      ]
+    }
+  },
+  "stage3_questionVector": {
+    "question": "What authentication does the order API use?",
+    "tokenisation": {
+      "unigramsAfterStemming": [
+        "authenticat",
+        "order",
+        "api",
+        "use"
+      ],
+      "totalTokensWithBigrams": 7,
+      "allTokens": [
+        "authenticat",
+        "order",
+        "api",
+        "use",
+        "authenticat_order",
+        "order_api",
+        "api_use"
+      ]
+    },
+    "vector": {
+      "dimensions": 4096,
+      "nonZeroCount": 7,
+      "zeroCount": 4089,
+      "percentFilled": 0.17,
+      "l2Magnitude": 1,
+      "distinctTokens": 7,
+      "collisionCount": 0,
+      "collisions": [],
+      "slotMappingVerified": true,
+      "tokenSlots": [
+        {
+          "token": "authenticat_order",
+          "slot": 1106,
+          "valueAtSlot": 0.471752
+        },
+        {
+          "token": "order_api",
+          "slot": 2024,
+          "valueAtSlot": 0.471752
+        },
+        {
+          "token": "api_use",
+          "slot": 1211,
+          "valueAtSlot": -0.471752
+        },
+        {
+          "token": "authenticat",
+          "slot": 1121,
+          "valueAtSlot": -0.357251
+        },
+        {
+          "token": "api",
+          "slot": 2695,
+          "valueAtSlot": -0.327268
+        },
+        {
+          "token": "use",
+          "slot": 1268,
+          "valueAtSlot": 0.24275
+        },
+        {
+          "token": "order",
+          "slot": 151,
+          "valueAtSlot": -0.196701
+        }
+      ],
+      "strongestSlots": [
+        {
+          "slot": 1106,
+          "value": 0.471752
+        },
+        {
+          "slot": 1211,
+          "value": -0.471752
+        },
+        {
+          "slot": 2024,
+          "value": 0.471752
+        },
+        {
+          "slot": 1121,
+          "value": -0.357251
+        },
+        {
+          "slot": 2695,
+          "value": -0.327268
+        },
+        {
+          "slot": 1268,
+          "value": 0.24275
+        },
+        {
+          "slot": 151,
+          "value": -0.196701
+        }
+      ],
+      "allNonZeroSlots": [
+        {
+          "slot": 151,
+          "value": -0.196701
+        },
+        {
+          "slot": 1106,
+          "value": 0.471752
+        },
+        {
+          "slot": 1121,
+          "value": -0.357251
+        },
+        {
+          "slot": 1211,
+          "value": -0.471752
+        },
+        {
+          "slot": 1268,
+          "value": 0.24275
+        },
+        {
+          "slot": 2024,
+          "value": 0.471752
+        },
+        {
+          "slot": 2695,
+          "value": -0.327268
+        }
+      ]
+    }
+  },
+  "stage4_ranking": {
+    "note": "Cosine similarity between the question vector and every chunk vector, sorted. Both vectors are unit length, so cosine is just the dot product.",
+    "searchMs": 1,
+    "chunksScored": 33,
+    "handCheckedTopScore": 0.112938,
+    "scoreboard": [
+      {
+        "rank": 1,
+        "score": 0.1129,
+        "source": "02-order-service.md",
+        "heading": "API",
+        "sharedTokens": [
+          "authenticat",
+          "order",
+          "api",
+          "use"
+        ]
+      },
+      {
+        "rank": 2,
+        "score": 0.0807,
+        "source": "06-incident-runbook.md",
+        "heading": "Orders stuck in `validated`",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 3,
+        "score": 0.0697,
+        "source": "02-order-service.md",
+        "heading": "Known issues",
+        "sharedTokens": [
+          "order",
+          "use"
+        ]
+      },
+      {
+        "rank": 4,
+        "score": 0.0672,
+        "source": "03-integration-bus.md",
+        "heading": "Partner authentication",
+        "sharedTokens": [
+          "authenticat",
+          "use"
+        ]
+      },
+      {
+        "rank": 5,
+        "score": 0.0615,
+        "source": "01-systems-overview.md",
+        "heading": "Technology constraints",
+        "sharedTokens": [
+          "use"
+        ]
+      },
+      {
+        "rank": 6,
+        "score": 0.0515,
+        "source": "05-database-and-migrations.md",
+        "heading": "Conventions",
+        "sharedTokens": [
+          "use"
+        ]
+      },
+      {
+        "rank": 7,
+        "score": 0.0428,
+        "source": "01-systems-overview.md",
+        "heading": "The system landscape",
+        "sharedTokens": [
+          "order",
+          "api"
+        ]
+      },
+      {
+        "rank": 8,
+        "score": 0.0375,
+        "source": "02-order-service.md",
+        "heading": "Purpose",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 9,
+        "score": 0.0277,
+        "source": "05-database-and-migrations.md",
+        "heading": "Large table changes",
+        "sharedTokens": [
+          "order",
+          "use"
+        ]
+      },
+      {
+        "rank": 10,
+        "score": 0.0252,
+        "source": "04-import-routines.md",
+        "heading": "Schedule",
+        "sharedTokens": [
+          "api"
+        ]
+      },
+      {
+        "rank": 11,
+        "score": 0.0241,
+        "source": "02-order-service.md",
+        "heading": "Order states",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 12,
+        "score": 0.0221,
+        "source": "02-order-service.md",
+        "heading": "Rate limits and timeouts",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 13,
+        "score": 0.0186,
+        "source": "04-import-routines.md",
+        "heading": "Common failure causes",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 14,
+        "score": 0.016,
+        "source": "05-database-and-migrations.md",
+        "heading": "Migration policy",
+        "sharedTokens": [
+          "use"
+        ]
+      },
+      {
+        "rank": 15,
+        "score": 0.0151,
+        "source": "05-database-and-migrations.md",
+        "heading": "Connection handling",
+        "sharedTokens": [
+          "use"
+        ]
+      },
+      {
+        "rank": 16,
+        "score": 0.0118,
+        "source": "04-import-routines.md",
+        "heading": "Encoding problems",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 17,
+        "score": 0.0115,
+        "source": "06-incident-runbook.md",
+        "heading": "Severity levels",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 18,
+        "score": 0.0108,
+        "source": "03-integration-bus.md",
+        "heading": "Message shape",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 19,
+        "score": 0.0102,
+        "source": "01-systems-overview.md",
+        "heading": "Ownership and on-call",
+        "sharedTokens": [
+          "order"
+        ]
+      },
+      {
+        "rank": 20,
+        "score": 0,
+        "source": "01-systems-overview.md",
+        "heading": "Systems Overview",
+        "sharedTokens": []
+      },
+      {
+        "rank": 21,
+        "score": 0,
+        "source": "01-systems-overview.md",
+        "heading": "Environments",
+        "sharedTokens": []
+      },
+      {
+        "rank": 22,
+        "score": 0,
+        "source": "03-integration-bus.md",
+        "heading": "What it does",
+        "sharedTokens": []
+      },
+      {
+        "rank": 23,
+        "score": 0,
+        "source": "03-integration-bus.md",
+        "heading": "Delivery guarantees",
+        "sharedTokens": []
+      },
+      {
+        "rank": 24,
+        "score": 0,
+        "source": "03-integration-bus.md",
+        "heading": "Retry policy",
+        "sharedTokens": []
+      },
+      {
+        "rank": 25,
+        "score": 0,
+        "source": "03-integration-bus.md",
+        "heading": "Throughput",
+        "sharedTokens": []
+      },
+      {
+        "rank": 26,
+        "score": 0,
+        "source": "04-import-routines.md",
+        "heading": "Overview",
+        "sharedTokens": []
+      },
+      {
+        "rank": 27,
+        "score": 0,
+        "source": "04-import-routines.md",
+        "heading": "The staging pattern",
+        "sharedTokens": []
+      },
+      {
+        "rank": 28,
+        "score": 0,
+        "source": "04-import-routines.md",
+        "heading": "Idempotency",
+        "sharedTokens": []
+      },
+      {
+        "rank": 29,
+        "score": 0,
+        "source": "05-database-and-migrations.md",
+        "heading": "Backups",
+        "sharedTokens": []
+      },
+      {
+        "rank": 30,
+        "score": 0,
+        "source": "06-incident-runbook.md",
+        "heading": "Bus queue depth alarm",
+        "sharedTokens": []
+      },
+      {
+        "rank": 31,
+        "score": 0,
+        "source": "06-incident-runbook.md",
+        "heading": "Import did not run",
+        "sharedTokens": []
+      },
+      {
+        "rank": 32,
+        "score": 0,
+        "source": "06-incident-runbook.md",
+        "heading": "Certificate expiry",
+        "sharedTokens": []
+      },
+      {
+        "rank": 33,
+        "score": 0,
+        "source": "06-incident-runbook.md",
+        "heading": "Escalation",
+        "sharedTokens": []
+      }
+    ]
+  },
+  "stage5_relevanceFilter": {
+    "note": "Cosine ranking always returns something. These two floors decide whether any of it is actually worth sending to the model.",
+    "topScore": 0.1129,
+    "absoluteFloor": 0.07,
+    "relativeFloor": "0.45 x topScore",
+    "effectiveCutoff": 0.07,
+    "kept": [
+      {
+        "marker": "S1",
+        "score": 0.1129,
+        "source": "02-order-service.md",
+        "heading": "API"
+      },
+      {
+        "marker": "S2",
+        "score": 0.0807,
+        "source": "06-incident-runbook.md",
+        "heading": "Orders stuck in `validated`"
+      }
+    ],
+    "dropped": [
+      {
+        "score": 0.0697,
+        "source": "02-order-service.md",
+        "heading": "Known issues"
+      },
+      {
+        "score": 0.0672,
+        "source": "03-integration-bus.md",
+        "heading": "Partner authentication"
+      }
+    ]
+  },
+  "stage6_prompt": {
+    "note": "This is the literal payload the model receives. The [S1] markers are the entire citation mechanism.",
+    "contextCharacters": 1138,
+    "totalPromptCharacters": 1594,
+    "approximateTokens": 399,
+    "messages": [
+      {
+        "role": "system",
+        "content": "You answer questions about internal company systems\nusing ONLY the passages provided in <context>.\n\nRules:\n- Cite the source marker, e.g. [S1], immediately after each claim you make.\n- If the context does not contain the answer, say exactly: \"That is not covered\n  in the indexed documents.\" Do not guess, and do not use outside knowledge.\n- Be concise. Two or three short paragraphs at most."
+      },
+      {
+        "role": "system",
+        "content": "<context>\n[S1] (02-order-service.md > API)\nOrder Service > API\n\nThe service exposes a REST API at `https://orders.internal.nordvik.no/v2`.\nAuthentication uses a service token in the `Authorization: Bearer` header;\ntokens are issued by Core and expire after 24 hours.\n\nKey endpoints:\n\n- `GET /orders/{id}` — full order with current state and history\n- `POST /orders/{id}/transition` — request a state change\n- `GET /orders?updated_since=` — incremental sync, max 500 per page\n- `POST /orders/{id}/cancel` — cancels if state is before `dispatched`\n\nThe API is versioned in the path. Version 1 was retired in March 2023 and any\nremaining v1 traffic is rejected with HTTP 410.\n\n[S2] (06-incident-runbook.md > Orders stuck in `validated`)\nIncident Runbook > Orders stuck in `validated`\n\nAlmost always the warehouse assignment worker has died. Check\n`supervisorctl status order-assign`. If it is stopped, restart it and then\nre-drive the backlog with `php index.php orders reassign --state=validated`.\nIf the worker is running but the backlog is growing, the usual cause is a stock\nservice timeout; check the Order Service logs for `stock_check_timeout`.\n</context>"
+      },
+      {
+        "role": "user",
+        "content": "What authentication does the order API use?"
+      }
+    ]
+  },
+  "stage7_answer": {
+    "providerId": "mock",
+    "generationMs": 1571,
+    "text": "Based on the retrieved documents:\n\n- Authentication uses a service token in the `Authorization: Bearer` header; [S1]\n- The API is versioned in the path. [S1]\n- The service exposes a REST API at `https://orders.internal.nordvik.no/v2`. [S1]\n\n(Offline mock provider: these sentences were selected by weighted word overlap, not written by a language model. Set NUXT_AI_PROVIDER=openai or =ollama in .env for a real, synthesised answer.)"
+  }
+}

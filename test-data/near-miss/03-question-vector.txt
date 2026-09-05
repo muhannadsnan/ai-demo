@@ -1,0 +1,56 @@
+==============================================================================
+STAGE 3 · THE QUESTION BECOMES NUMBERS — the same way
+==============================================================================
+
+question  "What happens to a message after it fails five times?"
+
+unigrams after stemming (6):
+  happen message after fail five time
+
+all tokens incl. bigrams (11):
+  happen message after fail five time happen_message message_after after_fail fail_five five_time
+
+THE VECTOR
+------------------------------------------------------------------------------
+dimensions             4096
+non-zero slots           11   (0.27% of the vector)
+zero slots             4085
+L2 magnitude              1   <- normalised to 1, so cosine == dot product
+distinct tokens          11
+hash collisions           0   (two tokens sharing one slot)
+slot map verified      true   <- every token's slot is non-zero in the real vector
+
+TOKEN -> SLOT -> VALUE
+  slot = hash(token) % 4096. No vocabulary file, no lookup table.
+
+  token                         slot    value at that slot
+  ------------------------------------------------------------
+  happen_message                2273    -0.360517
+  message_after                 613     -0.360517
+  after_fail                    2690    0.360517
+  fail_five                     2358    0.360517
+  five_time                     1239    -0.360517
+  happen                        1857    -0.305309
+  time                          3044    0.273014
+  five                          917     -0.250101
+  after                         3529    -0.217806
+  fail                          1901    -0.194893
+  message                       2276    0.185512
+
+NON-ZERO SLOTS (all)
+
+  [  613] = -0.360517
+  [  917] = -0.250101
+  [ 1239] = -0.360517
+  [ 1857] = -0.305309
+  [ 1901] = -0.194893
+  [ 2273] = -0.360517
+  [ 2276] = 0.185512
+  [ 2358] = 0.360517
+  [ 2690] = 0.360517
+  [ 3044] = 0.273014
+  [ 3529] = -0.217806
+
+Note how few slots are filled compared with a document chunk. A short
+question is a very sparse vector — which is exactly why a chunk that
+happens to share a few rare words scores well.

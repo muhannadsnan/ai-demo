@@ -1,0 +1,201 @@
+==============================================================================
+STAGE 2 · ONE CHUNK BECOMES NUMBERS
+==============================================================================
+
+chunk    02-order-service.md#2
+source   02-order-service.md > API
+
+THE TEXT THAT GETS EMBEDDED
+------------------------------------------------------------------------------
+Order Service > API
+
+The service exposes a REST API at `https://orders.internal.nordvik.no/v2`.
+Authentication uses a service token in the `Authorization: Bearer` header;
+tokens are issued by Core and expire after 24 hours.
+
+Key endpoints:
+
+- `GET /orders/{id}` — full order with current state and history
+- `POST /orders/{id}/transition` — request a state change
+- `GET /orders?updated_since=` — incremental sync, max 500 per page
+- `POST /orders/{id}/cancel` — cancels if state is before `dispatched`
+
+The API is versioned in the path. Version 1 was retired in March 2023 and any
+remaining v1 traffic is rejected with HTTP 410.
+------------------------------------------------------------------------------
+
+TOKENISATION
+Lowercase, strip punctuation, drop stop words, stem, then add adjacent bigrams. The embedder hashes this exact list.
+
+unigrams after stemming (73):
+  order service api service expos rest api http order internal nordvik v2 authenticat use service token authorizat bearer header token issu core expire after 24 hour key endpoint order id full order current state history post order id transit request state change order updat since incremental sync max 500 per page post order id cancel cancel state before dispatch api version path vers retir march 2023 any remain v1 traffic reject http 410
+
+with bigrams added: 145 tokens total
+
+THE VECTOR
+------------------------------------------------------------------------------
+dimensions             4096
+non-zero slots          121   (2.95% of the vector)
+zero slots             3975
+L2 magnitude              1   <- normalised to 1, so cosine == dot product
+distinct tokens         124
+hash collisions           3   (two tokens sharing one slot)
+slot map verified      true   <- every token's slot is non-zero in the real vector
+
+collisions (first 3):
+  slot  1120 <- header, use_service
+  slot   758 <- state, v1_traffic
+  slot   240 <- march, current_state
+
+TOKEN -> SLOT -> VALUE
+  slot = hash(token) % 4096. No vocabulary file, no lookup table.
+
+  token                         slot    value at that slot
+  ------------------------------------------------------------
+  state                         758     0.214485
+  v1_traffic                    758     0.214485
+  order_id                      1349    -0.180255
+  march                         240     0.171785
+  current_state                 240     0.171785
+  header                        1120    0.151253
+  use_service                   1120    0.151253
+  api                           2695    -0.14766
+  post                          2631    -0.145428
+  cancel                        3099    -0.145428
+  post_order                    4000    0.145428
+  id                            2784    0.137167
+  token                         2610    0.130045
+  order                         151     -0.124581
+  http                          2213    -0.110665
+  service                       3684    0.104572
+  v2                            2849    -0.085892
+  authorizat                    280     0.085892
+  bearer                        2896    0.085892
+  24                            819     -0.085892
+  history                       479     -0.085892
+  incremental                   51      -0.085892
+  sync                          3994    0.085892
+  version                       3735    -0.085892
+  vers                          867     -0.085892
+  retir                         3223    -0.085892
+  2023                          588     0.085892
+  v1                            1640    0.085892
+  traffic                       710     0.085892
+  410                           210     0.085892
+  service_api                   315     -0.085892
+  api_service                   2619    -0.085892
+  service_expos                 358     0.085892
+  expos_rest                    2457    -0.085892
+  api_http                      1272    0.085892
+  http_order                    1798    0.085892
+  order_internal                409     -0.085892
+  internal_nordvik              1306    0.085892
+  nordvik_v2                    1955    -0.085892
+  v2_authenticat                648     0.085892
+  authenticat_use               2173    -0.085892
+  service_token                 1654    0.085892
+  token_authorizat              702     0.085892
+  authorizat_bearer             2128    0.085892
+  bearer_header                 3080    0.085892
+  header_token                  1114    0.085892
+  token_issu                    807     -0.085892
+  issu_core                     2385    -0.085892
+  core_expire                   2412    0.085892
+  expire_after                  591     -0.085892
+  after_24                      3148    0.085892
+  24_hour                       3226    0.085892
+  hour_key                      1807    -0.085892
+  key_endpoint                  1056    0.085892
+  endpoint_order                1963    -0.085892
+  id_full                       900     0.085892
+  full_order                    1899    -0.085892
+  order_current                 893     -0.085892
+  state_history                 3701    -0.085892
+  history_post                  2058    0.085892
+  id_transit                    44      0.085892
+  transit_request               1030    0.085892
+  request_state                 2328    0.085892
+  state_change                  175     -0.085892
+  change_order                  3518    0.085892
+  since_incremental             2858    0.085892
+  incremental_sync              2759    -0.085892
+  sync_max                      311     -0.085892
+  max_500                       3725    -0.085892
+  500_per                       2924    0.085892
+  per_page                      2978    0.085892
+  page_post                     1629    -0.085892
+  id_cancel                     1059    -0.085892
+  cancel_cancel                 4014    0.085892
+  cancel_state                  305     -0.085892
+  state_before                  948     0.085892
+  dispatch_api                  3572    0.085892
+  api_version                   3444    0.085892
+  version_path                  143     -0.085892
+  path_vers                     3197    -0.085892
+  vers_retir                    3956    0.085892
+  retir_march                   3515    -0.085892
+  march_2023                    3940    0.085892
+  2023_any                      2145    -0.085892
+  any_remain                    2474    0.085892
+  remain_v1                     2003    -0.085892
+  traffic_reject                2144    0.085892
+  reject_http                   1019    -0.085892
+  http_410                      1127    -0.085892
+  expos                         2690    0.076807
+  authenticat                   1121    -0.076807
+  issu                          677     -0.076807
+  full                          828     0.076807
+  max                           793     -0.076807
+  500                           688     0.076807
+  page                          2678    0.076807
+  path                          3382    0.076807
+  any                           77      -0.076807
+  reject                        2758    0.076807
+  order_updat                   1702    0.076807
+  updat_since                   3220    0.076807
+  before_dispatch               649     -0.076807
+  expire                        2082    0.070361
+  key                           2156    0.070361
+  endpoint                      124     0.070361
+  transit                       2900    0.070361
+  request                       2482    0.070361
+  change                        445     -0.070361
+  updat                         601     -0.070361
+  since                         2461    -0.070361
+  dispatch                      3691    -0.070361
+  remain                        605     -0.070361
+  rest_api                      1256    0.070361
+  rest                          3479    -0.065361
+  internal                      3328    0.065361
+  nordvik                       4034    0.065361
+  current                       3034    0.065361
+  per                           3492    0.065361
+  after                         3529    -0.061275
+  hour                          3087    -0.057821
+  before                        3902    0.057821
+  use                           1268    0.05219
+  order_service                 2891    -0.05219
+  core                          126     0.049829
+
+NON-ZERO SLOTS (20 strongest by absolute value)
+
+  [  758] = 0.214485
+  [ 1349] = -0.180255
+  [  240] = 0.171785
+  [ 1120] = 0.151253
+  [ 2695] = -0.14766
+  [ 2631] = -0.145428
+  [ 3099] = -0.145428
+  [ 4000] = 0.145428
+  [ 2784] = 0.137167
+  [ 2610] = 0.130045
+  [  151] = -0.124581
+  [ 2213] = -0.110665
+  [ 3684] = 0.104572
+  [   44] = 0.085892
+  [   51] = -0.085892
+  [  143] = -0.085892
+  [  175] = -0.085892
+  [  210] = 0.085892
+  [  280] = 0.085892
+  [  305] = -0.085892

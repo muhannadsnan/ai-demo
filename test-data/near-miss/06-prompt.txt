@@ -1,0 +1,9 @@
+==============================================================================
+STAGE 6 · THE PROMPT — the literal payload the model receives
+==============================================================================
+
+This is the literal payload the model receives. The [S1] markers are the entire citation mechanism.
+
+context     0 characters
+whole prompt 0 characters (~0 tokens)
+

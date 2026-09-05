@@ -1,0 +1,57 @@
+==============================================================================
+STAGE 6 · THE PROMPT — the literal payload the model receives
+==============================================================================
+
+This is the literal payload the model receives. The [S1] markers are the entire citation mechanism.
+
+context     1138 characters
+whole prompt 1594 characters (~399 tokens)
+
+------------------------------------------------------------------------------
+role: system
+------------------------------------------------------------------------------
+You answer questions about internal company systems
+using ONLY the passages provided in <context>.
+
+Rules:
+- Cite the source marker, e.g. [S1], immediately after each claim you make.
+- If the context does not contain the answer, say exactly: "That is not covered
+  in the indexed documents." Do not guess, and do not use outside knowledge.
+- Be concise. Two or three short paragraphs at most.
+
+------------------------------------------------------------------------------
+role: system
+------------------------------------------------------------------------------
+<context>
+[S1] (02-order-service.md > API)
+Order Service > API
+
+The service exposes a REST API at `https://orders.internal.nordvik.no/v2`.
+Authentication uses a service token in the `Authorization: Bearer` header;
+tokens are issued by Core and expire after 24 hours.
+
+Key endpoints:
+
+- `GET /orders/{id}` — full order with current state and history
+- `POST /orders/{id}/transition` — request a state change
+- `GET /orders?updated_since=` — incremental sync, max 500 per page
+- `POST /orders/{id}/cancel` — cancels if state is before `dispatched`
+
+The API is versioned in the path. Version 1 was retired in March 2023 and any
+remaining v1 traffic is rejected with HTTP 410.
+
+[S2] (06-incident-runbook.md > Orders stuck in `validated`)
+Incident Runbook > Orders stuck in `validated`
+
+Almost always the warehouse assignment worker has died. Check
+`supervisorctl status order-assign`. If it is stopped, restart it and then
+re-drive the backlog with `php index.php orders reassign --state=validated`.
+If the worker is running but the backlog is growing, the usual cause is a stock
+service timeout; check the Order Service logs for `stock_check_timeout`.
+</context>
+
+------------------------------------------------------------------------------
+role: user
+------------------------------------------------------------------------------
+What authentication does the order API use?
+

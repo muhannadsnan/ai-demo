@@ -1,0 +1,1489 @@
+{
+  "question": "What happens to a message after it fails five times?",
+  "provider": {
+    "id": "mock",
+    "chatModel": "offline-extractive",
+    "embeddingModel": "offline-tfidf-4096d",
+    "billable": false
+  },
+  "index": {
+    "documents": 6,
+    "chunks": 33,
+    "dimensions": 4096,
+    "providerId": "mock",
+    "embeddingModel": "offline-tfidf-4096d",
+    "buildMs": 26
+  },
+  "stage1_chunking": {
+    "document": "03-integration-bus.md",
+    "rawCharacters": 2123,
+    "chunksProduced": 6,
+    "note": "Split on the document's own ## headings, then capped at ~900 chars. Each chunk's embedded text is prefixed with \"DocTitle > Heading\" so the heading words end up inside the vector.",
+    "chunks": [
+      {
+        "id": "03-integration-bus.md#0",
+        "heading": "What it does",
+        "characters": 261,
+        "embeddedText": "Integration Bus > What it does\n\nThe Integration Bus routes messages between internal services and external\npartners. It is not a general purpose broker: it is a PHP worker pool reading\nfrom Redis lists, with routing rules stored in the `bus_routes` MySQL table."
+      },
+      {
+        "id": "03-integration-bus.md#1",
+        "heading": "Message shape",
+        "characters": 403,
+        "embeddedText": "Integration Bus > Message shape\n\nEvery message is a JSON envelope:\n\n```\n{\n  \"message_id\": \"uuid v4\",\n  \"type\": \"order.dispatched\",\n  \"occurred_at\": \"ISO 8601 UTC\",\n  \"partner_id\": 42,\n  \"payload\": { }\n}\n```\n\nThe `message_id` is the idempotency key. Consumers must record processed ids in\n`bus_processed_messages` and ignore repeats. Retention on that table is 30 days,\nenforced by a nightly cleanup job."
+      },
+      {
+        "id": "03-integration-bus.md#2",
+        "heading": "Delivery guarantees",
+        "characters": 270,
+        "embeddedText": "Integration Bus > Delivery guarantees\n\nDelivery is at-least-once, never exactly-once. A partner endpoint that is slow\nbut eventually succeeds will frequently receive the same message twice, because\nthe worker's HTTP timeout is 10 seconds while some partners take longer."
+      },
+      {
+        "id": "03-integration-bus.md#3",
+        "heading": "Retry policy",
+        "characters": 385,
+        "embeddedText": "Integration Bus > Retry policy\n\nFailed deliveries retry with exponential backoff: 1 minute, 5 minutes, 25\nminutes, 2 hours, 10 hours. After the fifth failure the message is moved to the\n`bus_failed` table and an alert is raised in the `#integrations` Slack channel.\nThere is no automatic dead-letter replay; failed messages are replayed manually\nusing `php index.php bus replay --id=`."
+      },
+      {
+        "id": "03-integration-bus.md#4",
+        "heading": "Partner authentication",
+        "characters": 530,
+        "embeddedText": "Integration Bus > Partner authentication\n\nThree authentication schemes are in use, because they were added at different\ntimes and no one has consolidated them:\n\n- HMAC-SHA256 signature in the `X-Nordvik-Signature` header (preferred, 28 partners)\n- Basic auth over TLS (9 partners, being phased out)\n- Mutual TLS with client certificates (3 partners, all Nordic customs authorities)\n\nCertificates for mutual TLS partners expire annually in April. Renewal is a\nmanual process and has caused an outage in two of the last three years."
+      },
+      {
+        "id": "03-integration-bus.md#5",
+        "heading": "Throughput",
+        "characters": 334,
+        "embeddedText": "Integration Bus > Throughput\n\nNormal weekday volume is 40,000 to 60,000 messages per day, peaking around\n09:00 and 16:00. The worker pool runs eight processes. Above roughly 200\nmessages per second the Redis list depth grows faster than it drains, and the\npractical ceiling before manual intervention is about 15 minutes of that load."
+      }
+    ]
+  },
+  "stage2_documentVector": {
+    "chunkId": "03-integration-bus.md#3",
+    "source": "03-integration-bus.md",
+    "heading": "Retry policy",
+    "textThatGetsEmbedded": "Integration Bus > Retry policy\n\nFailed deliveries retry with exponential backoff: 1 minute, 5 minutes, 25\nminutes, 2 hours, 10 hours. After the fifth failure the message is moved to the\n`bus_failed` table and an alert is raised in the `#integrations` Slack channel.\nThere is no automatic dead-letter replay; failed messages are replayed manually\nusing `php index.php bus replay --id=`.",
+    "tokenisation": {
+      "note": "Lowercase, strip punctuation, drop stop words, stem, then add adjacent bigrams. The embedder hashes this exact list.",
+      "unigramsAfterStemming": [
+        "integrat",
+        "bus",
+        "retry",
+        "policy",
+        "fail",
+        "delivery",
+        "retry",
+        "exponential",
+        "backoff",
+        "minute",
+        "minute",
+        "25",
+        "minute",
+        "hour",
+        "10",
+        "hour",
+        "after",
+        "fifth",
+        "failure",
+        "message",
+        "mov",
+        "bus",
+        "fail",
+        "table",
+        "alert",
+        "rais",
+        "integrat",
+        "slack",
+        "channel",
+        "automatic",
+        "dead",
+        "letter",
+        "replay",
+        "fail",
+        "message",
+        "replay",
+        "manual",
+        "using",
+        "php",
+        "index",
+        "php",
+        "bus",
+        "replay",
+        "id"
+      ],
+      "totalTokensWithBigrams": 87,
+      "allTokens": [
+        "integrat",
+        "bus",
+        "retry",
+        "policy",
+        "fail",
+        "delivery",
+        "retry",
+        "exponential",
+        "backoff",
+        "minute",
+        "minute",
+        "25",
+        "minute",
+        "hour",
+        "10",
+        "hour",
+        "after",
+        "fifth",
+        "failure",
+        "message",
+        "mov",
+        "bus",
+        "fail",
+        "table",
+        "alert",
+        "rais",
+        "integrat",
+        "slack",
+        "channel",
+        "automatic",
+        "dead",
+        "letter",
+        "replay",
+        "fail",
+        "message",
+        "replay",
+        "manual",
+        "using",
+        "php",
+        "index",
+        "php",
+        "bus",
+        "replay",
+        "id",
+        "integrat_bus",
+        "bus_retry",
+        "retry_policy",
+        "policy_fail",
+        "fail_delivery",
+        "delivery_retry",
+        "retry_exponential",
+        "exponential_backoff",
+        "backoff_minute",
+        "minute_minute",
+        "minute_25",
+        "25_minute",
+        "minute_hour",
+        "hour_10",
+        "10_hour",
+        "hour_after",
+        "after_fifth",
+        "fifth_failure",
+        "failure_message",
+        "message_mov",
+        "mov_bus",
+        "bus_fail",
+        "fail_table",
+        "table_alert",
+        "alert_rais",
+        "rais_integrat",
+        "integrat_slack",
+        "slack_channel",
+        "channel_automatic",
+        "automatic_dead",
+        "dead_letter",
+        "letter_replay",
+        "replay_fail",
+        "fail_message",
+        "message_replay",
+        "replay_manual",
+        "manual_using",
+        "using_php",
+        "php_index",
+        "index_php",
+        "php_bus",
+        "bus_replay",
+        "replay_id"
+      ]
+    },
+    "vector": {
+      "dimensions": 4096,
+      "nonZeroCount": 73,
+      "zeroCount": 4023,
+      "percentFilled": 1.78,
+      "l2Magnitude": 1,
+      "distinctTokens": 74,
+      "collisionCount": 1,
+      "collisions": [
+        {
+          "slot": 676,
+          "tokens": [
+            "channel",
+            "delivery_retry"
+          ]
+        }
+      ],
+      "slotMappingVerified": true,
+      "tokenSlots": [
+        {
+          "token": "replay",
+          "slot": 3026,
+          "valueAtSlot": 0.239082
+        },
+        {
+          "token": "channel",
+          "slot": 676,
+          "valueAtSlot": 0.227848
+        },
+        {
+          "token": "delivery_retry",
+          "slot": 676,
+          "valueAtSlot": 0.227848
+        },
+        {
+          "token": "retry",
+          "slot": 2745,
+          "valueAtSlot": -0.172487
+        },
+        {
+          "token": "fail",
+          "slot": 1901,
+          "valueAtSlot": -0.152617
+        },
+        {
+          "token": "minute",
+          "slot": 3945,
+          "valueAtSlot": -0.152617
+        },
+        {
+          "token": "hour",
+          "slot": 3087,
+          "valueAtSlot": -0.12985
+        },
+        {
+          "token": "bus",
+          "slot": 3577,
+          "valueAtSlot": -0.127328
+        },
+        {
+          "token": "php",
+          "slot": 2223,
+          "valueAtSlot": -0.123131
+        },
+        {
+          "token": "message",
+          "slot": 2276,
+          "valueAtSlot": 0.117204
+        },
+        {
+          "token": "exponential",
+          "slot": 616,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "backoff",
+          "slot": 1791,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "25",
+          "slot": 416,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "fifth",
+          "slot": 798,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "mov",
+          "slot": 3193,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "rais",
+          "slot": 84,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "slack",
+          "slot": 2343,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "automatic",
+          "slot": 3812,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "using",
+          "slot": 1031,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "bus_retry",
+          "slot": 768,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "retry_policy",
+          "slot": 3316,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "policy_fail",
+          "slot": 1668,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "fail_delivery",
+          "slot": 1846,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "retry_exponential",
+          "slot": 809,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "exponential_backoff",
+          "slot": 3247,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "backoff_minute",
+          "slot": 1912,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "minute_minute",
+          "slot": 3638,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "minute_25",
+          "slot": 1727,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "25_minute",
+          "slot": 193,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "minute_hour",
+          "slot": 3248,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "hour_10",
+          "slot": 2905,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "10_hour",
+          "slot": 3403,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "hour_after",
+          "slot": 938,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "after_fifth",
+          "slot": 2063,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "fifth_failure",
+          "slot": 2275,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "failure_message",
+          "slot": 2673,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "message_mov",
+          "slot": 229,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "mov_bus",
+          "slot": 2148,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "bus_fail",
+          "slot": 434,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "fail_table",
+          "slot": 2698,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "table_alert",
+          "slot": 1982,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "alert_rais",
+          "slot": 1351,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "rais_integrat",
+          "slot": 1657,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "integrat_slack",
+          "slot": 1286,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "slack_channel",
+          "slot": 3939,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "channel_automatic",
+          "slot": 2288,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "automatic_dead",
+          "slot": 347,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "letter_replay",
+          "slot": 2193,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "replay_fail",
+          "slot": 3715,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "fail_message",
+          "slot": 3637,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "message_replay",
+          "slot": 3470,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "replay_manual",
+          "slot": 1305,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "manual_using",
+          "slot": 808,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "using_php",
+          "slot": 2128,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "bus_replay",
+          "slot": 2285,
+          "valueAtSlot": -0.113924
+        },
+        {
+          "token": "replay_id",
+          "slot": 890,
+          "valueAtSlot": 0.113924
+        },
+        {
+          "token": "integrat",
+          "slot": 709,
+          "valueAtSlot": -0.107106
+        },
+        {
+          "token": "failure",
+          "slot": 817,
+          "valueAtSlot": -0.101873
+        },
+        {
+          "token": "alert",
+          "slot": 2297,
+          "valueAtSlot": -0.101873
+        },
+        {
+          "token": "dead",
+          "slot": 2855,
+          "valueAtSlot": -0.101873
+        },
+        {
+          "token": "letter",
+          "slot": 3165,
+          "valueAtSlot": -0.101873
+        },
+        {
+          "token": "dead_letter",
+          "slot": 3512,
+          "valueAtSlot": 0.101873
+        },
+        {
+          "token": "php_bus",
+          "slot": 3518,
+          "valueAtSlot": 0.101873
+        },
+        {
+          "token": "policy",
+          "slot": 2687,
+          "valueAtSlot": -0.093323
+        },
+        {
+          "token": "manual",
+          "slot": 483,
+          "valueAtSlot": -0.093323
+        },
+        {
+          "token": "index",
+          "slot": 2475,
+          "valueAtSlot": -0.093323
+        },
+        {
+          "token": "php_index",
+          "slot": 2316,
+          "valueAtSlot": 0.093323
+        },
+        {
+          "token": "index_php",
+          "slot": 1948,
+          "valueAtSlot": 0.093323
+        },
+        {
+          "token": "delivery",
+          "slot": 2645,
+          "valueAtSlot": -0.086692
+        },
+        {
+          "token": "10",
+          "slot": 2628,
+          "valueAtSlot": 0.086692
+        },
+        {
+          "token": "id",
+          "slot": 2784,
+          "valueAtSlot": 0.086692
+        },
+        {
+          "token": "after",
+          "slot": 3529,
+          "valueAtSlot": -0.081273
+        },
+        {
+          "token": "table",
+          "slot": 3039,
+          "valueAtSlot": -0.069222
+        },
+        {
+          "token": "integrat_bus",
+          "slot": 400,
+          "valueAtSlot": 0.066091
+        }
+      ],
+      "strongestSlots": [
+        {
+          "slot": 3026,
+          "value": 0.239082
+        },
+        {
+          "slot": 676,
+          "value": 0.227848
+        },
+        {
+          "slot": 2745,
+          "value": -0.172487
+        },
+        {
+          "slot": 1901,
+          "value": -0.152617
+        },
+        {
+          "slot": 3945,
+          "value": -0.152617
+        },
+        {
+          "slot": 3087,
+          "value": -0.12985
+        },
+        {
+          "slot": 3577,
+          "value": -0.127328
+        },
+        {
+          "slot": 2223,
+          "value": -0.123131
+        },
+        {
+          "slot": 2276,
+          "value": 0.117204
+        },
+        {
+          "slot": 84,
+          "value": 0.113924
+        },
+        {
+          "slot": 193,
+          "value": -0.113924
+        },
+        {
+          "slot": 229,
+          "value": -0.113924
+        },
+        {
+          "slot": 347,
+          "value": -0.113924
+        },
+        {
+          "slot": 416,
+          "value": 0.113924
+        },
+        {
+          "slot": 434,
+          "value": 0.113924
+        },
+        {
+          "slot": 616,
+          "value": 0.113924
+        },
+        {
+          "slot": 768,
+          "value": 0.113924
+        },
+        {
+          "slot": 798,
+          "value": 0.113924
+        },
+        {
+          "slot": 808,
+          "value": 0.113924
+        },
+        {
+          "slot": 809,
+          "value": -0.113924
+        }
+      ],
+      "allNonZeroSlots": [
+        {
+          "slot": 84,
+          "value": 0.113924
+        },
+        {
+          "slot": 193,
+          "value": -0.113924
+        },
+        {
+          "slot": 229,
+          "value": -0.113924
+        },
+        {
+          "slot": 347,
+          "value": -0.113924
+        },
+        {
+          "slot": 400,
+          "value": 0.066091
+        },
+        {
+          "slot": 416,
+          "value": 0.113924
+        },
+        {
+          "slot": 434,
+          "value": 0.113924
+        },
+        {
+          "slot": 483,
+          "value": -0.093323
+        },
+        {
+          "slot": 616,
+          "value": 0.113924
+        },
+        {
+          "slot": 676,
+          "value": 0.227848
+        },
+        {
+          "slot": 709,
+          "value": -0.107106
+        },
+        {
+          "slot": 768,
+          "value": 0.113924
+        },
+        {
+          "slot": 798,
+          "value": 0.113924
+        },
+        {
+          "slot": 808,
+          "value": 0.113924
+        },
+        {
+          "slot": 809,
+          "value": -0.113924
+        },
+        {
+          "slot": 817,
+          "value": -0.101873
+        },
+        {
+          "slot": 890,
+          "value": 0.113924
+        },
+        {
+          "slot": 938,
+          "value": 0.113924
+        },
+        {
+          "slot": 1031,
+          "value": -0.113924
+        },
+        {
+          "slot": 1286,
+          "value": 0.113924
+        },
+        {
+          "slot": 1305,
+          "value": -0.113924
+        },
+        {
+          "slot": 1351,
+          "value": -0.113924
+        },
+        {
+          "slot": 1657,
+          "value": -0.113924
+        },
+        {
+          "slot": 1668,
+          "value": 0.113924
+        },
+        {
+          "slot": 1727,
+          "value": -0.113924
+        },
+        {
+          "slot": 1791,
+          "value": -0.113924
+        },
+        {
+          "slot": 1846,
+          "value": 0.113924
+        },
+        {
+          "slot": 1901,
+          "value": -0.152617
+        },
+        {
+          "slot": 1912,
+          "value": 0.113924
+        },
+        {
+          "slot": 1948,
+          "value": 0.093323
+        },
+        {
+          "slot": 1982,
+          "value": 0.113924
+        },
+        {
+          "slot": 2063,
+          "value": -0.113924
+        },
+        {
+          "slot": 2128,
+          "value": 0.113924
+        },
+        {
+          "slot": 2148,
+          "value": 0.113924
+        },
+        {
+          "slot": 2193,
+          "value": -0.113924
+        },
+        {
+          "slot": 2223,
+          "value": -0.123131
+        },
+        {
+          "slot": 2275,
+          "value": -0.113924
+        },
+        {
+          "slot": 2276,
+          "value": 0.117204
+        },
+        {
+          "slot": 2285,
+          "value": -0.113924
+        },
+        {
+          "slot": 2288,
+          "value": 0.113924
+        },
+        {
+          "slot": 2297,
+          "value": -0.101873
+        },
+        {
+          "slot": 2316,
+          "value": 0.093323
+        },
+        {
+          "slot": 2343,
+          "value": -0.113924
+        },
+        {
+          "slot": 2475,
+          "value": -0.093323
+        },
+        {
+          "slot": 2628,
+          "value": 0.086692
+        },
+        {
+          "slot": 2645,
+          "value": -0.086692
+        },
+        {
+          "slot": 2673,
+          "value": -0.113924
+        },
+        {
+          "slot": 2687,
+          "value": -0.093323
+        },
+        {
+          "slot": 2698,
+          "value": 0.113924
+        },
+        {
+          "slot": 2745,
+          "value": -0.172487
+        },
+        {
+          "slot": 2784,
+          "value": 0.086692
+        },
+        {
+          "slot": 2855,
+          "value": -0.101873
+        },
+        {
+          "slot": 2905,
+          "value": -0.113924
+        },
+        {
+          "slot": 3026,
+          "value": 0.239082
+        },
+        {
+          "slot": 3039,
+          "value": -0.069222
+        },
+        {
+          "slot": 3087,
+          "value": -0.12985
+        },
+        {
+          "slot": 3165,
+          "value": -0.101873
+        },
+        {
+          "slot": 3193,
+          "value": -0.113924
+        },
+        {
+          "slot": 3247,
+          "value": -0.113924
+        },
+        {
+          "slot": 3248,
+          "value": 0.113924
+        },
+        {
+          "slot": 3316,
+          "value": 0.113924
+        },
+        {
+          "slot": 3403,
+          "value": -0.113924
+        },
+        {
+          "slot": 3470,
+          "value": 0.113924
+        },
+        {
+          "slot": 3512,
+          "value": 0.101873
+        },
+        {
+          "slot": 3518,
+          "value": 0.101873
+        },
+        {
+          "slot": 3529,
+          "value": -0.081273
+        },
+        {
+          "slot": 3577,
+          "value": -0.127328
+        },
+        {
+          "slot": 3637,
+          "value": -0.113924
+        },
+        {
+          "slot": 3638,
+          "value": 0.113924
+        },
+        {
+          "slot": 3715,
+          "value": -0.113924
+        },
+        {
+          "slot": 3812,
+          "value": 0.113924
+        },
+        {
+          "slot": 3939,
+          "value": -0.113924
+        },
+        {
+          "slot": 3945,
+          "value": -0.152617
+        }
+      ]
+    }
+  },
+  "stage3_questionVector": {
+    "question": "What happens to a message after it fails five times?",
+    "tokenisation": {
+      "unigramsAfterStemming": [
+        "happen",
+        "message",
+        "after",
+        "fail",
+        "five",
+        "time"
+      ],
+      "totalTokensWithBigrams": 11,
+      "allTokens": [
+        "happen",
+        "message",
+        "after",
+        "fail",
+        "five",
+        "time",
+        "happen_message",
+        "message_after",
+        "after_fail",
+        "fail_five",
+        "five_time"
+      ]
+    },
+    "vector": {
+      "dimensions": 4096,
+      "nonZeroCount": 11,
+      "zeroCount": 4085,
+      "percentFilled": 0.27,
+      "l2Magnitude": 1,
+      "distinctTokens": 11,
+      "collisionCount": 0,
+      "collisions": [],
+      "slotMappingVerified": true,
+      "tokenSlots": [
+        {
+          "token": "happen_message",
+          "slot": 2273,
+          "valueAtSlot": -0.360517
+        },
+        {
+          "token": "message_after",
+          "slot": 613,
+          "valueAtSlot": -0.360517
+        },
+        {
+          "token": "after_fail",
+          "slot": 2690,
+          "valueAtSlot": 0.360517
+        },
+        {
+          "token": "fail_five",
+          "slot": 2358,
+          "valueAtSlot": 0.360517
+        },
+        {
+          "token": "five_time",
+          "slot": 1239,
+          "valueAtSlot": -0.360517
+        },
+        {
+          "token": "happen",
+          "slot": 1857,
+          "valueAtSlot": -0.305309
+        },
+        {
+          "token": "time",
+          "slot": 3044,
+          "valueAtSlot": 0.273014
+        },
+        {
+          "token": "five",
+          "slot": 917,
+          "valueAtSlot": -0.250101
+        },
+        {
+          "token": "after",
+          "slot": 3529,
+          "valueAtSlot": -0.217806
+        },
+        {
+          "token": "fail",
+          "slot": 1901,
+          "valueAtSlot": -0.194893
+        },
+        {
+          "token": "message",
+          "slot": 2276,
+          "valueAtSlot": 0.185512
+        }
+      ],
+      "strongestSlots": [
+        {
+          "slot": 613,
+          "value": -0.360517
+        },
+        {
+          "slot": 1239,
+          "value": -0.360517
+        },
+        {
+          "slot": 2273,
+          "value": -0.360517
+        },
+        {
+          "slot": 2358,
+          "value": 0.360517
+        },
+        {
+          "slot": 2690,
+          "value": 0.360517
+        },
+        {
+          "slot": 1857,
+          "value": -0.305309
+        },
+        {
+          "slot": 3044,
+          "value": 0.273014
+        },
+        {
+          "slot": 917,
+          "value": -0.250101
+        },
+        {
+          "slot": 3529,
+          "value": -0.217806
+        },
+        {
+          "slot": 1901,
+          "value": -0.194893
+        },
+        {
+          "slot": 2276,
+          "value": 0.185512
+        }
+      ],
+      "allNonZeroSlots": [
+        {
+          "slot": 613,
+          "value": -0.360517
+        },
+        {
+          "slot": 917,
+          "value": -0.250101
+        },
+        {
+          "slot": 1239,
+          "value": -0.360517
+        },
+        {
+          "slot": 1857,
+          "value": -0.305309
+        },
+        {
+          "slot": 1901,
+          "value": -0.194893
+        },
+        {
+          "slot": 2273,
+          "value": -0.360517
+        },
+        {
+          "slot": 2276,
+          "value": 0.185512
+        },
+        {
+          "slot": 2358,
+          "value": 0.360517
+        },
+        {
+          "slot": 2690,
+          "value": 0.360517
+        },
+        {
+          "slot": 3044,
+          "value": 0.273014
+        },
+        {
+          "slot": 3529,
+          "value": -0.217806
+        }
+      ]
+    }
+  },
+  "stage4_ranking": {
+    "note": "Cosine similarity between the question vector and every chunk vector, sorted. Both vectors are unit length, so cosine is just the dot product.",
+    "searchMs": 0,
+    "chunksScored": 33,
+    "handCheckedTopScore": 0.069188,
+    "scoreboard": [
+      {
+        "rank": 1,
+        "score": 0.0692,
+        "source": "03-integration-bus.md",
+        "heading": "Retry policy",
+        "sharedTokens": [
+          "message",
+          "after",
+          "fail"
+        ]
+      },
+      {
+        "rank": 2,
+        "score": 0.0522,
+        "source": "05-database-and-migrations.md",
+        "heading": "Large table changes",
+        "sharedTokens": [
+          "message",
+          "five"
+        ]
+      },
+      {
+        "rank": 3,
+        "score": 0.049,
+        "source": "04-import-routines.md",
+        "heading": "The staging pattern",
+        "sharedTokens": [
+          "fail"
+        ]
+      },
+      {
+        "rank": 4,
+        "score": 0.041,
+        "source": "02-order-service.md",
+        "heading": "API",
+        "sharedTokens": [
+          "after"
+        ]
+      },
+      {
+        "rank": 5,
+        "score": 0.0388,
+        "source": "06-incident-runbook.md",
+        "heading": "Escalation",
+        "sharedTokens": []
+      },
+      {
+        "rank": 6,
+        "score": 0.037,
+        "source": "06-incident-runbook.md",
+        "heading": "Orders stuck in `validated`",
+        "sharedTokens": []
+      },
+      {
+        "rank": 7,
+        "score": 0.0362,
+        "source": "04-import-routines.md",
+        "heading": "Schedule",
+        "sharedTokens": []
+      },
+      {
+        "rank": 8,
+        "score": 0.0352,
+        "source": "01-systems-overview.md",
+        "heading": "Environments",
+        "sharedTokens": [
+          "happen"
+        ]
+      },
+      {
+        "rank": 9,
+        "score": 0.0329,
+        "source": "03-integration-bus.md",
+        "heading": "Message shape",
+        "sharedTokens": [
+          "message"
+        ]
+      },
+      {
+        "rank": 10,
+        "score": 0.0329,
+        "source": "02-order-service.md",
+        "heading": "Order states",
+        "sharedTokens": [
+          "after"
+        ]
+      },
+      {
+        "rank": 11,
+        "score": 0.0284,
+        "source": "05-database-and-migrations.md",
+        "heading": "Backups",
+        "sharedTokens": [
+          "time"
+        ]
+      },
+      {
+        "rank": 12,
+        "score": 0.0261,
+        "source": "01-systems-overview.md",
+        "heading": "The system landscape",
+        "sharedTokens": [
+          "message",
+          "five"
+        ]
+      },
+      {
+        "rank": 13,
+        "score": 0.0252,
+        "source": "02-order-service.md",
+        "heading": "Purpose",
+        "sharedTokens": [
+          "after"
+        ]
+      },
+      {
+        "rank": 14,
+        "score": 0.0245,
+        "source": "06-incident-runbook.md",
+        "heading": "Certificate expiry",
+        "sharedTokens": [
+          "five"
+        ]
+      },
+      {
+        "rank": 15,
+        "score": 0.0238,
+        "source": "03-integration-bus.md",
+        "heading": "Partner authentication",
+        "sharedTokens": [
+          "time"
+        ]
+      },
+      {
+        "rank": 16,
+        "score": 0.0213,
+        "source": "03-integration-bus.md",
+        "heading": "Throughput",
+        "sharedTokens": [
+          "message"
+        ]
+      },
+      {
+        "rank": 17,
+        "score": 0.0209,
+        "source": "02-order-service.md",
+        "heading": "Rate limits and timeouts",
+        "sharedTokens": [
+          "after"
+        ]
+      },
+      {
+        "rank": 18,
+        "score": 0.0173,
+        "source": "03-integration-bus.md",
+        "heading": "What it does",
+        "sharedTokens": [
+          "message"
+        ]
+      },
+      {
+        "rank": 19,
+        "score": 0.0157,
+        "source": "06-incident-runbook.md",
+        "heading": "Import did not run",
+        "sharedTokens": [
+          "fail"
+        ]
+      },
+      {
+        "rank": 20,
+        "score": 0.0157,
+        "source": "03-integration-bus.md",
+        "heading": "Delivery guarantees",
+        "sharedTokens": [
+          "message"
+        ]
+      },
+      {
+        "rank": 21,
+        "score": 0.0151,
+        "source": "04-import-routines.md",
+        "heading": "Encoding problems",
+        "sharedTokens": [
+          "fail"
+        ]
+      },
+      {
+        "rank": 22,
+        "score": 0.0147,
+        "source": "06-incident-runbook.md",
+        "heading": "Severity levels",
+        "sharedTokens": [
+          "fail"
+        ]
+      },
+      {
+        "rank": 23,
+        "score": 0.0141,
+        "source": "04-import-routines.md",
+        "heading": "Common failure causes",
+        "sharedTokens": [
+          "fail"
+        ]
+      },
+      {
+        "rank": 24,
+        "score": 0.0137,
+        "source": "01-systems-overview.md",
+        "heading": "Technology constraints",
+        "sharedTokens": [
+          "message"
+        ]
+      },
+      {
+        "rank": 25,
+        "score": 0.0131,
+        "source": "06-incident-runbook.md",
+        "heading": "Bus queue depth alarm",
+        "sharedTokens": [
+          "fail"
+        ]
+      },
+      {
+        "rank": 26,
+        "score": 0,
+        "source": "01-systems-overview.md",
+        "heading": "Systems Overview",
+        "sharedTokens": []
+      },
+      {
+        "rank": 27,
+        "score": 0,
+        "source": "01-systems-overview.md",
+        "heading": "Ownership and on-call",
+        "sharedTokens": []
+      },
+      {
+        "rank": 28,
+        "score": 0,
+        "source": "02-order-service.md",
+        "heading": "Known issues",
+        "sharedTokens": []
+      },
+      {
+        "rank": 29,
+        "score": 0,
+        "source": "04-import-routines.md",
+        "heading": "Overview",
+        "sharedTokens": []
+      },
+      {
+        "rank": 30,
+        "score": 0,
+        "source": "04-import-routines.md",
+        "heading": "Idempotency",
+        "sharedTokens": []
+      },
+      {
+        "rank": 31,
+        "score": 0,
+        "source": "05-database-and-migrations.md",
+        "heading": "Conventions",
+        "sharedTokens": []
+      },
+      {
+        "rank": 32,
+        "score": 0,
+        "source": "05-database-and-migrations.md",
+        "heading": "Migration policy",
+        "sharedTokens": []
+      },
+      {
+        "rank": 33,
+        "score": 0,
+        "source": "05-database-and-migrations.md",
+        "heading": "Connection handling",
+        "sharedTokens": []
+      }
+    ]
+  },
+  "stage5_relevanceFilter": {
+    "note": "Cosine ranking always returns something. These two floors decide whether any of it is actually worth sending to the model.",
+    "topScore": 0.0692,
+    "absoluteFloor": 0.07,
+    "relativeFloor": "0.45 x topScore",
+    "effectiveCutoff": 0.07,
+    "kept": [],
+    "dropped": [
+      {
+        "score": 0.0692,
+        "source": "03-integration-bus.md",
+        "heading": "Retry policy"
+      },
+      {
+        "score": 0.0522,
+        "source": "05-database-and-migrations.md",
+        "heading": "Large table changes"
+      },
+      {
+        "score": 0.049,
+        "source": "04-import-routines.md",
+        "heading": "The staging pattern"
+      },
+      {
+        "score": 0.041,
+        "source": "02-order-service.md",
+        "heading": "API"
+      }
+    ]
+  },
+  "stage6_prompt": {
+    "note": "This is the literal payload the model receives. The [S1] markers are the entire citation mechanism.",
+    "contextCharacters": 0,
+    "totalPromptCharacters": 0,
+    "approximateTokens": 0,
+    "messages": []
+  },
+  "stage7_answer": {
+    "providerId": "mock",
+    "generationMs": 0,
+    "text": "That is not covered in the indexed documents."
+  }
+}

@@ -5,7 +5,3 @@ node_modules
 dist
 .env
 *.log
-
-# Personal career/portfolio planning — deliberately kept out of a public repo.
-# Delete this line and `git add -f` it if you do want it published.
-demo_project_norwegian_company_data.md

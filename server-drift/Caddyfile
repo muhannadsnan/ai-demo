@@ -9,9 +9,20 @@
 {$DOMAIN} {
 	encode zstd gzip
 
-	# Streaming: the chat and ask endpoints hold a Server-Sent Events
-	# connection open. Buffering the response would defeat the entire point,
-	# so flush immediately and do not impose a read timeout on them.
+	# Streaming: /api/chat and /api/ask hold a Server-Sent Events connection
+	# open. A proxy that buffers the response defeats the entire point.
+	#
+	# MEASURED, not assumed: Caddy already flushes immediately when the
+	# response carries `Content-Type: text/event-stream`, and ignores
+	# flush_interval entirely for such responses. Setting it to -1 here changes
+	# nothing — verified by running the same request through a proxy configured
+	# with `flush_interval 30s`, which streamed identically (150 body chunks
+	# spread over 1.85s in both cases).
+	#
+	# It is kept as documentation of intent, and as insurance for the day an
+	# endpoint streams without that content type. If you ever swap Caddy for
+	# nginx, this stops being free: nginx has `proxy_buffering on` by default
+	# and WILL buffer SSE until you turn it off explicitly.
 	@stream path /api/chat /api/ask
 	reverse_proxy @stream app:3000 {
 		flush_interval -1

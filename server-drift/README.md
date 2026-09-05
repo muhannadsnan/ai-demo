@@ -97,6 +97,19 @@ server-drift/
 A root `.dockerignore` keeps the build context at ~500 kB instead of shipping
 `node_modules` to the daemon.
 
+### What has actually been tested
+
+| Claim | Status |
+|---|---|
+| Image builds, 138 MB, runs as non-root | verified |
+| Healthcheck reports `healthy` | verified |
+| `knowledge/` ships in the runtime layer | verified — `/api/knowledge` answers from inside the container |
+| Search, SSE streaming, SSR all work in the container | verified |
+| Both compose files are schema-valid | verified with `docker compose config` |
+| `ingest` is excluded from `up` by its profile | verified — `config --services` lists only app, db, proxy |
+| SSE survives the proxy | verified by measurement, **and the reason was not what I assumed** — see the note in `Caddyfile` |
+| Let's Encrypt issuance | **not tested** — needs a real domain |
+
 ## Running it
 
 ```bash

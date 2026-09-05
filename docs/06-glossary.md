@@ -152,10 +152,16 @@ discipline from development, and the one `server-drift/` exists to demonstrate.
 into your own database. The same thing as an import routine; just the word the
 data-engineering world uses.
 
+**VPS (virtual private server)** — a slice of a rented physical machine that
+behaves like your own Linux box with root access. Same idea as a local virtual
+machine, but in a datacentre with a public IP. Its memory and disk are fixed at
+provisioning; growing means changing plan and rebooting, not autoscaling.
+
 **Meilisearch** — a standalone search engine run as its own service. You push
 documents into it and it returns typo-tolerant results instantly. An alternative
 to PostgreSQL's built-in full-text search, at the cost of one more service to
-operate.
+operate. **Typesense** is near-identical in purpose; **Solr** is the
+older, heavier, far more configurable ancestor of both.
 
 **Runbook** — a document listing named failure modes and the exact command to
 run for each, written to be usable by someone who did not build the system.

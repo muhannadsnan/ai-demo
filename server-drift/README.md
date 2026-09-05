@@ -108,6 +108,8 @@ A root `.dockerignore` keeps the build context at ~500 kB instead of shipping
 | Both compose files are schema-valid | verified with `docker compose config` |
 | `ingest` is excluded from `up` by its profile | verified — `config --services` lists only app, db, proxy |
 | SSE survives the proxy | verified by measurement, **and the reason was not what I assumed** — see the note in `Caddyfile` |
+| Cold start | verified — 181 ms to first successful request |
+| No compiler or `node_modules` in the runtime image | verified |
 | Let's Encrypt issuance | **not tested** — needs a real domain |
 
 ## Running it

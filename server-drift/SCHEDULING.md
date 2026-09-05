@@ -4,6 +4,9 @@ You already run imports on a schedule at work: cron fires at 01:15 and runs
 `php index.php import:price-lists`. Nothing about that changes here. The only
 new question containers introduce is **where the scheduler lives**.
 
+**Docker has no scheduler.** It cannot run anything at a time — it only starts
+containers when something tells it to. The clock always lives somewhere else.
+
 ## The one decision
 
 ```

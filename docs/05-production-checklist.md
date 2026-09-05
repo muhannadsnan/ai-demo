@@ -38,6 +38,32 @@ There is no complete defence. What actually helps:
 - Prefer narrow, structured outputs over free text when the result feeds code.
 - Validate output against a schema before acting on it.
 
+## Dependencies and build
+
+- [x] **Nothing is compiled at container start.** Building happens once, at image
+      build time. A start command that names a build tool (`npm run`, `mix`, `mvn`,
+      `go run`) is compiling on every restart — which means it can fail in
+      production at 03:00 on a box that worked yesterday, needs a compiler in the
+      runtime image, and often needs the network at boot. A correct start command
+      names an artifact: `node .output/server/index.mjs`. Measured cold start for
+      this image: 181 ms.
+- [x] **No dependencies in the runtime image.** The multi-stage build leaves
+      `node_modules` behind in the builder. The shipped image is 138 MB, of which
+      2.3 MB is application code — and it contains no compiler and no package
+      manager, so most of the supply-chain attack surface simply is not present at
+      runtime.
+- [x] **A committed lockfile, installed with `npm ci`.** Exact pinned versions,
+      no surprise transitive upgrade between your test and your deploy.
+- [ ] **Count dependencies before adding them.** The npm supply-chain risk people
+      warn about is real, but it is a function of dependency *count*, not of the
+      language — PyPI and Go modules have had the same attacks. An import job
+      needs a CSV parser and a database driver, not a framework. This is a
+      discipline, not a technology choice.
+- [ ] **`npm audit` (or equivalent) in CI**, failing the build on high severity.
+- [ ] **Pin base images to a minor version.** `postgres:16-alpine`, never
+      `postgres:latest` — a major version arriving during an unrelated deploy will
+      refuse to start on the existing data directory.
+
 ## Cost
 
 - [x] **`max_tokens` on every call.** Done.

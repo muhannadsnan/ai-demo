@@ -1,0 +1,36 @@
+# Caddy obtains and renews Let's Encrypt certificates automatically. There is no
+# certbot, no cron renewal, and no nginx TLS block to get wrong — which is why
+# it is here instead of nginx for a single-node deployment.
+
+{
+	email {$TLS_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Streaming: the chat and ask endpoints hold a Server-Sent Events
+	# connection open. Buffering the response would defeat the entire point,
+	# so flush immediately and do not impose a read timeout on them.
+	@stream path /api/chat /api/ask
+	reverse_proxy @stream app:3000 {
+		flush_interval -1
+	}
+
+	reverse_proxy app:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}

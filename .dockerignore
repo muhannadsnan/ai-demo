@@ -1,0 +1,10 @@
+node_modules
+.nuxt
+.output
+.git
+.env
+test-data
+docs
+*.log
+server-drift
+demo_project_norwegian_company_data.md

@@ -100,6 +100,7 @@ server/                   Everything with an API key near it
   utils/guardrails.ts       Rate limiting and input validation
 
 knowledge/                The corpus that gets indexed — replace with your own
+server-drift/             Docker image, compose stack, deploy runbook
 scripts/eval-retrieval.mjs Retrieval regression suite
 ```
 

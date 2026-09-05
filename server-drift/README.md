@@ -1,0 +1,169 @@
+# server-drift
+
+Everything about *running* this project on a server: images, orchestration,
+deployment, and the procedures for when it breaks.
+
+Separate from the application code on purpose. Application code answers "what
+does it do"; this directory answers "what happens at 23:00 when it stops doing
+it", which is a different discipline and worth showing separately.
+
+---
+
+## The decision: Docker Compose on a single VPS
+
+Yes — containers are the right call here, and for the reason you already
+identified: **portability**. But it is worth being explicit about the trade,
+because "use Docker" is not automatically correct.
+
+### Why it fits this project
+
+- **One definition, three environments.** The same stack runs on your Mint
+  laptop, on a Windows machine through WSL2, and on the VPS. This is the exact
+  problem the VirtualBox-plus-SSH-plus-shared-folder setup was solving, minus
+  the several GB of guest OS and the manual configuration that lives only in
+  your memory.
+- **The configuration is the documentation.** `docker-compose.yml` states what
+  runs, how it is networked, what it is allowed to consume, and how it is
+  checked for liveness. A reviewer reads it in two minutes. A hand-configured
+  server takes an afternoon to reverse-engineer, and only if you are still
+  there to be asked.
+- **Reproducible.** Pinned image versions mean the Postgres you develop against
+  is the Postgres in production. No "works on my machine".
+- **It is what employers expect** for new work, which matters given this is
+  partly a portfolio piece.
+
+### The honest counter-argument
+
+For a single VPS running a single app, plain `apt install` plus systemd units is
+genuinely simpler, has no daemon in the path, and some infrastructure teams
+prefer it. Containers add a layer, and container networking is one more thing
+that can be wrong at 23:00.
+
+The portability requirement settles it. You explicitly want this to move between
+machines, and that is precisely where the hand-configured server loses.
+
+### What is deliberately NOT here
+
+- **Kubernetes.** One node, one app, no autoscaling requirement. It would add
+  significant operational surface for zero benefit, and on a portfolio project
+  it reads as résumé-driven rather than considered. Being able to explain *why
+  you did not use it* demonstrates more judgement than using it would.
+- **A VM image.** Superseded by containers for this purpose. Keep VirtualBox for
+  when you genuinely need to test a full OS install, not for shipping an app.
+- **A managed platform** (Vercel, Railway, Fly). They would work, and they would
+  also hide exactly the layer you are trying to demonstrate competence in.
+
+---
+
+## Build it in stages
+
+This is the part most people get wrong. Do not stand the whole stack up at once.
+
+| Stage | What is added | Why this order |
+|---|---|---|
+| **1** | App + Caddy (TLS) | Prove build → deploy → HTTPS → healthcheck against a small, known-good app |
+| **2** | Postgres + migrations | Add persistent state once deployment is boring |
+| **3** | Ingest service + schedule | The Brreg/Skatteetaten pipelines |
+| **4** | Search (Meilisearch or Postgres FTS) | Only once you know queries are actually slow |
+| **5** | AI layer | Last, on top of everything already working |
+
+**Stage 1 is in this directory and works today** — it deploys the ai-demo, which
+needs no database. When a certificate fails to issue or a container cannot reach
+another, you are debugging one new thing rather than four at once.
+
+Do not debug Let's Encrypt and a 3.4M-row import on the same evening.
+
+---
+
+## What is here now
+
+```
+server-drift/
+  Dockerfile          multi-stage build; 138 MB runtime image, non-root, healthcheck
+  docker-compose.yml  stage 1: app + TLS proxy
+  Caddyfile           reverse proxy, automatic Let's Encrypt, SSE-aware
+  Makefile            deploy / rollback / logs / health
+  .env.example        copy to .env on the server
+  RUNBOOK.md          what to do when it breaks
+```
+
+A root `.dockerignore` keeps the build context at ~500 kB instead of shipping
+`node_modules` to the daemon.
+
+## Running it
+
+```bash
+# once, on Mint — Docker is installed but the Compose plugin is not
+sudo apt install docker-compose-v2
+
+cd server-drift
+cp .env.example .env && chmod 600 .env   # set DOMAIN and TLS_EMAIL
+make deploy
+make ps
+```
+
+Point the domain's A record at the server **before** the first `make deploy`, or
+Caddy's certificate request fails and you will burn one of the five duplicate
+certificates Let's Encrypt allows per week.
+
+Locally, without a domain, just run the image directly:
+
+```bash
+docker build -f server-drift/Dockerfile -t ai-demo:local ..
+docker run --rm -p 3000:3000 -e NUXT_AI_PROVIDER=mock ai-demo:local
+```
+
+---
+
+## Sizing, when the company data arrives
+
+Rough shape of the Norwegian dataset in Postgres, indexes included:
+
+| Table | Rows | Approx. on disk |
+|---|---|---|
+| `enheter` | 1.17M | ~2 GB |
+| `roller` | 3.4M | ~1.5 GB |
+| `aksjonaerer` | 3M | ~1 GB |
+
+Disk is not the problem — any VPS gives you 40 GB. **RAM is.** A 4 GB box
+running Postgres, Meilisearch, Nuxt and an ingest job at the same time will
+swap, and the nightly ingest is exactly when it will hurt.
+
+Two options, both defensible:
+
+- Move to 8 GB. On Hetzner that is a couple of euros a month more, and it is the
+  boring correct answer.
+- Stay at 4 GB and drop Meilisearch, using Postgres full-text search instead.
+  One less service, one less thing to explain, and at 1.17M rows with a decent
+  GIN index it is fast enough.
+
+Also: **run the ingest as a separate container with its own memory limit.** A
+runaway import must not be able to take the database down with it. That is what
+the `deploy.resources.limits` block in the compose file is for, and it is worth
+setting on every service rather than only the ones you are worried about.
+
+---
+
+## What actually demonstrates operations skill
+
+Nearly every portfolio project has a `docker-compose.yml`. Almost none has the
+following, which is what separates someone who ran `docker compose up` once from
+someone who has operated a system:
+
+- **A runbook.** Named failure modes with the command to run for each. See
+  `RUNBOOK.md`.
+- **A restore that has actually been performed.** Not a backup script — a
+  documented drill with the date it was last run and how long it took. Your own
+  systems notes record point-in-time recovery as never having been exercised;
+  closing that gap here is a genuinely strong thing to be able to point at.
+- **Backups that are verified**, not just written. A backup nobody has restored
+  is a hypothesis.
+- **Resource limits on every service**, so one process cannot starve the others.
+- **Log rotation**, because the most common cause of a dead small VPS is a full
+  disk.
+- **Versioned migrations** with a working `down`, applied by the deploy rather
+  than by hand.
+- **A rollback that is one command** and names a specific version.
+
+Stage 1 already covers limits, log rotation, healthchecks and one-command
+rollback. Backups and the restore drill arrive with Postgres at stage 2.

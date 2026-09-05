@@ -1,0 +1,92 @@
+# Stage 1 of the deployment: the app behind a TLS-terminating reverse proxy.
+#
+# Deliberately small. Data services (Postgres, ingest workers, search) are added
+# at stage 2 — see README.md. Getting build -> deploy -> TLS -> healthcheck
+# working against a known-good app first means that when the database and a
+# 3.4M-row import arrive, you are debugging one new thing rather than four.
+#
+#   docker compose up -d --build
+#   docker compose logs -f app
+
+name: ai-demo
+
+services:
+  app:
+    build:
+      context: ..                       # the repository root
+      dockerfile: server-drift/Dockerfile
+    image: ai-demo:${APP_VERSION:-local}
+    restart: unless-stopped
+
+    environment:
+      # Server-side only. Nuxt maps NUXT_* onto runtimeConfig; nothing here
+      # reaches the browser. See nuxt.config.ts.
+      NUXT_AI_PROVIDER: ${NUXT_AI_PROVIDER:-mock}
+      NUXT_OPENAI_API_KEY: ${NUXT_OPENAI_API_KEY:-}
+      NUXT_OPENAI_CHAT_MODEL: ${NUXT_OPENAI_CHAT_MODEL:-gpt-4o-mini}
+      NUXT_OPENAI_EMBEDDING_MODEL: ${NUXT_OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+
+    # No published ports. The app is only reachable through the proxy, so the
+    # container cannot be hit directly even if the firewall is misconfigured.
+    expose:
+      - "3000"
+
+    # A container without limits will happily consume the whole VPS and take
+    # the database down with it. On a 4 GB box these are deliberately modest.
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"                 # without this, logs fill the disk
+        max-file: "3"
+
+    networks: [edge]
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      TLS_EMAIL: ${TLS_EMAIL:?set TLS_EMAIL in .env}
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live in a named volume. Lose this and Let's Encrypt will
+      # re-issue, but its rate limits are real — 5 duplicate certs per week.
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      app:
+        condition: service_healthy
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks: [edge]
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:

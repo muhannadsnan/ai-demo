@@ -1,0 +1,44 @@
+# Run the whole stack on a laptop: no domain, no TLS, no certificates.
+#
+#   docker compose -f docker-compose.local.yml up -d --build
+#   open http://localhost:8080
+#
+# Standalone on purpose rather than an override of docker-compose.yml, because
+# the production file requires DOMAIN and TLS_EMAIL and fails without them —
+# which is correct there and pure friction here.
+
+name: ai-demo-local
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: server-drift/Dockerfile
+    image: ai-demo:local
+    restart: unless-stopped
+    environment:
+      NUXT_AI_PROVIDER: ${NUXT_AI_PROVIDER:-mock}
+      NUXT_OPENAI_API_KEY: ${NUXT_OPENAI_API_KEY:-}
+      # Reaching Ollama running on the host, from inside the container:
+      NUXT_OLLAMA_BASE_URL: ${NUXT_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    expose:
+      - "3000"
+    extra_hosts:
+      # Lets the container reach services on the laptop, such as Ollama.
+      - "host.docker.internal:host-gateway"
+    networks: [local]
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [local]
+
+networks:
+  local:

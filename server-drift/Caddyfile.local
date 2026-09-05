@@ -1,0 +1,17 @@
+# Local development only. Plain HTTP on :8080 — no domain, no certificates.
+# The production Caddyfile is the one with TLS; this exists so the stack can be
+# run on a laptop without owning a domain.
+
+:8080 {
+	encode zstd gzip
+
+	# Same streaming block as production. Caddy flushes text/event-stream
+	# responses immediately regardless, but keeping the configs aligned means
+	# local behaviour matches the server.
+	@stream path /api/chat /api/ask
+	reverse_proxy @stream app:3000 {
+		flush_interval -1
+	}
+
+	reverse_proxy app:3000
+}

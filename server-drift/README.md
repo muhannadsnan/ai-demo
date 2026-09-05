@@ -84,7 +84,9 @@ Do not debug Let's Encrypt and a 3.4M-row import on the same evening.
 ```
 server-drift/
   Dockerfile               multi-stage build; 138 MB image, non-root, healthcheck
-  docker-compose.yml       stage 1: app + TLS proxy  (works today)
+  docker-compose.local.yml run it on a laptop: HTTP on :8080, no domain needed
+  Caddyfile.local          the proxy config for that
+  docker-compose.yml       stage 1 on a server: app + TLS proxy
   Caddyfile                reverse proxy, automatic Let's Encrypt, SSE-aware
   Makefile                 deploy / rollback / logs / health
   .env.example             copy to .env on the server
@@ -112,7 +114,21 @@ A root `.dockerignore` keeps the build context at ~500 kB instead of shipping
 | No compiler or `node_modules` in the runtime image | verified |
 | Let's Encrypt issuance | **not tested** — needs a real domain |
 
-## Running it
+## Running it locally — no domain, no TLS
+
+This is the path to use while there is no server:
+
+```bash
+cd server-drift
+docker compose -f docker-compose.local.yml up -d --build
+# http://localhost:8080
+```
+
+Plain HTTP on port 8080. No certificates, nothing to own, nothing to configure.
+It runs the same image and the same proxy as production, so the only difference
+is the missing TLS layer.
+
+## Running it on a server
 
 ```bash
 # once, on Mint — Docker is installed but the Compose plugin is not

@@ -222,6 +222,24 @@ a `content_hash` (so re-imports skip unchanged rows), and `created_at` /
 database container being destroyed and recreated — because the data is in a
 volume, not in the container.
 
+### The schema is a first draft, on purpose
+
+These tables were written from the **field list in the planning document**, not
+from inspecting a real Brreg download. That is scaffolding, not a finished
+design, and some of it will be wrong: exact field names, which columns are
+actually nullable, real value ranges, whether `antall_ansatte` is ever absent
+rather than zero, how addresses vary in practice.
+
+The right sequence is: download one file, look at it, then correct the schema.
+That correction is a new migration — `004_fix_enheter.sql` — which is precisely
+why migrations exist and why the first draft being imperfect costs almost
+nothing. Having tables to load into now beats waiting for perfect knowledge.
+
+What is *not* provisional is the shape: typed columns for what gets queried,
+`raw` jsonb for everything else, a content hash for skip-if-unchanged, and
+indexes chosen for real queries. That part holds regardless of what the files
+turn out to contain.
+
 ### Not yet written
 
 The ingest code. Stage 2 gives you a database and a place to run jobs; the jobs

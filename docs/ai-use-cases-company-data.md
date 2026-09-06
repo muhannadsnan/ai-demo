@@ -128,8 +128,13 @@ what retrieval is for.
 
 ### 3 · Similar companies
 
-Compare the **statutory purpose text** (`vedtektsfestetFormaal`) rather than the
-NACE code. NACE is a hand-maintained classification and far too coarse — two
+Compare the **activity description** (`aktivitet`) rather than the NACE code.
+
+*Corrected after inspecting a real download:* the obvious candidate is
+`vedtektsfestetFormaal`, the statutory purpose — but it is filled on only
+**43.6%** of companies. `aktivitet` carries the same kind of description and is
+filled on **100%**, and every row that has a purpose also has an activity. So
+`aktivitet` is strictly better coverage for the same job. NACE is a hand-maintained classification and far too coarse — two
 companies filed under the same code can be completely different businesses,
 while two genuinely similar companies often sit under different codes.
 

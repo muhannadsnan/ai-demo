@@ -210,8 +210,33 @@ was, and re-running is safe.
 | File | Contains |
 |---|---|
 | `001_extensions.sql` | `pg_trgm` for fuzzy name matching, `unaccent` for å/ø/æ |
-| `002_enheter.sql` | Companies — typed columns, raw jsonb, content hash, six indexes |
+| `002_enheter.sql` | First draft of the companies table — superseded by 004 |
+| `004_enheter_from_real_data.sql` | Companies, rewritten against the actual 90-column CSV |
+| `005_restore_roller_fk.sql` | Re-adds the foreign key that 004's `DROP ... CASCADE` removed |
 | `003_roller.sql` | Board members, CEOs, auditors — with a person/company check constraint |
+
+### What the real data changed
+
+The draft schema in 002 was written from documentation. A real download
+(154 MB gzipped, 801 MB of CSV, **1,467,160 companies, 90 columns**) contradicted
+it in five ways that mattered:
+
+| Guess in 002 | Reality |
+|---|---|
+| One industry code | **Three** (`naeringskode1..3`) |
+| `antall_ansatte` nullable integer | Filled on **6.7%** of rows, with a separate `harRegistrertAntallAnsatte` flag. Without it, "reported zero" and "never reported" are indistinguishable |
+| One `kommunenummer`, addresses as jsonb | **Two** addresses, already flat, seven parts each, two different kommunenummer. Business address 97% filled, postal 18% |
+| `kapital_belop` as bigint | Has two decimals **and a currency** — NOK and EUR both occur |
+| Embed `vedtektsfestetFormaal` | Filled on **43.6%**. `aktivitet` holds the same kind of text at **100%** |
+
+This is why the schema was not designed in advance of the download. Correcting
+it cost one migration.
+
+**Note for the ingest:** twelve database columns were deliberately renamed to be
+shorter than the CSV headers (`underTvangsavviklingEllerTvangsopplosning` →
+`under_tvangsavvikling`, and similar). The import script therefore needs an
+explicit CSV-column-to-database-column map; automatic snake_casing will not
+line up.
 
 Each table keeps three things beyond the obvious columns: the untouched API
 payload in `raw` (so a field you did not extract does not mean a full re-import),

@@ -5,3 +5,6 @@ node_modules
 dist
 .env
 *.log
+
+# Downloaded source data — large, and reproducible from the sources
+data/

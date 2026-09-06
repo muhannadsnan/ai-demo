@@ -804,10 +804,12 @@ Authorization: Bearer sk-...
 
       <p style="margin-top:1.3rem">
         Genuine matches land between <strong>0.09 and 0.36</strong>. Off-topic questions top out
-        at <strong>0.064</strong>. The relevance floor sits at <code>0.07</code>, in the gap —
-        and that gap is uncomfortably narrow. That narrowness is itself the lesson: it is a
-        fair picture of what a purely lexical embedder can do, and a real embedding model
-        separates the two far more cleanly. Which is most of what you are paying for.
+        at <strong>0.064</strong>. The         relevance floor sits at <code>0.07</code>, in the gap.
+        <strong>Those numbers are specific to this embedder.</strong> Re-indexed
+        with a real embedding model (nomic-embed-text, run locally), the same
+        corpus put noise at 0.444 and genuine matches at 0.54&ndash;0.81 &mdash;
+        a completely different range. A single hardcoded floor silently
+        disabled the filter, so it now lives on the provider itself.
       </p>
       <div class="note">
         <span class="tag">The habit to form</span>

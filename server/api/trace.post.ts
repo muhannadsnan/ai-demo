@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
   const questionVector = questionVectorRaw!
 
   // ---- STAGE 5 · relevance filtering ---------------------------------------
-  const { relevant, topScore, cutoff } = selectRelevant(hits)
+  const { relevant, topScore, cutoff, absoluteFloor } = selectRelevant(hits)
 
   // ---- STAGE 6 · the prompt ------------------------------------------------
   const messages = relevant.length ? buildRagMessages(question, relevant) : []
@@ -193,7 +193,7 @@ export default defineEventHandler(async (event) => {
       note: 'Cosine ranking always returns something. These two floors decide '
         + 'whether any of it is actually worth sending to the model.',
       topScore: round(topScore, 4),
-      absoluteFloor: 0.07,
+      absoluteFloor,
       relativeFloor: '0.45 x topScore',
       effectiveCutoff: round(cutoff, 4),
       kept: relevant.map((h, i) => ({

@@ -58,6 +58,9 @@ export function createOpenAiProvider(config: OpenAiConfig): AiProvider {
     chatModel: config.chatModel,
     embeddingModel: config.embeddingModel,
     billable: true,
+    // NOT MEASURED — no API key was available. text-embedding-3-small usually
+    // sits lower than nomic. Run `npm run eval` and use the printed noise floor.
+    relevanceFloor: 0.35,
 
     async *streamChat(messages: ChatMessage[], opts: ChatOptions = {}) {
       const res = await fetch(`${config.baseUrl}/chat/completions`, {

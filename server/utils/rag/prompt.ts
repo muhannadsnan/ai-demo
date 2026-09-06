@@ -1,5 +1,6 @@
 import type { ChatMessage } from '../ai/types'
 import type { SearchHit } from './store'
+import { requireAiProvider } from '../ai/provider'
 
 /**
  * The AUGMENT half of RAG, in one place.
@@ -30,31 +31,36 @@ Rules:
  *
  * Two filters, because one is not enough:
  *
- *   ABSOLUTE floor — below this, nothing is really about the question.
+ *   ABSOLUTE floor — below this, nothing is really about the question. It comes
+ *                    from the PROVIDER, because every embedding model puts
+ *                    "relevant" at a different cosine value. See
+ *                    AiProvider.relevanceFloor.
  *   RELATIVE floor — when one passage is clearly the best, the tail behind it
  *                    is padding. Dropping it shrinks the prompt and stops weak
- *                    passages from pulling the answer off course.
+ *                    passages from pulling the answer off course. This one is
+ *                    a ratio, so it survives a change of model.
  *
- * These numbers are EMPIRICAL and provider-dependent. Measured against this
- * corpus with the offline embedder: off-topic questions top out around 0.06,
- * genuine matches start around 0.09. That is uncomfortably narrow — a real
- * embedding model separates the two far more cleanly, which is a large part of
- * what you are paying for. Re-measure whenever you change model or corpus.
+ * This was originally a single hardcoded 0.07, tuned against the offline
+ * embedder. Switching to nomic-embed-text, whose noise floor is 0.444, silently
+ * disabled the filter completely — every off-topic question started getting a
+ * confident, cited answer. That is why the number lives with the provider now.
  */
-export const MIN_ABSOLUTE_SCORE = 0.07
 export const RELATIVE_SCORE_FLOOR = 0.45
 
 export interface Selection {
   relevant: SearchHit[]
   topScore: number
   cutoff: number
+  /** The provider's floor, exposed so the UI and trace can show which one applied. */
+  absoluteFloor: number
 }
 
 /** Apply both floors, and report the numbers so callers can display them. */
 export function selectRelevant(hits: SearchHit[]): Selection {
+  const absoluteFloor = requireAiProvider().relevanceFloor
   const topScore = hits[0]?.score ?? 0
-  const cutoff = Math.max(MIN_ABSOLUTE_SCORE, topScore * RELATIVE_SCORE_FLOOR)
-  return { relevant: hits.filter(h => h.score >= cutoff), topScore, cutoff }
+  const cutoff = Math.max(absoluteFloor, topScore * RELATIVE_SCORE_FLOOR)
+  return { relevant: hits.filter(h => h.score >= cutoff), topScore, cutoff, absoluteFloor }
 }
 
 /**

@@ -143,18 +143,24 @@ things up while *looking* rigorous.
 - a **relative floor** (`0.45 × top score`) — when one passage is clearly best,
   the tail behind it is padding that shrinks the prompt and drags the answer.
 
-Those constants are **empirical, and specific to this corpus and this embedder**.
-Measured here (`npm run eval`):
+Those constants are **empirical, and specific to this corpus and this embedder**
+— so much so that the absolute floor now lives on the provider itself
+(`AiProvider.relevanceFloor`) rather than in the API route. Measured with
+`npm run eval`:
 
-```
-genuine matches   0.09 – 0.36
-off-topic noise   0.05 – 0.064
-```
+| | noise floor | genuine matches | floor used |
+|---|---|---|---|
+| offline TF-IDF | 0.064 | 0.09 – 0.36 | 0.07 |
+| nomic-embed-text | 0.444 | 0.54 – 0.81 | 0.50 |
 
-That is an uncomfortably narrow gap, and it is an honest illustration of the
-offline embedder's limits — a real embedding model separates the two far more
-cleanly. **Re-measure whenever you change the model, the chunk size or the
-corpus.** Never copy someone else's threshold.
+Those live in completely different numeric ranges. When this was a single
+hardcoded `0.07`, switching to Ollama **silently disabled the filter entirely** —
+every off-topic question started getting a confident, cited answer built from
+irrelevant passages. Nothing errored; the feature just quietly became wrong.
+
+That is the single most important operational lesson in this file. **Re-measure
+whenever you change the model, the chunk size or the corpus**, and never copy
+someone else's threshold.
 
 ## Evaluate it, don't eyeball it
 
@@ -196,9 +202,45 @@ be clear about what it cannot do:
 | Needs a stemmer and a stop-word list | yes | no |
 | Cost | free | per token |
 
-**Run the same query under both providers.** That comparison is the single most
-instructive five minutes in this project, and it is exactly what you are buying
-when you pay for an embedding model.
+### Measured, not assumed
+
+That table above is the theory. Here is what actually happened when the same
+corpus was indexed with `nomic-embed-text` running locally under Ollama:
+
+| Golden set | mock (TF-IDF) | ollama (nomic-embed-text) |
+|---|---|---|
+| top-1 | **12 / 12** | 10 / 12 |
+| recall@3 | 12 / 12 | 12 / 12 |
+
+**The lexical embedder won.** That is not what anyone expects, and the reason is
+a flaw in the test rather than a triumph of 1970s technology: the golden
+questions in `scripts/eval-retrieval.mjs` were written by the same person who
+wrote the corpus, so they reuse the documents' own vocabulary. That quietly
+rewards word matching. **An evaluation set written from the documents will
+always flatter lexical search.**
+
+So the questions were rewritten to deliberately avoid the documents' wording —
+"What happens if a partner lets their security credentials lapse?" instead of
+"When do the partner certificates expire?" — and run again:
+
+| Paraphrased questions | mock (TF-IDF) | ollama (nomic-embed-text) |
+|---|---|---|
+| top-1 | 5 / 8 | **7 / 8** |
+| recall@3 | 6 / 8 | **8 / 8** |
+
+That is the real difference, and it is smaller and more specific than the usual
+sales pitch. Two honest conclusions:
+
+1. **Semantic search wins exactly where the vocabulary differs.** Users do not
+   phrase questions in your documentation's words, so in production the second
+   table is the one that matters — and note that lexical search did not merely
+   rank worse, it *never retrieved* the right document at all for 2 of 8.
+2. **Some of the lexical "passes" were luck.** It matched the right *document*
+   via a common word while landing on the wrong *section* — good enough to score
+   a point, not good enough to answer the question.
+
+Run both yourself: switch `NUXT_AI_PROVIDER` and re-run `npm run eval`. It is
+the most instructive five minutes in this project.
 
 Also worth noticing: lexical search is *not* obsolete. Production systems
 routinely run both and merge the results ("hybrid search"), because exact

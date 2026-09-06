@@ -38,6 +38,22 @@ export interface AiProvider {
   readonly billable: boolean
 
   /**
+   * Cosine score below which a retrieved passage is treated as irrelevant.
+   *
+   * This MUST travel with the provider, because different embedding models put
+   * "relevant" at completely different values. Measured on this corpus:
+   *
+   *   offline TF-IDF     noise ~0.06,  genuine matches 0.09-0.36  -> floor 0.07
+   *   nomic-embed-text   noise ~0.44,  genuine matches 0.54-0.81  -> floor 0.50
+   *
+   * Using one number for both silently disables the filter: a 0.07 floor
+   * against nomic-embed-text admits absolutely everything, including answers
+   * to questions the corpus cannot answer at all. Re-measure with `npm run
+   * eval`, which prints the noise floor, whenever you change model or corpus.
+   */
+  readonly relevanceFloor: number
+
+  /**
    * Streams the assistant reply back as text fragments ("deltas").
    * An async generator is used so the caller can `for await (...)` over it and
    * forward each fragment to the browser immediately.

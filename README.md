@@ -39,7 +39,7 @@ Edit `.env`, then restart the dev server.
 | `NUXT_AI_PROVIDER` | Needs | Cost | What you get |
 |---|---|---|---|
 | `mock` *(default)* | nothing | free | Real retrieval; replies are extractive, not generated |
-| `ollama` | [Ollama](https://ollama.com) installed locally | free | A real language model, running on your own machine |
+| `ollama` | [Ollama](https://ollama.com) installed locally | free | A real language model on your own machine. **Verified working**: llama3.2 + nomic-embed-text on a 6 GB GPU, ~3.1 GB VRAM while loaded, released after 5 min idle |
 | `openai` | an API key | paid | The real thing |
 
 **No key yet?** Use `ollama`. It gives you genuinely working AI today without

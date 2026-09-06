@@ -38,6 +38,8 @@ export function createOllamaProvider(config: OllamaConfig): AiProvider {
     chatModel: config.chatModel,
     embeddingModel: config.embeddingModel,
     billable: false,
+    // Measured with nomic-embed-text: noise 0.444, genuine matches 0.54-0.81.
+    relevanceFloor: 0.50,
 
     async *streamChat(messages: ChatMessage[], opts: ChatOptions = {}) {
       let res: Response

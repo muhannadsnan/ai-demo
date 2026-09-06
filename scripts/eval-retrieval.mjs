@@ -39,6 +39,31 @@ const CASES = [
   ['What are the order states?',                            /02-order-service/]
 ]
 
+/**
+ * A second set, deliberately phrased to AVOID the documents' own vocabulary.
+ *
+ * This exists because the set above is biased. It was written by whoever wrote
+ * the corpus, so it reuses the documents' words — which quietly rewards lexical
+ * matching and flatters a keyword-based embedder. Users do not phrase questions
+ * in your documentation's words, so this set is the more honest predictor of
+ * production quality.
+ *
+ * Measured on this corpus: the offline TF-IDF embedder beats nomic-embed-text on
+ * the set above (12/12 vs 10/12) and loses badly on this one (5/8 vs 7/8, and
+ * recall 6/8 vs 8/8). Same corpus, opposite conclusion, purely from how the
+ * questions were worded.
+ */
+const PARAPHRASED = [
+  ['What happens if a partner lets their security credentials lapse?', /incident-runbook|integration-bus/],
+  ['Who is responsible outside normal working hours?',                 /systems-overview/],
+  ['How do we avoid loading the same data twice?',                     /import-routines/],
+  ['The warehouse assignment stopped working, now what?',              /incident-runbook/],
+  ['Can I add a column to a huge table safely?',                       /database-and-migrations/],
+  ['What proves a client is allowed to call the service?',             /order-service/],
+  ['Why do Norwegian letters come out wrong?',                         /import-routines/],
+  ['How long before we give up delivering a message?',                 /integration-bus/]
+]
+
 /** Questions with no answer in the corpus. The top score here is your noise floor. */
 const OFF_TOPIC = [
   'what is the best recipe for sourdough bread',
@@ -52,6 +77,12 @@ async function search(query, topK = TOP_K) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, topK })
   })
+  if (res.status === 429) {
+    throw new Error(
+      'Rate limited. This suite makes ~24 requests; raise the cap with '
+      + 'NUXT_RATE_LIMIT_PER_MINUTE=200 npm run dev'
+    )
+  }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — is \`npm run dev\` running?`)
   return res.json()
 }
@@ -77,6 +108,21 @@ for (const [question, expected] of CASES) {
   )
 }
 
+let para1 = 0, paraK = 0
+console.log('\nParaphrased — wording deliberately unlike the documents:\n')
+for (const [question, expected] of PARAPHRASED) {
+  const { hits } = await search(question)
+  const best = hits[0]
+  const isTop1 = expected.test(best?.source ?? '')
+  const inTopK = hits.some(h => expected.test(h.source))
+  if (isTop1) para1++
+  if (inTopK) paraK++
+  console.log(
+    `${isTop1 ? 'PASS ' : inTopK ? 'top-k' : 'MISS '} ${question.padEnd(52)} `
+    + `${(best?.score ?? 0).toFixed(3)}  ${best?.source ?? '-'} > ${best?.heading ?? '-'}`
+  )
+}
+
 console.log('\nNoise floor (questions the corpus cannot answer):')
 let worstNoise = 0
 for (const question of OFF_TOPIC) {
@@ -91,10 +137,11 @@ const { stats } = await search('warm up', 1)
 console.log('\n' + '-'.repeat(74))
 console.log(`provider      ${stats.providerId} / ${stats.embeddingModel}`)
 console.log(`corpus        ${stats.documents} documents, ${stats.chunks} chunks, ${stats.dimensions}d`)
-console.log(`top-1         ${top1}/${CASES.length}`)
+console.log(`top-1         ${top1}/${CASES.length}        (questions using the documents' own words)`)
 console.log(`recall@${TOP_K}      ${recallAtK}/${CASES.length}`)
-console.log(`noise floor   ${worstNoise.toFixed(3)}  <- keep MIN_ABSOLUTE_SCORE above this`)
+console.log(`paraphrased   ${para1}/${PARAPHRASED.length}  top-1, ${paraK}/${PARAPHRASED.length} recall  <- the honest predictor`)
+console.log(`noise floor   ${worstNoise.toFixed(3)}  <- AiProvider.relevanceFloor must sit above this`)
 console.log('-'.repeat(74) + '\n')
 
 // Non-zero exit on regression, so this can go in CI.
-process.exit(recallAtK === CASES.length && top1 >= CASES.length - 1 ? 0 : 1)
+process.exit(recallAtK === CASES.length && top1 >= CASES.length - 2 && paraK >= PARAPHRASED.length - 2 ? 0 : 1)

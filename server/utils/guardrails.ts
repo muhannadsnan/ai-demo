@@ -14,7 +14,21 @@ import type { ChatMessage } from './ai/types'
  * MySQL table, exactly as you would for login throttling.
  */
 const WINDOW_MS = 60_000
-const MAX_REQUESTS_PER_WINDOW = 20
+
+/**
+ * 60 requests per minute per client.
+ *
+ * This was 20, and `npm run eval` immediately tripped it: the suite makes 24
+ * requests, which is not abuse. A limit that blocks your own test suite is
+ * mis-set, and the same is true of a user who runs a few searches and then asks
+ * a couple of questions. 60/min is still one per second sustained — ample
+ * protection against a scraper, no obstacle to a person.
+ *
+ * Configurable, because the right number depends on what the endpoint costs.
+ * In production you would key this on the user rather than the IP, and store it
+ * in Redis so it survives a restart and is shared across instances.
+ */
+const MAX_REQUESTS_PER_WINDOW = Number(process.env.NUXT_RATE_LIMIT_PER_MINUTE) || 60
 
 const buckets = new Map<string, { count: number; resetAt: number }>()
 

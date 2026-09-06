@@ -62,7 +62,7 @@ This is the part most people get wrong. Do not stand the whole stack up at once.
 | Stage | What is added | Why this order |
 |---|---|---|
 | **1** | App + Caddy (TLS) | Prove build → deploy → HTTPS → healthcheck against a small, known-good app |
-| **2** | Postgres + migrations | Add persistent state once deployment is boring |
+| **2** | Postgres + migrations | Add persistent state once deployment is boring — **done** |
 | **3** | Ingest service + schedule | The Brreg/Skatteetaten pipelines |
 | **4** | Search (Meilisearch or Postgres FTS) | Only once you know queries are actually slow |
 | **5** | AI layer | Last, on top of everything already working |
@@ -186,6 +186,48 @@ the `deploy.resources.limits` block in the compose file is for, and it is worth
 setting on every service rather than only the ones you are worried about.
 
 ---
+
+## Stage 2 — the database
+
+Running locally as part of `docker-compose.local.yml`. Postgres 16 on a named
+volume, published on 5432 so pgAdmin or DBeaver can reach it. The server
+overlay (`docker-compose.data.yml`) deliberately does **not** publish that port.
+
+```bash
+docker compose -f docker-compose.local.yml up -d
+./migrate.sh status     # what has run, what has not
+./migrate.sh            # apply everything pending
+```
+
+### Migrations
+
+`migrate.sh` is about fifty lines of shell, not a framework. It keeps a
+`schema_migrations` table and runs the files in `migrations/` that are not in
+it. Each file runs inside a transaction, so a failure rolls the file back and
+does not write the ledger — a failed migration leaves the database exactly as it
+was, and re-running is safe.
+
+| File | Contains |
+|---|---|
+| `001_extensions.sql` | `pg_trgm` for fuzzy name matching, `unaccent` for å/ø/æ |
+| `002_enheter.sql` | Companies — typed columns, raw jsonb, content hash, six indexes |
+| `003_roller.sql` | Board members, CEOs, auditors — with a person/company check constraint |
+
+Each table keeps three things beyond the obvious columns: the untouched API
+payload in `raw` (so a field you did not extract does not mean a full re-import),
+a `content_hash` (so re-imports skip unchanged rows), and `created_at` /
+`updated_at`.
+
+**Verified:** migrations apply, re-running is a no-op, and a row survives the
+database container being destroyed and recreated — because the data is in a
+volume, not in the container.
+
+### Not yet written
+
+The ingest code. Stage 2 gives you a database and a place to run jobs; the jobs
+that download Brreg files and load them are stage 3. Sources, sizes, update
+cadence and licences for all ten datasets are in
+`../demo_project_norwegian_company_data.md`.
 
 ## Which language for the import jobs
 

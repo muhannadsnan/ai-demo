@@ -28,6 +28,29 @@ services:
       - "host.docker.internal:host-gateway"
     networks: [local]
 
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nordata}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    volumes:
+      # Named volume, NOT a folder in the image. Replace or upgrade the
+      # container and this survives; only `down -v` destroys it.
+      - db_data:/var/lib/postgresql/data
+    ports:
+      # Published locally ONLY so you can connect with pgAdmin or DBeaver.
+      # docker-compose.data.yml (the server one) deliberately does not publish
+      # this — there, nothing outside the Docker network can reach Postgres.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-nordata}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [local]
+
   proxy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -39,6 +62,9 @@ services:
       app:
         condition: service_healthy
     networks: [local]
+
+volumes:
+  db_data:
 
 networks:
   local:

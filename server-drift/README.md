@@ -216,6 +216,8 @@ was, and re-running is safe.
 | `003_roller.sql` | First draft of roles — superseded by 006 |
 | `006_roller_from_real_data.sql` | Roles, rewritten against the real nested JSON |
 | `007_person_name_index_not_partial.sql` | Removes a partial-index trap (see below) |
+| `008_reference_data.sql` | Counties, municipalities, industry codes, postcodes |
+| `009_svalbard.sql` | Adds Svalbard, which SSB's municipality list omits |
 
 ### What the real data changed
 
@@ -273,6 +275,10 @@ turn out to contain.
 |---|---|---|---|
 | `enheter` | 1,173,013 | CSV, 154 MB gzipped | 809 MB |
 | `roller` | 3,418,541 | JSON, 130 MB gzipped / 2.8 GB raw | 852 MB |
+| `fylker` | 16 | SSB JSON API | — |
+| `kommuner` | 358 | SSB JSON API | — |
+| `naeringskoder` | 1,785 | SSB JSON API | — |
+| `postnummer` | 5,122 | Bring, tab-separated **ISO-8859-1** | — |
 
 Roles break down as 2,697,229 held by people and 708,736 held by companies
 (auditors and accountants are firms). 128 roles were dropped because their

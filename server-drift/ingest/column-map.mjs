@@ -111,8 +111,24 @@ export const COLUMNS = [
   ['foretaksformIHjemlandet.beskrivelseBokmaal','foretaksform_i_hjemlandet_beskrivelse_bokmaal',    'text']
 ]
 
+/**
+ * Per-column overrides, for values that need cleaning rather than casting.
+ *
+ * Brreg uses "00.000" / "Uoppgitt" as a placeholder meaning "no industry code
+ * assigned" — 60,155 companies carry it. It is not in SSB's classification, so
+ * it breaks the foreign key, and semantically it means "unknown", which is what
+ * NULL is for. Left as-is it joins to nothing, sorts oddly, and shows up in a
+ * GROUP BY as though it were a real industry.
+ */
+const OVERRIDES = {
+  'naeringskode1.kode':        `nullif(nullif(s."naeringskode1.kode", ''), '00.000')`,
+  'naeringskode1.beskrivelse': `CASE WHEN s."naeringskode1.kode" = '00.000' THEN NULL
+                                     ELSE nullif(s."naeringskode1.beskrivelse", '') END`
+}
+
 /** The SQL expression that converts one staging column to its final type. */
 export function cast(csvHeader, type) {
+  if (OVERRIDES[csvHeader]) return OVERRIDES[csvHeader]
   const v = `nullif(s."${csvHeader}", '')`
   switch (type) {
     case 'date':     return `${v}::date`

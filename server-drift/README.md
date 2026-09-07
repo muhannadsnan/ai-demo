@@ -219,6 +219,8 @@ was, and re-running is safe.
 | `008_reference_data.sql` | Counties, municipalities, industry codes, postcodes |
 | `009_svalbard.sql` | Adds Svalbard, which SSB's municipality list omits |
 | `010_soft_delete.sql` | Marks deregistered companies instead of deleting them |
+| `011_referential_integrity.sql` | Adds three foreign keys, after making the data satisfy them |
+| `012_roller_history.sql` | Keeps ended roles instead of destroying them each import |
 
 ### What the real data changed
 
@@ -319,6 +321,38 @@ halves the load time and is safe precisely because it is disposable.
 `ingest/column-map.mjs` holds the CSV-header-to-column mapping and the type of
 each field. Both the staging DDL and the upsert are generated from it, so the
 mapping exists in exactly one place.
+
+### Role history
+
+`roller` holds current state; `roller_historikk` holds roles that have ended.
+Each import archives roles no longer present, inserts genuinely new ones, and
+leaves unchanged roles alone so their `forst_sett` date survives — a
+slowly-changing dimension, type 2. The previous version truncated and reloaded,
+which meant every import destroyed the answer to "who used to run this company".
+
+`roller_historikk` has no foreign key to `enheter` on purpose: role history
+should outlive the company being deregistered, which is exactly when someone
+wants to look.
+
+Columns are named *first seen* and *last seen*, not *from* and *to*, because
+Brreg publishes current state only. The honest claim is when we observed the
+role, not when the person took the seat.
+
+### Referential integrity
+
+Five foreign keys, all validated against the loaded data. Two data problems had
+to be fixed before three of them could be enforced:
+
+- **60,155 companies carried industry code `00.000`** — Brreg's placeholder
+  meaning "Uoppgitt", unspecified. It is not in SSB's classification. A magic
+  value meaning "unknown" is what NULL is for; left alone it joins to nothing
+  and appears in a `GROUP BY` as though it were a real industry.
+- **Jan Mayen**, like Svalbard, is absent from SSB's municipality list.
+
+One foreign key was deliberately not added: `enheter.overordnet_enhet`. Two
+companies name a parent missing from the bulk file, although both parents return
+HTTP 200 from Brreg's per-company API. The constraint would abort a future
+import over two rows in 1.17 million, discovered at 01:15 in a cron log.
 
 ### Deregistrations
 

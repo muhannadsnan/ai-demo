@@ -134,6 +134,34 @@ const result = await query(`
 const [newRows, changedRows] = result.split('|').map(v => Number(v.trim()))
 const total = Number(await query('SELECT count(*) FROM enheter;'))
 
+// ------------------------------------------------- 4. detect deregistrations
+//
+// Brreg does not flag deletions — a deleted company just stops appearing in the
+// file. Since this file is a complete snapshot, anything in `enheter` that is
+// absent from staging is gone. Mark it rather than DELETE it: `roller`
+// references `enheter` ON DELETE CASCADE, so removing a row would silently
+// destroy every board seat and directorship attached to it.
+//
+// The reverse case matters too. A company that reappears (re-registered, or
+// missing from one bad download) gets un-marked, so a single glitched file
+// cannot permanently retire a live company.
+const deletions = await query(`
+  WITH gone AS (
+    UPDATE enheter e SET slettet_dato = current_date, updated_at = now()
+    WHERE e.slettet_dato IS NULL
+      AND NOT EXISTS (SELECT 1 FROM staging_enheter s
+                      WHERE s."organisasjonsnummer" = e.organisasjonsnummer)
+    RETURNING 1
+  ), back AS (
+    UPDATE enheter e SET slettet_dato = NULL, updated_at = now()
+    WHERE e.slettet_dato IS NOT NULL
+      AND EXISTS (SELECT 1 FROM staging_enheter s
+                  WHERE s."organisasjonsnummer" = e.organisasjonsnummer)
+    RETURNING 1
+  )
+  SELECT (SELECT count(*) FROM gone), (SELECT count(*) FROM back);`)
+const [markedDeleted, reappeared] = deletions.split('|').map(v => Number(v.trim()))
+
 await sql('DROP TABLE IF EXISTS staging_enheter;')
 
 console.log(`
@@ -141,6 +169,8 @@ console.log(`
   inserted    ${newRows.toLocaleString()}
   updated     ${changedRows.toLocaleString()}
   unchanged   ${(staged - newRows - changedRows).toLocaleString()}   <- skipped by the content hash
+  deregistered ${markedDeleted.toLocaleString()}   <- absent from the file, marked not deleted
+  reappeared  ${reappeared.toLocaleString()}
   ----------------------------------------
   enheter now ${total.toLocaleString()} rows        (${since()})
 `)

@@ -218,6 +218,7 @@ was, and re-running is safe.
 | `007_person_name_index_not_partial.sql` | Removes a partial-index trap (see below) |
 | `008_reference_data.sql` | Counties, municipalities, industry codes, postcodes |
 | `009_svalbard.sql` | Adds Svalbard, which SSB's municipality list omits |
+| `010_soft_delete.sql` | Marks deregistered companies instead of deleting them |
 
 ### What the real data changed
 
@@ -318,6 +319,21 @@ halves the load time and is safe precisely because it is disposable.
 `ingest/column-map.mjs` holds the CSV-header-to-column mapping and the type of
 each field. Both the staging DDL and the upsert are generated from it, so the
 mapping exists in exactly one place.
+
+### Deregistrations
+
+Brreg does not flag deletions — a deleted company simply stops appearing in the
+download. Because the file is a complete snapshot, anything in `enheter` absent
+from staging is gone, and the import marks it with `slettet_dato`.
+
+Marked, not deleted, for three reasons: `roller` references `enheter`
+ON DELETE CASCADE, so removing a company would silently destroy every board
+seat and directorship attached to it; "deregistered on 4 March" is a fact worth
+showing; and a company that reappears gets un-marked, so one glitched download
+cannot permanently retire a live company.
+
+Verified by inserting a synthetic company absent from the file, running the
+import, and confirming it was marked rather than removed.
 
 ### A trap worth knowing
 

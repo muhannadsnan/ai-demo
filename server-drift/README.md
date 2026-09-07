@@ -221,6 +221,7 @@ was, and re-running is safe.
 | `010_soft_delete.sql` | Marks deregistered companies instead of deleting them |
 | `011_referential_integrity.sql` | Adds three foreign keys, after making the data satisfy them |
 | `012_roller_history.sql` | Keeps ended roles instead of destroying them each import |
+| `013_regnskap.sql` | Annual accounts, plus a log of every fetch attempt |
 
 ### What the real data changed
 
@@ -321,6 +322,32 @@ halves the load time and is safe precisely because it is disposable.
 `ingest/column-map.mjs` holds the CSV-header-to-column mapping and the type of
 each field. Both the staging DDL and the upsert are generated from it, so the
 mapping exists in exactly one place.
+
+### Annual accounts
+
+Regnskapsregisteret has no bulk file — one request per organisation number — so
+`regnskap` fills two ways:
+
+```bash
+node ingest/fetch-regnskap.mjs 923609016     # one company, on demand
+node ingest/fetch-regnskap.mjs --seed        # 6,456 companies, ~1.8h at 1s throttle
+node ingest/fetch-regnskap.mjs --stale 90    # refresh anything older than 90 days
+```
+
+The seed is companies with 50+ employees and accounts filed 2024 or later,
+ordered by headcount — ranked by employees rather than revenue, because revenue
+is the thing being fetched.
+
+`regnskap_hentelogg` records **every attempt**, including failures. A 404 means
+the company has never filed accounts, which is the permanent truth for most of
+the register; without recording it, those companies get re-requested on every
+page view forever. It also makes the seed resumable — re-running skips anything
+already attempted.
+
+`valuta` matters more than it looks: Equinor reports in **USD**, so any sum or
+ranking across companies has to group by currency or convert. And a parent files
+both `SELSKAP` and `KONSERN` accounts, so mixing the two double-counts revenue —
+hence both are in the primary key.
 
 ### Role history
 

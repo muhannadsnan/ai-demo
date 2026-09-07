@@ -213,7 +213,9 @@ was, and re-running is safe.
 | `002_enheter.sql` | First draft of the companies table — superseded by 004 |
 | `004_enheter_from_real_data.sql` | Companies, rewritten against the actual 90-column CSV |
 | `005_restore_roller_fk.sql` | Re-adds the foreign key that 004's `DROP ... CASCADE` removed |
-| `003_roller.sql` | Board members, CEOs, auditors — with a person/company check constraint |
+| `003_roller.sql` | First draft of roles — superseded by 006 |
+| `006_roller_from_real_data.sql` | Roles, rewritten against the real nested JSON |
+| `007_person_name_index_not_partial.sql` | Removes a partial-index trap (see below) |
 
 ### What the real data changed
 
@@ -264,6 +266,18 @@ What is *not* provisional is the shape: typed columns for what gets queried,
 `raw` jsonb for everything else, a content hash for skip-if-unchanged, and
 indexes chosen for real queries. That part holds regardless of what the files
 turn out to contain.
+
+## What is loaded
+
+| Table | Rows | Source | Size |
+|---|---|---|---|
+| `enheter` | 1,173,013 | CSV, 154 MB gzipped | 809 MB |
+| `roller` | 3,418,541 | JSON, 130 MB gzipped / 2.8 GB raw | 852 MB |
+
+Roles break down as 2,697,229 held by people and 708,736 held by companies
+(auditors and accountants are firms). 128 roles were dropped because their
+company is not in the companies file — counted and reported rather than
+aborting the load.
 
 ## Stage 3 — the importer
 

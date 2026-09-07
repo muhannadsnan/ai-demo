@@ -265,6 +265,47 @@ What is *not* provisional is the shape: typed columns for what gets queried,
 indexes chosen for real queries. That part holds regardless of what the files
 turn out to contain.
 
+## Stage 3 — the importer
+
+```bash
+node ingest/import-enheter.mjs            # defaults to ../data/raw/enheter.csv.gz
+```
+
+`fetch -> staging -> promote`, the same shape as the existing partner file
+imports:
+
+1. **COPY into a staging table where every column is text.** No parsing, no
+   type errors — get the rows in as fast as the disk allows. Postgres's bulk
+   loader does this in about 8 seconds for 800 MB.
+2. **Cast and upsert in one statement**, so the work happens inside Postgres
+   rather than shuttling rows through Node.
+
+Staging exists so a bad row cannot leave the real table half-updated:
+everything lands somewhere disposable first and is promoted in one transaction.
+The staging table is `UNLOGGED` — it skips the write-ahead log, which roughly
+halves the load time and is safe precisely because it is disposable.
+
+### Measured on the real dataset
+
+| | |
+|---|---|
+| Source | 154 MB gzipped, 809 MB in Postgres |
+| Records | **1,173,013** |
+| First run | 65 s |
+| Second run, nothing changed | **29 s, zero rows written** |
+| Fuzzy name search (`ILIKE '%nordvik%'`) | **4.2 ms**, 216 matches, via the trigram index |
+
+`ingest/column-map.mjs` holds the CSV-header-to-column mapping and the type of
+each field. Both the staging DDL and the upsert are generated from it, so the
+mapping exists in exactly one place.
+
+### A trap worth knowing
+
+`wc -l` reported 1,467,161 lines but there are only 1,173,013 records: 256,822
+of them contain newlines inside quoted address fields. Any importer that splits
+on newlines rather than parsing CSV properly would mangle a fifth of the file
+and never say so.
+
 ### Not yet written
 
 The ingest code. Stage 2 gives you a database and a place to run jobs; the jobs

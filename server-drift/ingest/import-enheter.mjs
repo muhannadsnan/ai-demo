@@ -1,0 +1,146 @@
+/**
+ * Import Brreg Enhetsregisteret into `enheter`.
+ *
+ *   node ingest/import-enheter.mjs [path/to/enheter.csv.gz]
+ *
+ * THE SHAPE — the same one the existing partner file imports use:
+ *
+ *     fetch  ->  STAGING  ->  reconcile  ->  PROMOTE
+ *
+ * 1. COPY the raw CSV into a staging table where every column is text. No
+ *    parsing, no validation, no type errors — just get 1.47M rows into the
+ *    database as fast as the disk allows.
+ *
+ * 2. Cast and upsert from staging into the real table in ONE statement, so the
+ *    work happens inside Postgres instead of shuttling rows through Node.
+ *    Rows whose content hash is unchanged are left alone.
+ *
+ * Why staging at all? So a bad row cannot leave the real table half-updated.
+ * Everything lands somewhere disposable first, is checked, and is promoted in a
+ * single transaction.
+ */
+
+import { createReadStream } from 'node:fs'
+import { createGunzip } from 'node:zlib'
+import { spawn } from 'node:child_process'
+import { basename } from 'node:path'
+import { COLUMNS, cast } from './column-map.mjs'
+
+const FILE         = process.argv[2] || '../data/raw/enheter.csv.gz'
+const COMPOSE_FILE = process.env.COMPOSE_FILE || 'docker-compose.local.yml'
+const DB_USER      = process.env.POSTGRES_USER || 'app'
+const DB_NAME      = process.env.POSTGRES_DB   || 'nordata'
+
+const t0    = Date.now()
+const since = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
+function dockerPsql(extraArgs, { stdinStream = null, inheritOut = false } = {}) {
+  const args = ['compose', '-f', COMPOSE_FILE, 'exec', '-T', 'db',
+                'psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', DB_USER, '-d', DB_NAME, ...extraArgs]
+  return new Promise((resolve, reject) => {
+    const p = spawn('docker', args, {
+      stdio: [stdinStream ? 'pipe' : 'ignore', inheritOut ? 'inherit' : 'pipe', 'pipe']
+    })
+    let out = '', err = ''
+    if (!inheritOut) p.stdout.on('data', d => (out += d))
+    p.stderr.on('data', d => (err += d))
+    p.on('close', code => code === 0
+      ? resolve(out.trim())
+      : reject(new Error(err.trim() || `psql exited with ${code}`)))
+    if (stdinStream) {
+      stdinStream.on('error', reject)
+      stdinStream.pipe(p.stdin)
+    }
+  })
+}
+
+/** Run one or more statements, discarding output. */
+const sql = statement => dockerPsql(['-c', statement])
+
+/**
+ * Run a query and get the raw values back.
+ *
+ * -t drops the column headers and row-count footer, -A drops the alignment
+ * padding. Without both, psql returns a pretty ASCII table and every attempt to
+ * read a number out of it is guesswork — which is exactly how the first version
+ * of this script produced "NaN rows staged".
+ */
+const query = statement => dockerPsql(['-t', '-A', '-F', '|', '-c', statement])
+
+/** Stream a gzipped CSV straight into COPY, without ever holding it in memory. */
+const copyIn = path => dockerPsql(
+  ['-c', `\\copy staging_enheter FROM STDIN WITH (FORMAT csv, HEADER true)`],
+  { stdinStream: createReadStream(path).pipe(createGunzip()) }
+)
+
+// ---------------------------------------------------------------- 1. staging
+// UNLOGGED skips the write-ahead log. The table is disposable — if this crashes
+// we re-run the whole import — so paying for crash safety on 800 MB of
+// throwaway data is pure cost. It roughly halves the load time.
+console.log('creating staging table…')
+await sql(`
+  DROP TABLE IF EXISTS staging_enheter;
+  CREATE UNLOGGED TABLE staging_enheter (
+    ${COLUMNS.map(([csv]) => `"${csv}" text`).join(',\n    ')}
+  );`)
+
+// ------------------------------------------------------------------- 2. COPY
+console.log(`streaming ${basename(FILE)} into staging…`)
+await copyIn(FILE)
+const staged = Number(await query('SELECT count(*) FROM staging_enheter;'))
+console.log(`  ${staged.toLocaleString()} rows staged  (${since()})`)
+
+// ------------------------------------------------------- 3. promote (upsert)
+//
+// THE CONTENT-HASH SKIP, in one line of SQL:
+//
+//   ... ON CONFLICT (organisasjonsnummer) DO UPDATE SET ...
+//       WHERE enheter.content_hash IS DISTINCT FROM EXCLUDED.content_hash
+//
+// The hash is a fingerprint of the whole incoming row. If the stored hash
+// matches the incoming one, nothing about that company changed since last
+// night, and the WHERE clause makes Postgres skip the write entirely — no dead
+// tuple, no index churn, no `updated_at` bump. On a daily Brreg refresh the
+// overwhelming majority of 1.47M rows are untouched, so this is the difference
+// between rewriting the whole table every night and rewriting the few thousand
+// rows that actually moved.
+const insertCols = COLUMNS.map(([, db]) => db)
+const selectExprs = COLUMNS.map(([csv, , type]) => cast(csv, type))
+
+// Everything except the primary key gets refreshed on conflict.
+const updates = insertCols
+  .filter(c => c !== 'organisasjonsnummer')
+  .map(c => `${c} = EXCLUDED.${c}`)
+  .concat(['content_hash = EXCLUDED.content_hash', 'updated_at = now()'])
+  .join(',\n    ')
+
+console.log('promoting into enheter…')
+const result = await query(`
+  WITH upserted AS (
+    INSERT INTO enheter (${insertCols.join(', ')}, content_hash)
+    SELECT
+      ${selectExprs.join(',\n      ')},
+      encode(sha256(s::text::bytea), 'hex')
+    FROM staging_enheter s
+    ON CONFLICT (organisasjonsnummer) DO UPDATE SET
+      ${updates}
+    WHERE enheter.content_hash IS DISTINCT FROM EXCLUDED.content_hash
+    RETURNING xmax = 0 AS inserted
+  )
+  SELECT count(*) FILTER (WHERE inserted)      AS new_rows,
+         count(*) FILTER (WHERE NOT inserted)  AS changed_rows
+  FROM upserted;`)
+
+const [newRows, changedRows] = result.split('|').map(v => Number(v.trim()))
+const total = Number(await query('SELECT count(*) FROM enheter;'))
+
+await sql('DROP TABLE IF EXISTS staging_enheter;')
+
+console.log(`
+  staged      ${staged.toLocaleString()}
+  inserted    ${newRows.toLocaleString()}
+  updated     ${changedRows.toLocaleString()}
+  unchanged   ${(staged - newRows - changedRows).toLocaleString()}   <- skipped by the content hash
+  ----------------------------------------
+  enheter now ${total.toLocaleString()} rows        (${since()})
+`)

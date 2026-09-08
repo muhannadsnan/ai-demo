@@ -702,9 +702,11 @@ Verified with EXPLAIN ANALYZE, not assumed:
 | Employees, default sort | `enheter_sok_sortering_idx` | no — 023 |
 | Five accounts ranges | `regnskap_siste_*_idx`, one per field, all partial `WHERE rimelig` | **yes — 026** |
 | Ownership network | `eierskap_kant_eier_idx`, `eierskap_kant_selskap_idx` | **yes — 029** |
+| Sort by name / newest / oldest | `enheter_sort_navn_idx`, `enheter_sort_registrert_idx`, `enheter_sort_stiftet_idx` | **yes — 030** |
 
-So the advanced filters needed four migrations of new indexes; geography,
-industry, employees and name search all ran on indexes that were already there.
+So the advanced filters and sorting needed five migrations of new indexes;
+geography, industry, employees and name search all ran on indexes that were
+already there.
 
 #### The one filter that was quietly broken
 
@@ -718,6 +720,63 @@ in 0.7 ms.
 
 A complete four-digit number now uses `=`. Utsira, the smallest municipality in
 the country with 68 companies: **253 ms → 5 ms**.
+
+### Sorting costs the same here as it does in MySQL
+
+Offering a sort dropdown is not free, and the reason is the same one you already
+know from MySQL: without an index whose order matches the `ORDER BY`, the
+database has to produce every candidate row before it can tell you which ten are
+first. PostgreSQL does it as a *top-N heapsort* — it keeps only the best ten in
+memory rather than sorting all 1.17 million — which is cheaper than a full sort
+and still reads everything.
+
+Measured on an unfiltered search:
+
+| `ORDER BY` | Without index | With index |
+|---|---|---|
+| `navn` | 318 ms | **0.20 ms** |
+| `stiftelsesdato DESC` | 284 ms | **0.14 ms** |
+| `registreringsdato DESC` | 281 ms | **0.08 ms** |
+| `antall_ansatte DESC` | — | 0.02 ms (already indexed, 023) |
+
+With a matching index the sort stops being a sort: Postgres walks the index in
+the order that was asked for, takes ten entries and stops. Migration 030 adds
+one index per option, all partial on `slettet_dato IS NULL` to match the
+search's own WHERE so deleted companies are not carried in them at all.
+
+Two details that matter more than they look:
+
+**Every sort ends in `navn`.** Without a total order, rows that compare equal
+can come back in a different order on the next query, so paginating shows one
+company twice and never shows another. A tie-breaker on a unique-ish column
+fixes it.
+
+**The index only matters when the filter does not.** Filter to 43 bankrupt
+construction companies in Oslo and sorting them is free whatever the column —
+there are 43 rows. The indexes earn their keep on the broad searches, which are
+exactly the ones a visitor runs first.
+
+### The ownership network, and why it recurses over nodes
+
+The ownership tab walks the corporate shareholding graph in both directions:
+up through the companies that own this one, down through the ones it owns.
+
+The first version recursed over *edges* and took 803 ms three levels up from
+Equinor, producing 48,588 rows for a network of a few hundred companies.
+Ownership graphs are dense with shared paths, and `UNION` over edge rows lets
+the same company be re-expanded once for every path that reaches it.
+
+Recursing over *nodes* — collecting companies, then fetching the edges between
+the ones that made the cut — makes the identical walk **5 ms**. Same data, same
+depth, same result.
+
+The edges themselves are a materialised view (migration 029) rather than an
+aggregation of 3.09 million holdings per page view, summed per (owner, company)
+so a stake held through two share classes is one edge rather than two.
+
+Only companies are nodes. An individual never appears as a position in an
+ownership graph — that is precisely the profile this project does not build —
+and the ownership tab reports them as a count instead.
 
 ### Gender is inferred from first names, and labelled as such
 

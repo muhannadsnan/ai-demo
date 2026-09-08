@@ -1,84 +1,108 @@
 <script setup lang="ts">
-const { data: health } = await useFetch('/api/health')
+useHead({ title: 'Norske foretak — data fra offentlige registre' })
 
-const providerHelp = computed(() => {
-  const id = health.value?.provider?.id
-  if (id === 'mock') {
-    return 'Running offline. Everything works, but replies come from a deterministic '
-      + 'stand-in rather than a language model. Set NUXT_AI_PROVIDER in .env to change this.'
-  }
-  if (id === 'openai') return 'Connected to OpenAI. Requests cost money.'
-  if (id === 'ollama') return 'Using a local Ollama model. Free and private.'
-  return health.value?.error ?? ''
-})
+const { data } = await useFetch('/api/oversikt', { lazy: true })
+const router = useRouter()
+const sok = ref('')
+
+function gaaTilSok() {
+  const q = sok.value.trim()
+  router.push({ path: '/foretak', query: q ? { q, aktive: 'true' } : {} })
+}
+
+const tall = (n: number | undefined) => (n ?? 0).toLocaleString('nb-NO')
+const mill = (n: number | undefined) =>
+  !n ? '—' : n >= 1e6 ? `${(n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits: 1 })} mill.` : tall(n)
 </script>
 
 <template>
   <div>
-    <h1>A small, readable AI integration</h1>
+    <h1>Norske foretak</h1>
     <p class="lede">
-      Two features, built the way you would build them in a real product: all AI
-      calls on the server, one swappable provider, and no vendor SDK hiding the
-      HTTP contract. Read the server code alongside the pages — every file is
-      commented for someone doing this for the first time.
+      Alle foretak i Enhetsregisteret, med roller, eierskap og regnskap, samlet
+      fra Brønnøysundregistrene og Skatteetaten og oppdatert automatisk hver
+      natt. Søk på navn, på organisasjonsnummer, eller på hva et foretak
+      faktisk driver med.
     </p>
 
-    <div class="card">
-      <div class="row" style="justify-content:space-between; margin-bottom:8px">
-        <strong>Current backend</strong>
-        <ProviderBadge />
-      </div>
-      <p class="muted" style="margin:0">{{ providerHelp }}</p>
-      <table class="meta" style="margin-top:12px" v-if="health?.provider">
-        <tbody>
-          <tr><td>Chat model</td><td><code>{{ health.provider.chatModel }}</code></td></tr>
-          <tr><td>Embedding model</td><td><code>{{ health.provider.embeddingModel }}</code></td></tr>
-          <tr>
-            <td>OpenAI key configured</td>
-            <td><code>{{ health.configured.openaiKeyPresent ? 'yes' : 'no' }}</code></td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-if="health && !health.ok" class="error-box" style="margin-bottom:0">
-        {{ health.error }}
-      </div>
+    <div class="sokefelt" style="margin-bottom:22px">
+      <span class="sokeboks">
+        <input v-model="sok" type="text"
+               placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="gaaTilSok">
+        <button v-if="sok" class="tom" type="button" aria-label="Tøm" @click="sok = ''">×</button>
+      </span>
+      <button @click="gaaTilSok">Søk</button>
     </div>
 
-    <h2>The two demos</h2>
-    <div class="card">
-      <strong><NuxtLink to="/chat">1 · Streaming chat</NuxtLink></strong>
-      <p class="muted" style="margin:6px 0 0">
-        The minimum viable AI feature. Teaches the request shape, the system prompt,
-        streaming over SSE, and why the model has no memory of its own.
-        Server code: <code>server/api/chat.post.ts</code>
-      </p>
-    </div>
-    <div class="card">
-      <strong><NuxtLink to="/search">2 · AI search over your documents</NuxtLink></strong>
-      <p class="muted" style="margin:6px 0 0">
-        Retrieval-augmented generation: chunk, embed, cosine-rank, then answer from
-        the retrieved passages with citations. This is the pattern behind almost
-        every "chat with your data" product.
-        Server code: <code>server/utils/rag/</code> and <code>server/api/ask.post.ts</code>
-      </p>
+    <div class="kort-rad">
+      <div class="kort"><span class="kort-etikett">Foretak</span>
+        <span class="kort-tall">{{ mill(data?.tall.foretak) }}</span>
+        <span class="kort-enhet">Enhetsregisteret</span></div>
+      <div class="kort"><span class="kort-etikett">Roller</span>
+        <span class="kort-tall">{{ mill(data?.tall.roller) }}</span>
+        <span class="kort-enhet">styre og ledelse</span></div>
+      <div class="kort"><span class="kort-etikett">Aksjeposter</span>
+        <span class="kort-tall">{{ mill(data?.tall.aksjeposter) }}</span>
+        <span class="kort-enhet">Aksjonærregisteret</span></div>
+      <div class="kort"><span class="kort-etikett">Regnskapsår</span>
+        <span class="kort-tall">{{ mill(data?.tall.regnskapsrader) }}</span>
+        <span class="kort-enhet">innsendte tall</span></div>
     </div>
 
-    <h2>Where to read next</h2>
-    <div class="card">
-      <table class="meta">
-        <tbody>
-          <tr>
-            <td><code>docs/00-the-basics.md</code></td>
-            <td><strong>Start here.</strong> The whole thing without jargon</td>
-          </tr>
-          <tr><td><code>docs/01-architecture.md</code></td><td>The request path and why it is shaped that way</td></tr>
-          <tr><td><code>docs/02-how-chat-works.md</code></td><td>Prompts, tokens, streaming, cost</td></tr>
-          <tr><td><code>docs/03-how-ai-search-works.md</code></td><td>Embeddings and RAG, end to end</td></tr>
-          <tr><td><code>docs/04-porting-this-to-codeigniter-mysql.md</code></td><td>The same thing in PHP 8 and MySQL 8</td></tr>
-          <tr><td><code>docs/05-production-checklist.md</code></td><td>What to fix before this touches customers</td></tr>
-          <tr><td><code>docs/06-glossary.md</code></td><td>The vocabulary, defined plainly</td></tr>
-        </tbody>
-      </table>
+    <div class="forsidekort">
+      <NuxtLink class="inngang" to="/foretak">
+        <h2>Søk og filtrer</h2>
+        <p>Fylke, kommune, næring i fire nivåer, antall ansatte og fem
+           regnskapsstørrelser — eller beskriv hva du leter etter og la søket
+           finne foretak som aldri skrev de ordene.</p>
+      </NuxtLink>
+
+      <NuxtLink class="inngang" to="/topplister">
+        <h2>Topplister</h2>
+        <p>Rangeringer regnet ut av hele datasettet hver natt.</p>
+        <ul class="inngang-liste">
+          <li v-for="l in data?.lister ?? []" :key="l.type">
+            <span class="inngang-tittel">{{ l.tittel }}</span>
+            <span class="inngang-topp">{{ l.topp }}</span>
+          </li>
+        </ul>
+      </NuxtLink>
+
+      <NuxtLink class="inngang" to="/status">
+        <h2>Hvordan dataene holdes ferske</h2>
+        <p>Importene kjører på timere og logger hver kjøring, så det er mulig å
+           se når hver kilde sist ble oppdatert — og om den feilet.</p>
+      </NuxtLink>
     </div>
+
+    <p class="muted" style="margin-top:22px">
+      Kildene er offentlige og gjengis under NLOD. Personopplysninger fra
+      Aksjonærregisteret lagres, men vises ikke.
+    </p>
   </div>
 </template>
+
+<style scoped>
+.forsidekort {
+  display: grid; gap: 12px; margin-top: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.inngang {
+  display: block; padding: 14px 16px; text-decoration: none; color: inherit;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); transition: border-color .12s ease;
+}
+.inngang:hover { border-color: var(--accent); }
+.inngang h2 { font-size: 15px; margin: 0 0 6px; color: var(--accent); }
+.inngang p { font-size: 13px; color: var(--text-dim); margin: 0; line-height: 1.55; }
+.inngang-liste { list-style: none; margin: 10px 0 0; padding: 0; }
+.inngang-liste li {
+  display: flex; gap: 8px; justify-content: space-between; align-items: baseline;
+  font-size: 12.5px; padding: 2px 0; min-width: 0;
+}
+.inngang-tittel { color: var(--text-dim); flex: none; }
+.inngang-topp {
+  color: var(--text); text-align: right; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+</style>

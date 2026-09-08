@@ -454,30 +454,26 @@ table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #
    1fr)` rather than `1fr` so a long company name cannot push the grid wider
    than its container. */
 .soke-layout {
-  display: grid; grid-template-columns: 310px minmax(0, 1fr);
+  display: grid; grid-template-columns: 465px minmax(0, 1fr);
   gap: 20px; align-items: start; margin-top: 14px;
 }
 @media (max-width: 760px) { .soke-layout { grid-template-columns: 1fr; } }
 
 .filter-sidebar {
-  position: sticky; top: 16px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 12px;
-  max-height: calc(100vh - 32px); overflow-y: auto; overflow-x: hidden;
-}
-.filter-sidebar.skjult { position: static; max-height: none; }
-.sidebar-hode {
-  display: flex; align-items: center; justify-content: space-between;
-  font: 600 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em;
-  color: var(--text-dim); margin-bottom: 10px;
+  overflow-x: hidden;
 }
 .filter-sidebar fieldset {
   border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px 10px; margin: 0 0 10px; min-width: 0;
 }
 .filter-sidebar legend {
-  padding: 0 5px; font: 500 10.5px/1 var(--mono);
-  text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim);
+  padding: 0 5px; font: 650 11px/1 var(--mono);
+  text-transform: uppercase; letter-spacing: .06em; color: var(--accent);
+}
+.feltnavn {
+  display: block; font-size: 12px; color: var(--text-dim); margin: 6px 0 2px;
 }
 .filter-sidebar label { display: flex; align-items: center; gap: 7px; font-size: 13px; padding: 2px 0; }
 .filter-sidebar .hint { font-size: 11px; margin: 6px 0 0; }
@@ -489,11 +485,12 @@ button.full { width: 100%; }
 .feltrad { justify-content: space-between; gap: 6px; }
 .feltrad input { width: 108px; }
 
+/* Label and both inputs on one line: the rail is wide enough now, and stacking
+   them made five accounts ranges fifteen rows tall. */
 .omraade { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
-.omraade input { width: 100%; min-width: 0; }
-.omraade.merket { flex-direction: column; align-items: stretch; gap: 2px; margin-bottom: 6px; }
-.omraade.merket .omraade-navn { font-size: 12px; color: var(--text-dim); }
-.omraade-par { display: flex; align-items: center; gap: 5px; }
+.omraade .omraade-navn { flex: 0 0 122px; font-size: 12.5px; color: var(--text-dim); }
+.omraade input { flex: 1; min-width: 0; width: 100%; }
+.omraade .strek { color: var(--text-dim); flex: none; }
 
 /* ---- aktive filtre som merkelapper ---- */
 .merkelapper { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
@@ -602,3 +599,38 @@ label.avslaatt { opacity: .45; }
   font: 500 11px/1 var(--mono); color: var(--accent);
   background: var(--accent-soft); padding: 2px 5px; border-radius: 3px; margin-right: 6px;
 }
+
+/* ---- Fylke- og kommunevelger ---- */
+.geo { position: relative; }
+.geo-sok { width: 100%; }
+.geo-valgt {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 5px 5px 9px; border-radius: 6px;
+  background: var(--accent-soft); border: 1px solid var(--border);
+}
+.geo-valgt .geo-navn { flex: 1; min-width: 0; font-size: 13px; }
+.geo-valgt button {
+  width: 18px; height: 18px; padding: 0; border: none; border-radius: 50%;
+  background: transparent; color: var(--text-dim); font-size: 14px; line-height: 1; cursor: pointer;
+}
+.geo-valgt button:hover { background: var(--surface-2); color: var(--text); }
+.geo-liste {
+  list-style: none; margin: 4px 0 0; padding: 4px;
+  max-height: 210px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+}
+.geo-liste li button {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 3px 6px; border: none; background: none; border-radius: 4px;
+  text-align: left; cursor: pointer; color: inherit;
+}
+.geo-liste li button:hover { background: var(--surface-2); }
+.geo-liste .geo-navn { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.geo-liste .geo-nr { font: 11px/1 var(--mono); color: var(--text-dim); }
+.geo-liste .geo-antall { font: 11px/1 var(--mono); color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.geo-tomt { padding: 4px 6px; font-size: 13px; color: var(--text-dim); }
+
+/* The RAG demo is a worked example, not a product page — set apart in the nav
+   so it does not read as a feature of the site. */
+nav.tabs a.bileddgang { opacity: .6; font-size: 12.5px; }
+nav.tabs a.bileddgang:hover { opacity: 1; }

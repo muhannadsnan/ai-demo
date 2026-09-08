@@ -11,6 +11,30 @@ import { requireAiProvider } from '../../utils/ai/provider'
  * injection impossible here rather than merely unlikely.
  */
 
+/**
+ * Sort options, and the index each one rides on.
+ *
+ * Sorting is not free. Without a matching index, ORDER BY over 1.17 million
+ * rows is a top-N heapsort — Postgres reads every candidate and keeps the best
+ * ten — which measured 281-318 ms. Migration 030 adds an index per option whose
+ * order already matches, turning the sort into a walk that stops after ten
+ * rows: 0.08-0.2 ms.
+ *
+ * `navn` is the tie-breaker everywhere. Without a total order, two rows that
+ * compare equal can come back in a different order on the next page, and the
+ * same company shows up twice while another never appears.
+ *
+ * `regnskap` marks the two that need the accounts view joined in.
+ */
+const SORTERING: Record<string, { sql: string; tittel: string; regnskap?: boolean }> = {
+  ansatte:    { sql: 'e.antall_ansatte DESC NULLS LAST, e.navn', tittel: 'Flest ansatte' },
+  navn:       { sql: 'e.navn ASC', tittel: 'Navn (A–Å)' },
+  nyest:      { sql: 'e.registreringsdato_enhetsregisteret DESC NULLS LAST, e.navn', tittel: 'Nyest registrert' },
+  eldst:      { sql: 'e.stiftelsesdato ASC NULLS LAST, e.navn', tittel: 'Eldst (stiftelsesdato)' },
+  omsetning:  { sql: 'r.sum_driftsinntekter DESC NULLS LAST, e.navn', tittel: 'Størst omsetning', regnskap: true },
+  resultat:   { sql: 'r.aarsresultat DESC NULLS LAST, e.navn', tittel: 'Best årsresultat', regnskap: true }
+}
+
 /** Accounts fields the range filters may touch, and the column each maps to. */
 const BELOPSFELT: Record<string, string> = {
   omsetning:    'r.sum_driftsinntekter',
@@ -167,17 +191,23 @@ export default defineEventHandler(async (event) => {
     if (min !== undefined && min !== '') belopsledd.push(`${kolonne} >= ${bind(Number(min))}`)
     if (maks !== undefined && maks !== '') belopsledd.push(`${kolonne} <= ${bind(Number(maks))}`)
   }
-  const trengerRegnskap = belopsledd.length > 0
-  if (trengerRegnskap) where.push('r.rimelig', ...belopsledd)
+  const sorterEtter = String(q.sorter ?? 'ansatte')
+  const valgtSort = SORTERING[sorterEtter] ?? SORTERING.ansatte!
+
+  // An accounts sort needs the accounts view joined even when no range filter
+  // asked for it, and only over rows whose figures are trustworthy.
+  const trengerRegnskap = belopsledd.length > 0 || !!valgtSort.regnskap
+  if (belopsledd.length) where.push('r.rimelig', ...belopsledd)
+  else if (valgtSort.regnskap) where.push('r.rimelig')
 
   const join = [
     trengerRegnskap ? 'JOIN regnskap_siste r USING (organisasjonsnummer)' : '',
     semantisk ? 'JOIN enheter_embedding em USING (organisasjonsnummer)' : ''
   ].filter(Boolean).join(' ')
 
-  const sortering = semantisk
-    ? `${semantiskLedd} ASC`
-    : 'e.antall_ansatte DESC NULLS LAST, e.navn'
+  // Semantic search brings its own order — the closest match first is the
+  // entire point — so it overrides whatever is picked in the dropdown.
+  const sortering = semantisk ? `${semantiskLedd} ASC` : valgtSort.sql
 
   const perPage = Math.min(Math.max(Number(q.per) || 10, 1), 100)
   const page    = Math.max(Number(q.side) || 1, 1)
@@ -225,6 +255,8 @@ export default defineEventHandler(async (event) => {
     sider: Math.max(1, Math.ceil(total / perPage)),
     medRegnskap: trengerRegnskap,
     semantisk,
+    sorter: semantisk ? 'relevans' : sorterEtter,
+    sorteringer: Object.entries(SORTERING).map(([k, v]) => ({ verdi: k, tittel: v.tittel })),
     foretak: rows
   }
 })

@@ -64,10 +64,10 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
 }
 
 /* The intro reads as a note about the page rather than as body copy, so it gets
-   its own ground and sits centred above the grid. */
+   its own ground — full width, no frame around it. */
 .innramma {
-  max-width: 74ch; margin: 14px auto 4px; text-align: center;
-  background: var(--surface-2); border: 1px solid var(--border);
+  max-width: none; margin: 14px auto 4px;
+  background: var(--surface-2);
   border-radius: var(--radius); padding: 12px 20px;
 }
 

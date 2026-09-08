@@ -25,10 +25,10 @@ let controller: AbortController | null = null
  * the page that does query company data is /foretak.
  */
 const suggestions = [
-  'Hva betyr «tvangsavvikling» i Enhetsregisteret, og hvordan skiller det seg fra konkurs?',
-  'Forklar forskjellen på en hovedenhet og en underenhet i Brreg.',
-  'Vi lagrer 5 millioner regnskapsrader i Postgres. Hvordan bør jeg indeksere for søk på driftsinntekter?',
-  'What is the difference between RAG and text-to-SQL, and which fits structured company data?'
+  'Hva betyr «tvangsavvikling», og hvordan skiller det seg fra konkurs?',
+  'Hva er forskjellen på AS, ENK og NUF?',
+  'Hvordan finner jeg byggefirmaer i Bergen med over 50 ansatte på denne siden?',
+  'Hva står egentlig i et årsregnskap, og hva sier egenkapitalen meg?'
 ]
 
 async function send() {
@@ -95,11 +95,13 @@ function onKeydown(e: KeyboardEvent) {
 
 <template>
   <div>
-    <h1>1 · Streaming chat</h1>
+    <h1>Assistent</h1>
     <p class="lede">
-      The smallest complete AI feature: a message goes to your own server, your
-      server adds a system prompt and calls the model, and the reply streams back
-      token by token. Open <code>server/api/chat.post.ts</code> alongside this page.
+      Spør om norsk foretaksregistrering, selskapsformer, roller, eierskap og
+      regnskap — eller om hvordan du finner noe på denne siden.
+      <strong>Assistenten har ikke tilgang til databasen herfra</strong>, så
+      spørsmål om konkrete tall sender den videre til
+      <NuxtLink to="/foretak">søket</NuxtLink>, som faktisk kan svare på dem.
     </p>
 
     <div class="thread" v-if="messages.length">
@@ -117,7 +119,7 @@ function onKeydown(e: KeyboardEvent) {
     </div>
 
     <div v-else class="card">
-      <p class="muted" style="margin-top:0">No messages yet. Try one of these:</p>
+      <p class="muted" style="margin-top:0">Ingen meldinger ennå. Prøv en av disse:</p>
       <div class="chips">
         <span v-for="s in suggestions" :key="s" class="chip" @click="draft = s">{{ s }}</span>
       </div>
@@ -130,7 +132,7 @@ function onKeydown(e: KeyboardEvent) {
         <textarea
           v-model="draft"
           rows="3"
-          placeholder="Ask something… (Enter to send, Shift+Enter for a new line)"
+          placeholder="Spør om noe… (Enter for å sende, Shift+Enter for ny linje)"
           :disabled="streaming"
           @keydown="onKeydown"
         />
@@ -151,7 +153,7 @@ function onKeydown(e: KeyboardEvent) {
         {{ lastMeta.characters }} chars
       </span>
       <span v-else class="stats">&nbsp;</span>
-      <button v-if="messages.length" class="ghost" @click="reset">Clear conversation</button>
+      <button v-if="messages.length" class="ghost" @click="reset">Tøm samtalen</button>
     </div>
   </div>
 </template>

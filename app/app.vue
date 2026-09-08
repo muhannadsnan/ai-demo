@@ -1,7 +1,7 @@
 <script setup lang="ts">
 useHead({
-  title: 'AI Demo — chat and retrieval-augmented search',
-  meta: [{ name: 'description', content: 'A minimal, readable Nuxt 4 AI integration demo.' }]
+  title: 'Norske foretak — data fra offentlige registre',
+  meta: [{ name: 'description', content: 'Søk i 1,17 millioner norske foretak: roller, eierskap og regnskap fra Brønnøysundregistrene og Skatteetaten.' }]
 })
 </script>
 
@@ -15,14 +15,16 @@ useHead({
 
     <header class="top">
       <div class="top-inner">
-        <span class="brand">AI Demo</span>
+        <span class="brand">Norske foretak</span>
         <nav class="tabs">
-          <NuxtLink to="/">Overview</NuxtLink>
-          <NuxtLink to="/chat">1 · Chat</NuxtLink>
-          <NuxtLink to="/search">2 · AI Search</NuxtLink>
+          <NuxtLink to="/">Forside</NuxtLink>
           <NuxtLink to="/foretak">Foretak</NuxtLink>
           <NuxtLink to="/topplister">Topplister</NuxtLink>
+          <NuxtLink to="/chat">Assistent</NuxtLink>
           <NuxtLink to="/status">Status</NuxtLink>
+          <!-- The retrieval demo is how the semantic search on /foretak was
+               built up, kept as a worked example rather than a product page. -->
+          <NuxtLink to="/search" class="bileddgang">RAG-demo</NuxtLink>
         </nav>
         <ProviderBadge />
       </div>

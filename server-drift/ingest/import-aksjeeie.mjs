@@ -76,9 +76,9 @@ console.log('classifying holders and loading…')
 await sql(`
 BEGIN;
 
-DELETE FROM aksjeeie WHERE regnskapsaar = ${YEAR};
+DELETE FROM aksjeeie_persondata WHERE regnskapsaar = ${YEAR};
 
-INSERT INTO aksjeeie (
+INSERT INTO aksjeeie_persondata (
     regnskapsaar, organisasjonsnummer, selskap_navn, aksjeklasse,
     er_person, eier_orgnr, eier_navn, eier_fodselsaar,
     eier_sted_raw, eier_postnr, eier_poststed, eier_landkode,
@@ -115,7 +115,7 @@ COMMIT;`)
 const [rows, persons, firms, unknown, companies] = (await query(`
   SELECT count(*), count(*) FILTER (WHERE er_person), count(*) FILTER (WHERE er_person IS FALSE),
          count(*) FILTER (WHERE er_person IS NULL), count(DISTINCT organisasjonsnummer)
-  FROM aksjeeie WHERE regnskapsaar = ${YEAR};`)).split('|').map(Number)
+  FROM aksjeeie_persondata WHERE regnskapsaar = ${YEAR};`)).split('|').map(Number)
 
 await sql('DROP TABLE IF EXISTS staging_aksjeeie;')
 
@@ -123,7 +123,7 @@ console.log(`
   year               ${YEAR}
   staged             ${staged.toLocaleString()}
   loaded             ${rows.toLocaleString()}   across ${companies.toLocaleString()} companies
-    individuals      ${persons.toLocaleString()}   <- personal data, excluded by the aksjeeie_offentlig view
+    individuals      ${persons.toLocaleString()}   <- personal data, excluded by the aksjeeie view
     companies        ${firms.toLocaleString()}
     unidentified     ${unknown.toLocaleString()}   <- mostly foreign holders with no identifier
   done in ${since()}

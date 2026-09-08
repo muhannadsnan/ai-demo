@@ -20,9 +20,10 @@ Two constraints that shape what is buildable:
   currency but covers only the current period; `kilde='historikk'` covers 1999
   onwards, rounded to the nearest thousand. Any ranking or aggregate should say
   which it used, or restrict to one.
-- **`aksjeeie` contains personal data and is not published.** Read
-  `aksjeeie_offentlig`, which keeps corporate holders and every ownership
-  percentage while removing individuals' names, birth years and addresses. The
+- **`aksjeeie` contains personal data and is not published.** Read the
+  `aksjeeie` view, which keeps corporate holders and every ownership percentage
+  while removing individuals' names, birth years and addresses. The table behind
+  it is `aksjeeie_persondata`. The
   ownership graph is fully intact; see `docs/data-provenance-and-licensing.md`.
 
 ---

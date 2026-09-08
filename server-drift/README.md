@@ -284,7 +284,7 @@ turn out to contain.
 | `enheter` | 1,173,013 | CSV, 154 MB gzipped | 90 columns, 9 indexes |
 | `roller` | 3,418,541 | JSON, 130 MB gzipped / 2.8 GB raw | 2.70M people, 0.71M firms |
 | `regnskap` | 4,959,968 | bulk history + live API | 1999-2025, 448,600 companies |
-| `aksjeeie` | 3,092,787 | Skatteetaten CSV, 303 MB | **personal data — read the view** |
+| `aksjeeie_persondata` | 3,092,787 | Skatteetaten CSV, 303 MB | **restricted — read the `aksjeeie` view** |
 | `roller_historikk` | grows | reconciliation | roles that have ended |
 | `naeringskoder` | 1,785 | SSB Klass API | hierarchical |
 | `postnummer` | 5,122 | Bring, **ISO-8859-1** | |
@@ -408,7 +408,7 @@ birth year, postcode and town.
 So personal columns are isolated and a view exists without them:
 
 ```sql
-SELECT * FROM aksjeeie_offentlig   -- corporate holders in full, individuals anonymous
+SELECT * FROM aksjeeie   -- the VIEW: corporate holders in full, individuals anonymous
 ```
 
 Corporate holders keep their name and organisation number — an organisation
@@ -416,7 +416,9 @@ number is not personal data, and company-owns-company is the half of the graph
 worth showing. Individuals appear as a row carrying only a percentage. The
 ownership structure survives intact; the people do not appear.
 
-**Public-facing code should read the view, never the table.**
+**The safe name is the obvious one.** `aksjeeie` is the view; the table holding
+personal data is `aksjeeie_persondata`. The natural query returns the filtered
+data, and reaching the raw rows means deliberately typing a name that says so.
 
 File quirks, all of which fail silently:
 

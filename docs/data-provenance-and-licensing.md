@@ -92,10 +92,10 @@ The data is stored, because the ownership structure is what makes the project
 interesting. It is **not** published in identifiable form:
 
 ```sql
-SELECT * FROM aksjeeie_offentlig;   -- the view the application reads
+SELECT * FROM aksjeeie;   -- the view: no personal data
 ```
 
-| | In `aksjeeie` | In `aksjeeie_offentlig` |
+| | In `aksjeeie_persondata` (table) | In `aksjeeie` (view) |
 |---|---|---|
 | Corporate shareholder name and orgnr | yes | **yes** — a company is not a person |
 | Ownership percentage | yes | **yes** |
@@ -107,8 +107,11 @@ An individual appears as an anonymous row carrying only a percentage. The
 ownership graph — including recursive company-owns-company traversal — survives
 completely. The people do not appear.
 
-**Public-facing code reads the view, never the table.** The personal columns are
-not in the view at all, so a mistake in a query cannot leak them.
+**The safe name is the obvious one.** `aksjeeie` is the view; the table is called
+`aksjeeie_persondata`. Writing the natural query — `SELECT * FROM aksjeeie` —
+gives you the filtered data, and reading the personal columns requires
+deliberately naming a table that says what it holds. Safety that depends on
+remembering a longer name eventually fails.
 
 The raw file is kept in `data/`, which is gitignored and has never been
 committed.

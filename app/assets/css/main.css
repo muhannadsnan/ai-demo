@@ -162,3 +162,84 @@ button.ghost:hover:not(:disabled) { color: var(--text); }
 table.meta { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.meta td { padding: 6px 0; border-bottom: 1px solid var(--border); }
 table.meta td:first-child { color: var(--text-dim); width: 42%; }
+
+/* ---- Norwegian company data ----------------------------------------------- */
+
+.sokefelt { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.sokefelt input { flex: 1; min-width: 200px; }
+
+.treff { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.treff-navn { font-weight: 600; text-decoration: none; font-size: 15px; }
+.treff-navn:hover { text-decoration: underline; }
+.treff-meta { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+
+.pill {
+  font: 600 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 4px 8px; border-radius: 999px; white-space: nowrap;
+}
+.pill.ok   { background: #2f7d4f22; color: var(--ok); }
+.pill.warn { background: #9a6b1222; color: var(--warn); }
+.pill.bad  { background: #c0392b22; color: #c0392b; }
+
+.foretak-head { border-bottom: 1px solid var(--border); padding-bottom: 0; margin-bottom: 24px; }
+.foretak-head h1 { margin: 0; }
+
+nav.faner { display: flex; gap: 2px; margin-top: 18px; flex-wrap: wrap; }
+nav.faner a {
+  padding: 8px 14px; text-decoration: none; color: var(--text-dim);
+  font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent;
+}
+nav.faner a:hover { color: var(--text); }
+nav.faner a.aktiv { color: var(--accent); border-bottom-color: var(--accent); }
+nav.faner .tall {
+  font: 600 11px/1 var(--mono); background: var(--surface-2);
+  padding: 3px 6px; border-radius: 999px; margin-left: 6px; color: var(--text-dim);
+}
+
+.kort-rad { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.kort {
+  flex: 1 1 150px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px;
+}
+.kort-etikett { font: 500 11px/1.3 var(--mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint, var(--text-dim)); }
+.kort-tall { font: 600 24px/1.2 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.kort-tall.neg { color: #c0392b; }
+.kort-enhet { font-size: 12px; color: var(--text-dim); }
+
+.stolpe-rad { display: grid; grid-template-columns: 46px 1fr 96px; gap: 10px; align-items: center; padding: 3px 0; }
+.stolpe-aar { font: 500 12px/1 var(--mono); color: var(--text-dim); }
+.stolpe-spor { height: 14px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.stolpe-spor > i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.stolpe-spor > i.neg { background: #c0392b; }
+.stolpe-verdi { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+
+table.regnskap { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.regnskap th, table.regnskap td { padding: 6px 10px; text-align: right; white-space: nowrap; }
+table.regnskap th:first-child, table.regnskap td:first-child { text-align: left; position: sticky; left: 0; background: var(--bg); }
+table.regnskap thead th { font: 500 11px/1 var(--mono); text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--rule-firm, var(--border)); }
+table.regnskap tbody td { font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--border); }
+table.regnskap tr.sum td { font-weight: 600; }
+table.regnskap tr.skille td { border-top: 2px solid var(--border); }
+table.regnskap tr.kilde td { font: 10px/1 var(--mono); color: var(--text-dim); text-transform: uppercase; }
+table.regnskap td.neg { color: #c0392b; }
+
+.rolle { display: flex; gap: 12px; align-items: baseline; padding: 5px 0; flex-wrap: wrap; }
+.rolle-type { font: 500 11px/1.4 var(--mono); text-transform: uppercase; color: var(--text-dim); min-width: 130px; }
+.rolle-navn { flex: 1; min-width: 180px; }
+
+.anonym { color: var(--text-dim); font-style: italic; }
+.note-personvern {
+  border: 1px solid var(--border); border-left: 3px solid var(--warn);
+  background: var(--surface); padding: 12px 14px; border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 14px 0; font-size: 13.5px; line-height: 1.55;
+}
+
+footer.kilde {
+  border-top: 1px solid var(--border); margin-top: 56px; padding: 18px 0 0;
+  font-size: 12.5px; color: var(--text-dim);
+}
+
+/* Wide content scrolls inside its own box, never the page. The accounting table
+   is 27 columns for an old company; without this the whole layout scrolls
+   sideways and the navigation goes off screen. */
+.tablewrap { overflow-x: auto; max-width: 100%; margin: 14px 0; }

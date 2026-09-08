@@ -24,6 +24,10 @@ export default defineNuxtConfig({
     ollamaChatModel: 'llama3.2',
     ollamaEmbeddingModel: 'nomic-embed-text',
 
+    // PostgreSQL holding the Norwegian company data. Server-only: the browser
+    // never sees a connection string. Override with NUXT_DATABASE_URL.
+    databaseUrl: 'postgres://app:devpassword@localhost:5432/nordata',
+
     public: {
       // Safe to expose: used only so the UI can display which mode is active.
       appName: 'AI Demo'

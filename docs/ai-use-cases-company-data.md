@@ -3,9 +3,27 @@
 Companion to `demo_project_norwegian_company_data.md`. That file covers the data
 sources and the stack; this one covers what the AI layer actually does.
 
-Assumes the platform is already built and working: a database refreshed daily
-and weekly from Brreg and Skatteetaten, with pages for **Foretak info**,
-**Regnskap**, and **Roller / Aksjonærer**.
+**The data now exists.** This was written before any of it was loaded; the
+platform below is real:
+
+| Table | Rows | Covers |
+|---|---|---|
+| `enheter` | 1,173,013 | every registered Norwegian entity |
+| `roller` | 3,418,541 | board members, CEOs, auditors, accountants |
+| `regnskap` | 4,959,968 | annual accounts, **1999-2025** |
+| `aksjeeie` | 3,092,787 | shareholdings, 2025 |
+| reference | 7,284 | industry codes, municipalities, counties, postcodes |
+
+Two constraints that shape what is buildable:
+
+- **`regnskap` has two sources.** `kilde='brreg-api'` is exact with a known
+  currency but covers only the current period; `kilde='historikk'` covers 1999
+  onwards, rounded to the nearest thousand. Any ranking or aggregate should say
+  which it used, or restrict to one.
+- **`aksjeeie` contains personal data and is not published.** Read
+  `aksjeeie_offentlig`, which keeps corporate holders and every ownership
+  percentage while removing individuals' names, birth years and addresses. The
+  ownership graph is fully intact; see `docs/data-provenance-and-licensing.md`.
 
 ---
 

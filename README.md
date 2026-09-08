@@ -1,3 +1,19 @@
+# ai-demo
+
+Two projects share this repository.
+
+**1. A Nuxt 4 AI integration demo** — streaming chat and retrieval-augmented
+search, built to be read. Documented below.
+
+**2. A Norwegian company data platform** — 1.17M companies, 3.4M roles, 4.96M
+accounting rows and 3.09M shareholdings, loaded into PostgreSQL from the public
+registers. See `server-drift/README.md` for the data platform and deployment,
+`docs/data-provenance-and-licensing.md` for where every dataset came from and
+what may be published, and `docs/ai-use-cases-company-data.md` for the AI layer
+planned on top of it.
+
+---
+
 # AI Demo — Nuxt 4 / Vue 3
 
 A small, deliberately readable AI integration. Two features, built the way you
@@ -76,6 +92,7 @@ Plus one companion doc, not part of the learning sequence:
 | File | What it covers |
 |---|---|
 | `docs/ai-use-cases-company-data.md` | AI features for the Norwegian company-data project, and the order to build them |
+| `docs/data-provenance-and-licensing.md` | Where each dataset came from, its licence, and what may be published |
 
 The source files are commented for a first-time reader. Read them alongside the
 running app — that pairing is the actual documentation.

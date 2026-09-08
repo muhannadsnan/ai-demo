@@ -224,6 +224,7 @@ was, and re-running is safe.
 | `013_regnskap.sql` | Annual accounts, plus a log of every fetch attempt |
 | `014_aksjeeie.sql` | Shareholdings, with a personal-data-free view for publishing |
 | `015_regnskap_kilde.sql` | Marks each accounting row's source and precision |
+| `016_valuta_default.sql` | Defaults historical currency to NOK, unless the API said otherwise |
 
 ### What the real data changed
 
@@ -277,21 +278,43 @@ turn out to contain.
 
 ## What is loaded
 
-| Table | Rows | Source | Size |
+| Table | Rows | Source | Notes |
 |---|---|---|---|
-| `enheter` | 1,173,013 | CSV, 154 MB gzipped | 809 MB |
-| `roller` | 3,418,541 | JSON, 130 MB gzipped / 2.8 GB raw | 852 MB |
-| `fylker` | 16 | SSB JSON API | — |
-| `kommuner` | 358 | SSB JSON API | — |
-| `naeringskoder` | 1,785 | SSB JSON API | — |
-| `postnummer` | 5,122 | Bring, tab-separated **ISO-8859-1** | — |
-| `aksjeeie` | 3,092,787 | Skatteetaten CSV, 303 MB | — |
-| `regnskap` | 4,959,968 | bulk history 1999-2025 + live API | — |
+| `enheter` | 1,173,013 | CSV, 154 MB gzipped | 90 columns, 9 indexes |
+| `roller` | 3,418,541 | JSON, 130 MB gzipped / 2.8 GB raw | 2.70M people, 0.71M firms |
+| `regnskap` | 4,959,968 | bulk history + live API | 1999-2025, 448,600 companies |
+| `aksjeeie` | 3,092,787 | Skatteetaten CSV, 303 MB | **personal data — read the view** |
+| `roller_historikk` | grows | reconciliation | roles that have ended |
+| `naeringskoder` | 1,785 | SSB Klass API | hierarchical |
+| `postnummer` | 5,122 | Bring, **ISO-8859-1** | |
+| `kommuner` | 359 | SSB + Svalbard + Jan Mayen | |
+| `fylker` | 18 | SSB + Svalbard + Jan Mayen | |
 
-Roles break down as 2,697,229 held by people and 708,736 held by companies
-(auditors and accountants are firms). 128 roles were dropped because their
-company is not in the companies file — counted and reported rather than
-aborting the load.
+**5.7 GB**, 16 migrations, 5 validated foreign keys.
+
+### Running the imports
+
+```bash
+node ingest/import-enheter.mjs              # companies      ~30s
+node ingest/import-roller.mjs               # roles          ~95s
+node ingest/import-reference.mjs            # lookup tables  ~5s
+node ingest/import-aksjeeie.mjs             # shareholdings  ~235s
+node ingest/import-regnskap-historikk.mjs   # 27y of accounts ~275s
+node ingest/fetch-regnskap.mjs --seed       # exact current-year figures
+```
+
+All are idempotent. `import-enheter` skips unchanged rows by content hash and
+marks companies that have disappeared; `import-roller` archives ended roles
+rather than deleting them.
+
+### Presentation convention
+
+Historical accounting figures are rounded to the nearest thousand at source.
+Rather than round the exact API figures to match, storage keeps whatever
+precision it was given and **the interface presents everything in thousands**
+— the Norwegian convention, labelled *"tall i tusen"*. Rounding at display costs
+one formatting function; rounding at storage throws away precision that cannot
+be recovered.
 
 ## Stage 3 — the importer
 

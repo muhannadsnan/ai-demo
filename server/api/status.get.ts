@@ -6,7 +6,24 @@ import { query } from '../utils/db'
  * Open for now; this becomes an admin page once there are users. Nothing here
  * is sensitive — row counts and timestamps, no data.
  */
-export default defineEventHandler(async () => {
+/**
+ * Counting 12 million rows across seven tables takes about two seconds, and the
+ * numbers move a few times a day at most. Recomputing them on every page view
+ * is pure waste, so the whole payload is cached briefly in memory.
+ *
+ * 60 seconds is chosen so that running an import and refreshing the page shows
+ * the new numbers within a minute — long enough to remove the load, short
+ * enough that the page still feels live. `?fersk=1` forces a recount.
+ */
+const CACHE_MS = 60_000
+let cache: { data: unknown; tid: number } | null = null
+
+export default defineEventHandler(async (event) => {
+  const tvungen = getQuery(event).fersk === '1'
+  if (!tvungen && cache && Date.now() - cache.tid < CACHE_MS) {
+    return { ...(cache.data as object), fra_cache: true, cache_alder_sek: Math.round((Date.now() - cache.tid) / 1000) }
+  }
+
   const [tabeller, importer, dekning] = await Promise.all([
     query(`
       SELECT 'enheter' AS tabell, count(*) AS rader FROM enheter
@@ -38,11 +55,14 @@ export default defineEventHandler(async () => {
   const db = await query(`SELECT pg_size_pretty(pg_database_size(current_database())) AS storrelse`)
   const migrasjoner = await query(`SELECT filename, applied_at FROM schema_migrations ORDER BY filename DESC LIMIT 1`)
 
-  return {
+  const svar = {
     tabeller: tabeller.map(t => ({ ...t, rader: Number(t.rader) })),
     importer,
     regnskapsdekning: dekning[0],
     database: { storrelse: db[0]?.storrelse, siste_migrasjon: migrasjoner[0] ?? null },
     hentet_at: new Date().toISOString()
   }
+
+  cache = { data: svar, tid: Date.now() }
+  return { ...svar, fra_cache: false, cache_alder_sek: 0 }
 })

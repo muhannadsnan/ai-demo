@@ -66,8 +66,13 @@ function hentJson(tekst: string): Spec {
 
 export default defineEventHandler(async (event) => {
   enforceRateLimit(event, 'sporring')
-  const body = await readBody<{ sporsmal?: unknown }>(event)
+  const body = await readBody<{ sporsmal?: unknown; modell?: unknown }>(event)
   const sporsmal = validateQuery(body?.sporsmal, 'sporsmal')
+  // Optional per-request model, so the same endpoint can be compared across
+  // models. Restricted to a known list — a model name reaches the provider's
+  // HTTP call, so it is not a free-text field.
+  const TILLATTE = ['llama3.2', 'qwen2.5:7b']
+  const modell = TILLATTE.includes(String(body?.modell)) ? String(body?.modell) : undefined
 
   const provider = requireAiProvider()
   const start = Date.now()
@@ -75,7 +80,7 @@ export default defineEventHandler(async (event) => {
   let raat = ''
   for await (const bit of provider.streamChat(
     [{ role: 'system', content: SYSTEMPROMPT }, { role: 'user', content: sporsmal }],
-    { temperature: 0, maxTokens: 400, jsonSchema: specSkjema() }
+    { temperature: 0, maxTokens: 400, jsonSchema: specSkjema(), model: modell }
   )) raat += bit
   const modellMs = Date.now() - start
 
@@ -109,7 +114,7 @@ export default defineEventHandler(async (event) => {
       { role: 'user', content: sporsmal },
       { role: 'assistant', content: JSON.stringify(spec) },
       { role: 'user', content: `Dette filteret ble avvist: ${err.message}. Svar med korrigert JSON.` }
-    ], { temperature: 0, maxTokens: 400, jsonSchema: specSkjema() })) andre += bit
+    ], { temperature: 0, maxTokens: 400, jsonSchema: specSkjema(), model: modell })) andre += bit
 
     try {
       kompilert = kompiler(hentJson(andre))
@@ -133,6 +138,6 @@ export default defineEventHandler(async (event) => {
     foretak: rader.map(({ totalt, ...r }) => r),
     reparert,
     tid: { modell_ms: modellMs, database_ms: dbMs },
-    modell: provider.chatModel
+    modell: modell ?? provider.chatModel
   }
 })

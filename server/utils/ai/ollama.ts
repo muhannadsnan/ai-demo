@@ -49,7 +49,7 @@ export function createOllamaProvider(config: OllamaConfig): AiProvider {
           headers: { 'Content-Type': 'application/json' },
           signal: opts.signal,
           body: JSON.stringify({
-            model: config.chatModel,
+            model: opts.model || config.chatModel,
             messages,
             stream: true,
             // Structured output: constrains sampling so the reply cannot be

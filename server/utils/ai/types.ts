@@ -40,6 +40,15 @@ export interface ChatOptions {
    * Supported by Ollama (`format`) and by OpenAI (`response_format`).
    */
   jsonSchema?: Record<string, unknown>
+
+  /**
+   * Override the configured chat model for this one call.
+   *
+   * Useful for comparing models on the same prompt without restarting, and for
+   * letting a caller pick a cheaper or stronger model per task. Ignored by the
+   * offline provider, which has only one.
+   */
+  model?: string
 }
 
 export interface AiProvider {

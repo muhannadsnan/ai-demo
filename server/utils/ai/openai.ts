@@ -68,7 +68,7 @@ export function createOpenAiProvider(config: OpenAiConfig): AiProvider {
         headers,
         signal: opts.signal,
         body: JSON.stringify({
-          model: config.chatModel,
+          model: opts.model || config.chatModel,
           messages,                                  // full conversation, every time
           temperature: opts.temperature ?? 0.3,
           max_tokens: opts.maxTokens ?? 800,

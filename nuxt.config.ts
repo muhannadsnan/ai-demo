@@ -21,7 +21,12 @@ export default defineNuxtConfig({
     openaiChatModel: 'gpt-4o-mini',
     openaiEmbeddingModel: 'text-embedding-3-small',
     ollamaBaseUrl: 'http://localhost:11434',
-    ollamaChatModel: 'llama3.2',
+    // qwen2.5:7b, not llama3.2:3b. Measured on ten natural-language queries
+    // against this database: 10/10 correct versus 7/10, for ~2.6x the latency.
+    // The 3B model got operators backwards — reading "mer enn 10 millioner" as
+    // "at most", which returns 431,845 companies instead of 7,121 and looks
+    // entirely plausible. Fits in 6 GB VRAM at 4.7 GB.
+    ollamaChatModel: 'qwen2.5:7b',
     ollamaEmbeddingModel: 'nomic-embed-text',
 
     // PostgreSQL holding the Norwegian company data. Server-only: the browser

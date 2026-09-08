@@ -72,6 +72,10 @@ export function createOpenAiProvider(config: OpenAiConfig): AiProvider {
           messages,                                  // full conversation, every time
           temperature: opts.temperature ?? 0.3,
           max_tokens: opts.maxTokens ?? 800,
+          // Same guarantee as Ollama's `format`, different spelling.
+          ...(opts.jsonSchema
+            ? { response_format: { type: 'json_schema', json_schema: { name: 'svar', schema: opts.jsonSchema, strict: false } } }
+            : {}),
           stream: true                               // <- the only line that makes it stream
         })
       })

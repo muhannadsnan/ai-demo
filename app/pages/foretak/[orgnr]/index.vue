@@ -1,6 +1,20 @@
 <script setup lang="ts">
 const route = useRoute()
 const { data, error } = await useFetch(`/api/foretak/${route.params.orgnr}`)
+
+// Subsidiaries are fetched only when the section is opened. Most companies have
+// none, and a few have hundreds — no reason for every profile to pay for it.
+const visDatter = ref(false)
+const { data: datter, status: datterStatus, execute: hentDatter } = await useFetch(
+  `/api/foretak/${route.params.orgnr}/datterselskap`,
+  { lazy: true, immediate: false, watch: false }
+)
+function aapneDatter() {
+  visDatter.value = true
+  // execute() runs this one request. refreshNuxtData() would refetch every
+  // useFetch on the page, which is a lot of work to load one list.
+  if (!datter.value) hentDatter()
+}
 const nok = (v: any) => v == null ? '—' : (Number(v) / 1000).toLocaleString('nb-NO', { maximumFractionDigits: 0 })
 const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO') : '—'
 </script>
@@ -83,7 +97,26 @@ const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO
             <tr v-if="data.foretak.morselskap_navn"><td>Morselskap</td><td>
               <NuxtLink :to="`/foretak/${data.foretak.overordnet_enhet}`">{{ data.foretak.morselskap_navn }}</NuxtLink>
             </td></tr>
-            <tr v-if="Number(data.antall.datterselskap) > 0"><td>Datterselskap</td><td>{{ data.antall.datterselskap }}</td></tr>
+            <tr v-if="Number(data.antall.datterselskap) > 0">
+              <td>Datterselskap</td>
+              <td>
+                <button v-if="!visDatter" class="lenkeknapp" @click="aapneDatter">
+                  Vis {{ data.antall.datterselskap }} datterselskap
+                </button>
+                <template v-else>
+                  <span v-if="datterStatus === 'pending'" class="muted"><span class="spinner" /> laster…</span>
+                  <ul v-else class="datterliste">
+                    <li v-for="d in datter?.datterselskap ?? []" :key="d.organisasjonsnummer">
+                      <NuxtLink :to="`/foretak/${d.organisasjonsnummer}`">{{ d.navn }}</NuxtLink>
+                      <span class="muted">
+                        {{ d.organisasjonsform_kode }}<template v-if="d.forretningsadresse_poststed"> · {{ d.forretningsadresse_poststed }}</template><template v-if="d.har_registrert_antall_ansatte"> · {{ d.antall_ansatte }} ansatte</template>
+                      </span>
+                      <span v-if="d.konkurs" class="pill bad">Konkurs</span>
+                    </li>
+                  </ul>
+                </template>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

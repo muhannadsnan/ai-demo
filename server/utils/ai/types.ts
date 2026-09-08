@@ -27,6 +27,19 @@ export interface ChatOptions {
   maxTokens?: number
   /** Lets the caller abort when the browser disconnects, so you stop paying. */
   signal?: AbortSignal
+
+  /**
+   * A JSON Schema the reply must conform to.
+   *
+   * This is structured output, and it is categorically stronger than asking
+   * nicely in the prompt. The runtime restricts token sampling to those that
+   * keep the output valid against the schema, so a field name outside the enum
+   * is not unlikely — it is unreachable. Prompt rules reduce mistakes;
+   * a schema removes a class of them.
+   *
+   * Supported by Ollama (`format`) and by OpenAI (`response_format`).
+   */
+  jsonSchema?: Record<string, unknown>
 }
 
 export interface AiProvider {

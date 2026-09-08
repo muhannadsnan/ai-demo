@@ -37,25 +37,45 @@ export default defineEventHandler(async (event) => {
   const perPage = Math.min(Math.max(Number(q.per) || 25, 1), 100)
   const page    = Math.max(Number(q.side) || 1, 1)
 
-  const rows = await query(`
-    SELECT e.organisasjonsnummer, e.navn,
-           e.organisasjonsform_kode, e.organisasjonsform_beskrivelse,
-           e.naeringskode1_kode, e.naeringskode1_beskrivelse,
-           e.forretningsadresse_poststed, e.forretningsadresse_kommune,
-           e.antall_ansatte, e.har_registrert_antall_ansatte,
-           e.konkurs, e.under_avvikling, e.under_tvangsavvikling,
-           e.stiftelsesdato,
-           count(*) OVER () AS total_treff
-    FROM enheter e
-    WHERE ${where.join(' AND ')}
-    ORDER BY e.antall_ansatte DESC NULLS LAST, e.navn
-    LIMIT ${bind(perPage)} OFFSET ${bind((page - 1) * perPage)}`, params)
+  // The count is deliberately capped.
+  //
+  // `count(*) OVER ()` alongside the results looked tidy and cost 1.9 seconds:
+  // the window function has to produce every matching row before it can count
+  // them, so an unfiltered search scanned 1,173,022 rows to return 25.
+  //
+  // Nobody pages to result 900,000. Counting up to a ceiling and reporting
+  // "10 000+" beyond it answers the only question the number is asked for —
+  // roughly how many, and how many pages — and stops after 10,001 rows.
+  const TAK = 10000
+  const [rows, antall] = await Promise.all([
+    query(`
+      SELECT e.organisasjonsnummer, e.navn,
+             e.organisasjonsform_kode, e.organisasjonsform_beskrivelse,
+             e.naeringskode1_kode, e.naeringskode1_beskrivelse,
+             e.forretningsadresse_poststed, e.forretningsadresse_kommune,
+             e.antall_ansatte, e.har_registrert_antall_ansatte,
+             e.konkurs, e.under_avvikling, e.under_tvangsavvikling,
+             e.stiftelsesdato
+      FROM enheter e
+      WHERE ${where.join(' AND ')}
+      ORDER BY e.antall_ansatte DESC NULLS LAST, e.navn
+      LIMIT ${bind(perPage)} OFFSET ${bind((page - 1) * perPage)}`, params),
 
-  const total = rows.length ? Number(rows[0].total_treff) : 0
+    query(`SELECT count(*)::int AS n FROM (
+             SELECT 1 FROM enheter e WHERE ${where.join(' AND ')} LIMIT ${TAK + 1}
+           ) x`, params.slice(0, params.length - 2))
+  ])
+
+  const raatt = antall[0]?.n ?? 0
+  const total = Math.min(raatt, TAK)
+  const flere = raatt > TAK
+
   return {
     treff: total,
+    flere,                                   // true when the real count exceeds the cap
     side: page,
-    sider: Math.ceil(total / perPage),
-    foretak: rows.map(({ total_treff, ...r }) => r)
+    per: perPage,
+    sider: Math.max(1, Math.ceil(total / perPage)),
+    foretak: rows
   }
 })

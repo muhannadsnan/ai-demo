@@ -6,6 +6,35 @@ const { data } = await useFetch(`/api/foretak/${orgnr}/regnskap`)
 
 const t = (v: any) => v == null ? '—' : Math.round(Number(v) / 1000).toLocaleString('nb-NO')
 
+/**
+ * Direction of travel against the previous year.
+ *
+ * `data.aar` is newest first, so the comparison year is the NEXT element, not
+ * the previous one. Costs are inverted deliberately: rising costs are not an
+ * improvement, so green and red follow whether the number is good, not whether
+ * it went up.
+ */
+const LAVERE_ER_BEDRE = new Set(['sum_driftskostnad', 'sum_finanskostnad', 'sum_gjeld', 'sum_kortsiktig_gjeld'])
+function retning(felt: string, i: number) {
+  const rader = data.value?.aar ?? []
+  const naa = rader[i]?.[felt], forrige = rader[i + 1]?.[felt]
+  if (naa == null || forrige == null) return ''
+  const diff = Number(naa) - Number(forrige)
+  if (diff === 0) return ''
+  const bra = LAVERE_ER_BEDRE.has(felt) ? diff < 0 : diff > 0
+  return bra ? 'opp' : 'ned'
+}
+function endring(felt: string, i: number) {
+  const rader = data.value?.aar ?? []
+  const naa = rader[i]?.[felt], forrige = rader[i + 1]?.[felt]
+  if (naa == null || forrige == null || Number(forrige) === 0) return null
+  return ((Number(naa) - Number(forrige)) / Math.abs(Number(forrige))) * 100
+}
+const tittel = (felt: string, i: number) => {
+  const p = endring(felt, i)
+  return p == null ? '' : `${p > 0 ? '+' : ''}${p.toFixed(1)} % mot året før`
+}
+
 // A simple bar chart of revenue, oldest to newest. No charting library: the
 // data is a handful of numbers and a div with a width is enough.
 const graf = computed(() => {
@@ -48,18 +77,18 @@ const harHistorikk = computed(() => (data.value?.aar ?? []).some(r => r.kilde ==
             </tr>
           </thead>
           <tbody>
-            <tr><td>Driftsinntekter</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_driftsinntekter) }}</td></tr>
-            <tr><td>Driftskostnader</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_driftskostnad) }}</td></tr>
-            <tr class="sum"><td>Driftsresultat</td><td v-for="r in data.aar" :key="r.periode_til" :class="{ neg: Number(r.driftsresultat) < 0 }">{{ t(r.driftsresultat) }}</td></tr>
-            <tr><td>Finansinntekter</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_finansinntekter) }}</td></tr>
-            <tr><td>Finanskostnader</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_finanskostnad) }}</td></tr>
-            <tr class="sum"><td>Årsresultat</td><td v-for="r in data.aar" :key="r.periode_til" :class="{ neg: Number(r.aarsresultat) < 0 }">{{ t(r.aarsresultat) }}</td></tr>
-            <tr class="skille"><td>Anleggsmidler</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_anleggsmidler) }}</td></tr>
-            <tr><td>Omløpsmidler</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_omloepsmidler) }}</td></tr>
-            <tr class="sum"><td>Sum eiendeler</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_eiendeler) }}</td></tr>
-            <tr><td>Egenkapital</td><td v-for="r in data.aar" :key="r.periode_til" :class="{ neg: Number(r.sum_egenkapital) < 0 }">{{ t(r.sum_egenkapital) }}</td></tr>
-            <tr><td>Gjeld</td><td v-for="r in data.aar" :key="r.periode_til">{{ t(r.sum_gjeld) }}</td></tr>
-            <tr class="kilde"><td>Kilde</td><td v-for="r in data.aar" :key="r.periode_til">{{ r.kilde === 'brreg-api' ? 'API' : 'hist.' }}</td></tr>
+            <tr><td>Driftsinntekter</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_driftsinntekter', i)" :title="tittel('sum_driftsinntekter', i)">{{ t(r.sum_driftsinntekter) }}</td></tr>
+            <tr><td>Driftskostnader</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_driftskostnad', i)" :title="tittel('sum_driftskostnad', i)">{{ t(r.sum_driftskostnad) }}</td></tr>
+            <tr class="sum"><td>Driftsresultat</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="[retning('driftsresultat', i), { negativ: Number(r.driftsresultat) < 0 }]" :title="tittel('driftsresultat', i)">{{ t(r.driftsresultat) }}</td></tr>
+            <tr><td>Finansinntekter</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_finansinntekter', i)" :title="tittel('sum_finansinntekter', i)">{{ t(r.sum_finansinntekter) }}</td></tr>
+            <tr><td>Finanskostnader</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_finanskostnad', i)" :title="tittel('sum_finanskostnad', i)">{{ t(r.sum_finanskostnad) }}</td></tr>
+            <tr class="sum"><td>Årsresultat</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="[retning('aarsresultat', i), { negativ: Number(r.aarsresultat) < 0 }]" :title="tittel('aarsresultat', i)">{{ t(r.aarsresultat) }}</td></tr>
+            <tr class="skille"><td>Anleggsmidler</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_anleggsmidler', i)" :title="tittel('sum_anleggsmidler', i)">{{ t(r.sum_anleggsmidler) }}</td></tr>
+            <tr><td>Omløpsmidler</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_omloepsmidler', i)" :title="tittel('sum_omloepsmidler', i)">{{ t(r.sum_omloepsmidler) }}</td></tr>
+            <tr class="sum"><td>Sum eiendeler</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_eiendeler', i)" :title="tittel('sum_eiendeler', i)">{{ t(r.sum_eiendeler) }}</td></tr>
+            <tr><td>Egenkapital</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="[retning('sum_egenkapital', i), { negativ: Number(r.sum_egenkapital) < 0 }]" :title="tittel('sum_egenkapital', i)">{{ t(r.sum_egenkapital) }}</td></tr>
+            <tr><td>Gjeld</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_gjeld', i)" :title="tittel('sum_gjeld', i)">{{ t(r.sum_gjeld) }}</td></tr>
+
           </tbody>
         </table>
       </div>

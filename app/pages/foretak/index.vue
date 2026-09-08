@@ -7,6 +7,7 @@ const kommune = ref(String(route.query.kommune ?? ''))
 const ansatte = ref(String(route.query.ansatte ?? ''))
 const aktive  = ref(route.query.aktive !== 'false')
 const side    = ref(Number(route.query.side ?? 1))
+const per     = ref(Number(route.query.per ?? 25))
 
 const params = computed(() => ({
   q: q.value || undefined,
@@ -14,61 +15,108 @@ const params = computed(() => ({
   ansatte: ansatte.value || undefined,
   aktive: aktive.value ? 'true' : undefined,
   side: side.value > 1 ? side.value : undefined,
-  per: 25
+  per: per.value
 }))
 
-const { data, pending } = await useFetch('/api/foretak/search', { query: params })
+// `lazy` so a search does not block navigation, and the page can show a spinner
+// instead of freezing on the old results.
+const { data, status } = await useFetch('/api/foretak/search', { query: params, lazy: true })
+const laster = computed(() => status.value === 'pending')
 
-function sok() {
-  side.value = 1
-  router.replace({ query: { ...params.value, per: undefined } })
+function oppdaterUrl() { router.replace({ query: params.value }) }
+function sok()          { side.value = 1; oppdaterUrl() }
+function gaaTil(n: number) {
+  side.value = Math.min(Math.max(n, 1), data.value?.sider ?? 1)
+  oppdaterUrl()
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
-function bytt(n: number) {
-  side.value = n
-  router.replace({ query: { ...params.value, per: undefined } })
-}
+
+/** A window of page numbers around the current one, with the ends always shown. */
+const sidetall = computed(() => {
+  const n = data.value?.sider ?? 1, c = side.value
+  if (n <= 9) return Array.from({ length: n }, (_, i) => i + 1)
+  const ut = new Set([1, 2, n - 1, n])
+  for (let i = c - 2; i <= c + 2; i++) if (i > 0 && i <= n) ut.add(i)
+  const sortert = [...ut].sort((a, b) => a - b)
+  const med: (number | '…')[] = []
+  sortert.forEach((s, i) => {
+    if (i && s - (sortert[i - 1] as number) > 1) med.push('…')
+    med.push(s)
+  })
+  return med
+})
+
+const inaktiv = (f: any) => f.konkurs || f.under_avvikling || f.under_tvangsavvikling
+const status_tekst = (f: any) =>
+  f.konkurs ? 'Konkurs' : f.under_tvangsavvikling ? 'Tvangsavvikling' : f.under_avvikling ? 'Under avvikling' : ''
 </script>
 
 <template>
   <div>
     <h1>Foretak</h1>
     <p class="lede">
-      Søk i {{ (1173013).toLocaleString('nb-NO') }} norske foretak fra Enhetsregisteret.
+      Søk i 1 173 013 norske foretak fra Enhetsregisteret.
       Skriv et navn eller lim inn et organisasjonsnummer.
     </p>
 
     <div class="sokefelt">
       <input v-model="q" type="text" placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="sok">
-      <input v-model="kommune" type="text" placeholder="Kommunenr" style="max-width:130px" @keydown.enter="sok">
-      <input v-model="ansatte" type="text" placeholder="Min. ansatte" style="max-width:140px" @keydown.enter="sok">
+      <input v-model="kommune" type="text" placeholder="Kommunenr" style="max-width:120px" @keydown.enter="sok">
+      <input v-model="ansatte" type="text" placeholder="Min. ansatte" style="max-width:130px" @keydown.enter="sok">
       <button @click="sok">Søk</button>
     </div>
-    <label class="muted" style="display:block; margin:8px 0 0">
-      <input type="checkbox" v-model="aktive" @change="sok"> Bare aktive foretak
-    </label>
 
-    <p v-if="data" class="muted" style="margin-top:18px">
-      {{ data.treff.toLocaleString('nb-NO') }} treff<span v-if="data.sider > 1"> · side {{ data.side }} av {{ data.sider.toLocaleString('nb-NO') }}</span>
-    </p>
+    <div class="row" style="margin-top:10px; gap:18px; align-items:center">
+      <label class="muted"><input type="checkbox" v-model="aktive" @change="sok"> Bare aktive foretak</label>
+      <label class="muted">
+        Per side
+        <select v-model.number="per" @change="sok" class="velger">
+          <option :value="10">10</option><option :value="25">25</option>
+          <option :value="50">50</option><option :value="100">100</option>
+        </select>
+      </label>
+      <span v-if="data && !laster" class="muted" style="margin-left:auto">
+        {{ data.treff.toLocaleString('nb-NO') }}{{ data.flere ? '+' : '' }} treff
+      </span>
+    </div>
 
-    <div v-if="pending" class="muted">Søker…</div>
+    <!-- Old results are cleared while a new search runs, so what is on screen is
+         never a stale answer to a question that has already changed. -->
+    <div v-if="laster" class="laster">
+      <span class="spinner" /> Søker…
+    </div>
 
-    <div v-for="f in data?.foretak ?? []" :key="f.organisasjonsnummer" class="treff">
-      <NuxtLink :to="`/foretak/${f.organisasjonsnummer}`" class="treff-navn">{{ f.navn }}</NuxtLink>
-      <span v-if="f.konkurs" class="pill bad">Konkurs</span>
-      <span v-else-if="f.under_avvikling" class="pill warn">Under avvikling</span>
-      <div class="treff-meta">
-        <code>{{ f.organisasjonsnummer }}</code>
-        · {{ f.organisasjonsform_kode }}
-        <template v-if="f.forretningsadresse_poststed"> · {{ f.forretningsadresse_poststed }}</template>
-        <template v-if="f.har_registrert_antall_ansatte"> · {{ f.antall_ansatte }} ansatte</template>
-        <template v-if="f.naeringskode1_beskrivelse"> · {{ f.naeringskode1_beskrivelse }}</template>
+    <template v-else-if="data">
+      <div v-if="!data.foretak.length" class="card muted" style="margin-top:18px">
+        Ingen treff. Prøv et kortere navn, eller slå av «bare aktive».
       </div>
-    </div>
 
-    <div v-if="data && data.sider > 1" class="row" style="margin-top:20px">
-      <button class="ghost" :disabled="data.side <= 1" @click="bytt(data.side - 1)">Forrige</button>
-      <button class="ghost" :disabled="data.side >= data.sider" @click="bytt(data.side + 1)">Neste</button>
-    </div>
+      <NuxtLink
+        v-for="f in data.foretak" :key="f.organisasjonsnummer"
+        :to="`/foretak/${f.organisasjonsnummer}`"
+        class="treffrad" :class="{ inaktiv: inaktiv(f) }">
+        <span class="treffrad-navn">
+          {{ f.navn }}
+          <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
+        </span>
+        <span class="treffrad-meta">
+          <code>{{ f.organisasjonsnummer }}</code>
+          · {{ f.organisasjonsform_kode }}
+          <template v-if="f.forretningsadresse_poststed"> · {{ f.forretningsadresse_poststed }}</template>
+          <template v-if="f.har_registrert_antall_ansatte"> · {{ f.antall_ansatte }} ansatte</template>
+          <template v-if="f.naeringskode1_beskrivelse"> · {{ f.naeringskode1_beskrivelse }}</template>
+        </span>
+      </NuxtLink>
+
+      <nav v-if="data.sider > 1" class="paginator">
+        <button class="ghost" :disabled="side <= 1" @click="gaaTil(side - 1)">‹</button>
+        <template v-for="(s, i) in sidetall" :key="i">
+          <span v-if="s === '…'" class="paginator-hopp">…</span>
+          <button v-else class="paginator-tall" :class="{ aktiv: s === side }" @click="gaaTil(s as number)">{{ s }}</button>
+        </template>
+        <button class="ghost" :disabled="side >= data.sider" @click="gaaTil(side + 1)">›</button>
+        <span class="muted" v-if="data.flere" style="margin-left:8px">av mange</span>
+      </nav>
+    </template>
   </div>
 </template>

@@ -252,3 +252,107 @@ table.meta thead th {
   white-space: nowrap;
 }
 table.meta td { padding-right: 10px; }
+
+/* ---- search results, pagination, loading ---------------------------------- */
+
+.velger {
+  font: inherit; font-size: 13px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 6px; margin-left: 4px;
+}
+
+.laster { display: flex; align-items: center; gap: 10px; color: var(--text-dim); padding: 40px 0; }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: snurr 0.7s linear infinite;
+}
+@keyframes snurr { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
+
+/* The whole row is the link, so the click target is the row and not just the name. */
+.treffrad {
+  display: block; text-decoration: none; color: inherit;
+  padding: 11px 12px; margin: 0 -12px;
+  border-bottom: 1px solid var(--border); border-radius: 6px;
+}
+.treffrad:hover { background: var(--surface-2); }
+.treffrad-navn { font-weight: 600; font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.treffrad:hover .treffrad-navn { color: var(--accent); }
+.treffrad-meta { display: block; font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+
+/* Inactive companies are tinted rather than merely labelled, so a page of
+   results shows at a glance which ones are dead. */
+.treffrad.inaktiv { background: #c0392b0f; border-left: 3px solid #c0392b88; padding-left: 9px; }
+.treffrad.inaktiv:hover { background: #c0392b1c; }
+
+.paginator { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin: 22px 0 0; }
+.paginator-tall {
+  min-width: 34px; padding: 7px 9px; font: 500 13px/1 var(--mono);
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+}
+.paginator-tall:hover { color: var(--text); border-color: var(--accent); }
+.paginator-tall.aktiv { background: var(--accent); border-color: var(--accent); color: #fff; }
+.paginator-hopp { color: var(--text-dim); padding: 0 2px; }
+
+.lenkeknapp {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--accent); font: inherit; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.datterliste { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.datterliste li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.datterliste .muted { font-size: 12.5px; }
+
+/* Year-on-year direction. Green and red follow whether the number is GOOD,
+   not merely whether it rose — rising costs are not an improvement. */
+table.regnskap td.opp { color: var(--ok); }
+table.regnskap td.ned { color: #c0392b; }
+/* A negative figure is underlined regardless of direction, so a loss still
+   reads as a loss even in a year it improved. */
+table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #c0392b88; text-underline-offset: 3px; }
+
+/* ---- chat ----------------------------------------------------------------- */
+
+.melding { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+.melding.user { flex-direction: row-reverse; }
+
+.avatar {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  font: 600 10px/1 var(--mono); letter-spacing: 0.03em;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+}
+.avatar.assistant { background: var(--accent-soft, var(--surface-2)); color: var(--accent); border-color: transparent; }
+
+.boble {
+  max-width: 46rem; padding: 11px 14px; border-radius: 14px;
+  white-space: pre-wrap; word-break: break-word; line-height: 1.6;
+  background: var(--surface); border: 1px solid var(--border);
+  /* New text arrives constantly; animating the whole bubble would flicker on
+     every token, so only its first appearance is animated. */
+  animation: bobleInn 0.18s ease-out;
+}
+.melding.user .boble {
+  background: var(--accent); border-color: transparent; color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.melding.assistant .boble { border-bottom-left-radius: 4px; }
+@keyframes bobleInn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+/* Three dots while the model is thinking but has produced nothing yet — the
+   gap that otherwise looks like the app has stalled. */
+.boble.skriver { display: flex; gap: 5px; align-items: center; padding: 15px 16px; }
+.prikk {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim);
+  animation: puls 1.2s ease-in-out infinite;
+}
+.prikk:nth-child(2) { animation-delay: 0.18s; }
+.prikk:nth-child(3) { animation-delay: 0.36s; }
+@keyframes puls { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .boble { animation: none; }
+  .prikk { animation-duration: 3s; }
+}

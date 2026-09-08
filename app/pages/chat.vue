@@ -96,10 +96,15 @@ function onKeydown(e: KeyboardEvent) {
     </p>
 
     <div class="thread" v-if="messages.length">
-      <div v-for="(m, i) in messages" :key="i" class="msg" :class="m.role">
-        <div class="who">{{ m.role === 'user' ? 'You' : 'AI' }}</div>
-        <div class="body">{{ m.content
-          }}<span v-if="streaming && i === messages.length - 1" class="caret" /></div>
+      <div v-for="(m, i) in messages" :key="i" class="melding" :class="m.role">
+        <div class="avatar" :class="m.role">{{ m.role === 'user' ? 'Du' : 'AI' }}</div>
+        <div class="boble" :class="{ skriver: streaming && i === messages.length - 1 && !m.content }">
+          <template v-if="streaming && i === messages.length - 1 && !m.content">
+            <span class="prikk" /><span class="prikk" /><span class="prikk" />
+          </template>
+          <template v-else>{{ m.content
+            }}<span v-if="streaming && i === messages.length - 1" class="caret" /></template>
+        </div>
       </div>
     </div>
 

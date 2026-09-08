@@ -52,6 +52,9 @@ export function createOllamaProvider(config: OllamaConfig): AiProvider {
             model: config.chatModel,
             messages,
             stream: true,
+            // Structured output: constrains sampling so the reply cannot be
+            // anything but valid JSON matching this schema.
+            ...(opts.jsonSchema ? { format: opts.jsonSchema } : {}),
             options: {
               temperature: opts.temperature ?? 0.3,
               num_predict: opts.maxTokens ?? 800

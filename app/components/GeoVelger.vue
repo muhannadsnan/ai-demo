@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kort } from "~/utils/tall"
 /**
  * A county or municipality picker that filters a known list rather than taking
  * free text.
@@ -48,7 +49,7 @@ function tom() {
   valgt.value = ''
   sok.value = ''
 }
-const tall = (n: number) => n.toLocaleString('nb-NO')
+const tall = kort
 </script>
 
 <template>

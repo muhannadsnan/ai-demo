@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kort } from "~/utils/tall"
 /**
  * The NACE industry tree as a checkbox tree, four levels deep.
  *
@@ -81,7 +82,7 @@ function erEtterkommer(kode: string, av: string): boolean {
   return false
 }
 
-const tall = (n: number) => n.toLocaleString('nb-NO')
+const tall = kort
 </script>
 
 <template>

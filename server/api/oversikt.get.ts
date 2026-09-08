@@ -19,7 +19,7 @@ const CACHE_MS = 5 * 60 * 1000
 export default defineEventHandler(async () => {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache.data
 
-  const [tall, lister, sisteImport] = await Promise.all([
+  const [tall, lister, sisteImport, beskrivelser] = await Promise.all([
     query(`
       SELECT relname AS tabell, greatest(reltuples, 0)::bigint AS anslag
       FROM pg_class
@@ -30,7 +30,14 @@ export default defineEventHandler(async () => {
              data -> 0 ->> (kolonner -> 0 ->> 'felt') AS topp
       FROM topplister
       WHERE type IN ('siste-konkurser','siste-nyetablerte','storst-omsetning','mektigste-kvinner')`),
-    query(`SELECT kilde, ferdig_at, status FROM import_status ORDER BY ferdig_at DESC LIMIT 1`)
+    query(`SELECT kilde, ferdig_at, status FROM import_status ORDER BY ferdig_at DESC LIMIT 1`),
+    // How many companies wrote something about themselves, which is what the
+    // free-text and semantic searches actually look through. Exact rather than
+    // estimated: it is a filtered count, not a table size, so reltuples cannot
+    // answer it — and the five-minute cache absorbs the cost.
+    query(`SELECT count(*)::int AS n FROM enheter
+           WHERE slettet_dato IS NULL
+             AND length(coalesce(aktivitet, vedtektsfestet_formaal)) >= 12`)
   ])
 
   const av = (t: string) => Number(tall.find(r => r.tabell === t)?.anslag ?? 0)
@@ -41,7 +48,8 @@ export default defineEventHandler(async () => {
       roller: av('roller'),
       aksjeposter: av('aksjonar_persondata'),
       regnskapsrader: av('regnskap'),
-      embeddinger: av('enheter_embedding')
+      embeddinger: av('enheter_embedding'),
+      beskrivelser: Number(beskrivelser[0]?.n ?? 0)
     },
     lister,
     sisteImport: sisteImport[0] ?? null

@@ -20,7 +20,7 @@ useHead({
           <NuxtLink to="/">Forside</NuxtLink>
           <NuxtLink to="/foretak">Foretak</NuxtLink>
           <NuxtLink to="/topplister">Topplister</NuxtLink>
-          <NuxtLink to="/sporring">Spør</NuxtLink>
+          <NuxtLink to="/ai-db-search">AI-søk</NuxtLink>
           <NuxtLink to="/chat">Assistent</NuxtLink>
           <NuxtLink to="/status">Status</NuxtLink>
           <!-- The retrieval demo is how the semantic search on /foretak was

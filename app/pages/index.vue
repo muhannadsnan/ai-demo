@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kort } from "~/utils/tall"
 useHead({ title: 'Norske foretak — data fra offentlige registre' })
 
 const { data } = await useFetch('/api/oversikt', { lazy: true })
@@ -10,9 +11,7 @@ function gaaTilSok() {
   router.push({ path: '/foretak', query: q ? { q, aktive: 'true' } : {} })
 }
 
-const tall = (n: number | undefined) => (n ?? 0).toLocaleString('nb-NO')
-const mill = (n: number | undefined) =>
-  !n ? '—' : n >= 1e6 ? `${(n / 1e6).toLocaleString('nb-NO', { maximumFractionDigits: 1 })} mill.` : tall(n)
+const mill = kort
 </script>
 
 <template>
@@ -57,7 +56,7 @@ const mill = (n: number | undefined) =>
            finne foretak som aldri skrev de ordene.</p>
       </NuxtLink>
 
-      <NuxtLink class="inngang" to="/sporring">
+      <NuxtLink class="inngang" to="/ai-db-search">
         <h2>Spør med egne ord</h2>
         <p>«Aktive byggefirmaer i Bergen med over 50 ansatte». En språkmodell
            oversetter setningen til et filter — ikke til SQL — og tolkningen

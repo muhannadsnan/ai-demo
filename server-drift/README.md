@@ -831,6 +831,31 @@ Only companies are nodes. An individual never appears as a position in an
 ownership graph — that is precisely the profile this project does not build —
 and the ownership tab reports them as a count instead.
 
+### Colour that contradicts the number it sits on
+
+The accounts table coloured costs and debt inverted — rising costs painted red,
+on the reasoning that higher costs are worse. Put beside the revenue row it
+produced this:
+
+| | 2024 |
+|---|---|
+| Driftsinntekter | **green** 127 927 000 (+12 %) |
+| Driftskostnader | **red** 127 511 000 (+10 %) |
+
+A red cell reading "+10 %". Both are true and together they are nonsense: costs
+rose slower than revenue, which is a good year, and the table painted it as a
+bad one. The judgement was wrong because the table cannot make it — whether
+rising costs are bad depends entirely on what revenue did, and a single row does
+not know.
+
+Costs and debt now show the change without a verdict. Colour is reserved for the
+rows where direction is unambiguous, and for negative values.
+
+Two smaller things the same review turned up. A real 0.3 % rise rendered as
+"+0 %", which reads as "nothing happened" — percentages under 10 % now carry a
+decimal. And changes over 1000 % were suppressed entirely, leaving a coloured
+cell with no explanation; they now say `+1000 %+`.
+
 ### Gender is inferred from first names, and labelled as such
 
 `kvinner i business` needs a gender per role-holder, which no register

@@ -83,6 +83,41 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       </table>
     </div>
 
+    <h2>Semantisk søk</h2>
+    <div class="card" v-if="data?.embedding">
+      <div class="row" style="justify-content:space-between; align-items:baseline">
+        <strong>
+          {{ tall(data.embedding.gjort) }} av {{ tall(data.embedding.totalt) }} beskrivelser
+        </strong>
+        <span class="pill" :class="data.embedding.ferdig ? 'ok' : 'warn'">
+          {{ data.embedding.andel.toLocaleString('nb-NO') }} %
+        </span>
+      </div>
+      <div class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></div>
+      <p class="muted" style="margin:10px 0 0">
+        <template v-if="data.embedding.ferdig && data.embedding.har_indeks">
+          Alle beskrivelser er innlest, og HNSW-indeksen er bygget. Søk på mening
+          treffer hele datasettet.
+        </template>
+        <template v-else-if="data.embedding.ferdig">
+          Alle beskrivelser er innlest. HNSW-indeksen er ikke bygget ennå, så søk
+          på mening sammenligner mot alle vektorene og er tregere enn det trenger
+          å være.
+        </template>
+        <template v-else>
+          Første gjennomkjøring pågår. Søk på mening virker allerede, men leter
+          bare i de {{ data.embedding.andel.toLocaleString('nb-NO') }} prosentene
+          som er lest inn — foretak lenger ned i organisasjonsnummer-rekkefølgen
+          finnes ennå ikke. Kjøres med
+          <code>./run-import.sh embedding</code>, og kan stoppes og startes igjen
+          uten å miste arbeid.
+        </template>
+        <template v-if="data.embedding.sist">
+          Sist oppdatert {{ tid(data.embedding.sist) }}.
+        </template>
+      </p>
+    </div>
+
     <h2>Database</h2>
     <div class="card">
       <table class="meta">

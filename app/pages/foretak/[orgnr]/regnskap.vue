@@ -10,19 +10,24 @@ const t = (v: any) => v == null ? '—' : Math.round(Number(v) / 1000).toLocaleS
  * Direction of travel against the previous year.
  *
  * `data.aar` is newest first, so the comparison year is the NEXT element, not
- * the previous one. Costs are inverted deliberately: rising costs are not an
- * improvement, so green and red follow whether the number is good, not whether
- * it went up.
+ * the previous one.
+ *
+ * Costs and debt are deliberately NOT coloured. They used to be inverted —
+ * rising costs painted red — which produced a red cell reading "+10 %" right
+ * beside a green revenue cell reading "+12 %". Costs rising slower than revenue
+ * is a good year, and the table cannot know that, so asserting a judgement it
+ * cannot support was worse than staying quiet. They show the change without a
+ * verdict.
  */
-const LAVERE_ER_BEDRE = new Set(['sum_driftskostnad', 'sum_finanskostnad', 'sum_gjeld', 'sum_kortsiktig_gjeld'])
+const NOYTRALE = new Set(['sum_driftskostnad', 'sum_finanskostnad', 'sum_gjeld', 'sum_kortsiktig_gjeld'])
 function retning(felt: string, i: number) {
+  if (NOYTRALE.has(felt)) return ''
   const rader = data.value?.aar ?? []
   const naa = rader[i]?.[felt], forrige = rader[i + 1]?.[felt]
   if (naa == null || forrige == null) return ''
   const diff = Number(naa) - Number(forrige)
   if (diff === 0) return ''
-  const bra = LAVERE_ER_BEDRE.has(felt) ? diff < 0 : diff > 0
-  return bra ? 'opp' : 'ned'
+  return diff > 0 ? 'opp' : 'ned'
 }
 function endring(felt: string, i: number) {
   const rader = data.value?.aar ?? []
@@ -33,10 +38,15 @@ function endring(felt: string, i: number) {
 function prosent(felt: string, i: number) {
   const p = endring(felt, i)
   if (p == null) return null
+  const tegn = p > 0 ? '+' : p < 0 ? '−' : ''
   // A company going from 12k to 4.7m is up 39,000 %, which is true and useless
-  // in a table cell. Past a point the arrow and the figures say it better.
-  if (Math.abs(p) >= 1000) return null
-  return `(${p > 0 ? '+' : ''}${p.toFixed(0)} %)`
+  // in a table cell — but showing nothing left a coloured cell with no
+  // explanation, so it says that it is off the scale instead.
+  if (Math.abs(p) >= 1000) return `(${tegn}1000 %+)`
+  // One decimal below 10 %, none above. Without it a real 0.3 % rise rendered
+  // as "+0 %", which reads as "nothing happened".
+  const n = Math.abs(p) < 10 ? Math.abs(p).toFixed(1).replace('.', ',') : Math.abs(p).toFixed(0)
+  return `(${tegn}${n} %)`
 }
 const tittel = (felt: string, i: number) => {
   const p = endring(felt, i)

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kort } from "~/utils/tall"
 const route = useRoute()
 const router = useRouter()
 
@@ -77,6 +78,9 @@ const antallFiltre = computed(() =>
 const { data: naeringer } = await useFetch('/api/naeringskoder', { lazy: true })
 const naeringsnavn = computed(() =>
   new Map(((naeringer.value?.noder ?? []) as any[]).map(n => [n.kode, n.navn])))
+
+// Live counts for the description, so it cannot go stale as the data grows.
+const { data: oversikt } = await useFetch('/api/oversikt', { lazy: true })
 
 // Geography filters hold the number, so the badge has to look up the name —
 // "Fylke: 0301" tells nobody anything.
@@ -270,10 +274,11 @@ function merke(f: any): { klasse: string, tittel: string } | null {
   <div>
     <h1>Foretak</h1>
     <p class="lede">
-      Søk i 1 173 078 norske foretak fra Enhetsregisteret. Skriv et navn eller
-      lim inn et organisasjonsnummer — eller søk i sidefeltet på
-      <strong>hva foretaket driver med</strong>, i 940 807 beskrivelser
-      foretakene har skrevet om seg selv. Slår du på «forstå meningen»,
+      Søk i {{ kort(oversikt?.tall.foretak) }} norske foretak fra
+      Enhetsregisteret. Skriv et navn eller lim inn et organisasjonsnummer —
+      eller søk i sidefeltet på <strong>hva foretaket driver med</strong>, i
+      {{ kort(oversikt?.tall.beskrivelser) }} beskrivelser foretakene har
+      skrevet om seg selv. Slår du på «forstå meningen»,
       sammenlignes spørsmålet og beskrivelsene som mening i stedet for som ord,
       så «folk som passer hunder» også finner et hundepensjonat som aldri skrev
       noen av de ordene.

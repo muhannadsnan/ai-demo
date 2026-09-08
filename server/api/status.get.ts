@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     return { ...(cache.data as object), fra_cache: true, cache_alder_sek: Math.round((Date.now() - cache.tid) / 1000) }
   }
 
-  const [tabeller, importer, dekning] = await Promise.all([
+  const [tabeller, importer, dekning, embedding] = await Promise.all([
     query(`
       SELECT 'enheter' AS tabell, count(*) AS rader FROM enheter
       UNION ALL SELECT 'roller', count(*) FROM roller
@@ -55,7 +55,20 @@ export default defineEventHandler(async (event) => {
                   count(DISTINCT organisasjonsnummer)      AS foretak,
                   count(*) FILTER (WHERE kilde = 'brreg-api')  AS fra_api,
                   count(*) FILTER (WHERE kilde = 'historikk')  AS fra_historikk
-           FROM regnskap`)
+           FROM regnskap`),
+
+    // Embedding coverage. The first pass over 1.1 million descriptions takes
+    // about 100 minutes, and while it runs the semantic search silently covers
+    // only part of the data — which looks like bad results rather than an
+    // unfinished job. Showing the progress makes the difference visible.
+    query(`SELECT
+             (SELECT count(*)::int FROM enheter_embedding) AS gjort,
+             (SELECT count(*)::int FROM enheter
+               WHERE slettet_dato IS NULL
+                 AND length(coalesce(aktivitet, vedtektsfestet_formaal)) >= 12) AS totalt,
+             (SELECT max(oppdatert_at) FROM enheter_embedding) AS sist,
+             (SELECT count(*) FROM pg_indexes
+               WHERE indexname = 'enheter_embedding_hnsw') AS har_indeks`)
   ])
 
   const db = await query(`SELECT pg_size_pretty(pg_database_size(current_database())) AS storrelse`)
@@ -65,6 +78,17 @@ export default defineEventHandler(async (event) => {
     tabeller: tabeller.map(t => ({ ...t, rader: Number(t.rader) })),
     importer,
     regnskapsdekning: dekning[0],
+    embedding: (() => {
+      const e = embedding[0] ?? {}
+      const gjort = Number(e.gjort ?? 0), totalt = Number(e.totalt ?? 0)
+      return {
+        gjort, totalt,
+        andel: totalt ? Math.round((gjort / totalt) * 1000) / 10 : 0,
+        sist: e.sist ?? null,
+        har_indeks: Number(e.har_indeks ?? 0) > 0,
+        ferdig: totalt > 0 && gjort >= totalt
+      }
+    })(),
     database: { storrelse: db[0]?.storrelse, siste_migrasjon: migrasjoner[0] ?? null },
     hentet_at: new Date().toISOString()
   }

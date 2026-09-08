@@ -29,7 +29,12 @@ case "${1:-}" in
   # Monthly. Refreshes accounts older than 90 days for companies already known.
   regnskap)      exec node ingest/fetch-regnskap.mjs --stale 90 --limit 2000 --throttle 1000 ;;
 
+  # Daily, after the incremental update has landed. Recomputes the 20 toplists
+  # so the pages read one small table instead of aggregating five million
+  # accounting rows per visitor.
+  topplister)    exec node ingest/generer-topplister.mjs ;;
+
   *) echo "ukjent jobb: ${1:-<ingen>}" >&2
-     echo "gyldige: oppdateringer enheter roller referansedata regnskap" >&2
+     echo "gyldige: oppdateringer enheter roller referansedata regnskap topplister" >&2
      exit 64 ;;
 esac

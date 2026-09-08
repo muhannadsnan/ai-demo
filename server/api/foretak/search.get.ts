@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
              e.forretningsadresse_poststed, e.forretningsadresse_kommune,
              e.antall_ansatte, e.har_registrert_antall_ansatte,
              e.konkurs, e.under_avvikling, e.under_tvangsavvikling,
-             e.stiftelsesdato
+             e.stiftelsesdato, e.registreringsdato_enhetsregisteret
       FROM enheter e
       WHERE ${where.join(' AND ')}
       ORDER BY e.antall_ansatte DESC NULLS LAST, e.navn

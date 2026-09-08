@@ -7,6 +7,12 @@ useHead({
 
 <template>
   <div>
+    <!-- Nuxt's own progress bar. It hooks the router's start/finish events, so
+         every navigation gets a loading indicator without any page knowing
+         about it. Route changes that need server data are not instant, and
+         without this the app looks frozen while the next page is fetched. -->
+    <NuxtLoadingIndicator color="var(--accent)" :height="2" />
+
     <header class="top">
       <div class="top-inner">
         <span class="brand">AI Demo</span>
@@ -15,6 +21,7 @@ useHead({
           <NuxtLink to="/chat">1 · Chat</NuxtLink>
           <NuxtLink to="/search">2 · AI Search</NuxtLink>
           <NuxtLink to="/foretak">Foretak</NuxtLink>
+          <NuxtLink to="/topplister">Topplister</NuxtLink>
           <NuxtLink to="/status">Status</NuxtLink>
         </nav>
         <ProviderBadge />

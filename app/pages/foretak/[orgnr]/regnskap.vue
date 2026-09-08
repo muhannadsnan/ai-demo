@@ -30,10 +30,49 @@ function endring(felt: string, i: number) {
   if (naa == null || forrige == null || Number(forrige) === 0) return null
   return ((Number(naa) - Number(forrige)) / Math.abs(Number(forrige))) * 100
 }
+function prosent(felt: string, i: number) {
+  const p = endring(felt, i)
+  if (p == null) return null
+  // A company going from 12k to 4.7m is up 39,000 %, which is true and useless
+  // in a table cell. Past a point the arrow and the figures say it better.
+  if (Math.abs(p) >= 1000) return null
+  return `${p > 0 ? '+' : ''}${p.toFixed(0)} %`
+}
 const tittel = (felt: string, i: number) => {
   const p = endring(felt, i)
   return p == null ? '' : `${p > 0 ? '+' : ''}${p.toFixed(1)} % mot året før`
 }
+
+/**
+ * Off by default: the percentages are a second layer of information, and the
+ * table is easier to read as plain figures until you want the comparison.
+ *
+ * `useState` rather than `ref` so the choice survives navigating from one
+ * company to the next — the page component is remounted each time, and having
+ * to click the button again on every company would be irritating.
+ */
+const visProsent = useState('regnskap-vis-prosent', () => false)
+
+/**
+ * The table rows, as data.
+ *
+ * Eleven rows of near-identical markup meant any change to a cell had to be
+ * made eleven times consistently. `klasse` is the row class, `negativ` marks
+ * the rows where a value below zero should be called out in red.
+ */
+const RADER = [
+  { felt: 'sum_driftsinntekter', tittel: 'Driftsinntekter' },
+  { felt: 'sum_driftskostnad',   tittel: 'Driftskostnader' },
+  { felt: 'driftsresultat',      tittel: 'Driftsresultat', klasse: 'sum', negativ: true },
+  { felt: 'sum_finansinntekter', tittel: 'Finansinntekter' },
+  { felt: 'sum_finanskostnad',   tittel: 'Finanskostnader' },
+  { felt: 'aarsresultat',        tittel: 'Årsresultat', klasse: 'sum', negativ: true },
+  { felt: 'sum_anleggsmidler',   tittel: 'Anleggsmidler', klasse: 'skille' },
+  { felt: 'sum_omloepsmidler',   tittel: 'Omløpsmidler' },
+  { felt: 'sum_eiendeler',       tittel: 'Sum eiendeler', klasse: 'sum' },
+  { felt: 'sum_egenkapital',     tittel: 'Egenkapital', negativ: true },
+  { felt: 'sum_gjeld',           tittel: 'Gjeld' }
+]
 
 // A simple bar chart of revenue, oldest to newest. No charting library: the
 // data is a handful of numbers and a div with a width is enough.
@@ -67,7 +106,15 @@ const harHistorikk = computed(() => (data.value?.aar ?? []).some(r => r.kilde ==
         <p class="muted" style="margin:12px 0 0">Alle tall i tusen {{ valuta }}.</p>
       </div>
 
-      <h2>Resultat og balanse</h2>
+      <div class="row" style="align-items:baseline; margin-top:28px">
+        <h2 style="margin:0">Resultat og balanse</h2>
+        <button
+          class="ghost" style="margin-left:auto"
+          :aria-pressed="visProsent"
+          @click="visProsent = !visProsent">
+          {{ visProsent ? 'Skjul prosent' : 'Vis prosent' }}
+        </button>
+      </div>
       <div class="tablewrap">
         <table class="regnskap">
           <thead>
@@ -77,18 +124,17 @@ const harHistorikk = computed(() => (data.value?.aar ?? []).some(r => r.kilde ==
             </tr>
           </thead>
           <tbody>
-            <tr><td>Driftsinntekter</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_driftsinntekter', i)" :title="tittel('sum_driftsinntekter', i)">{{ t(r.sum_driftsinntekter) }}</td></tr>
-            <tr><td>Driftskostnader</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_driftskostnad', i)" :title="tittel('sum_driftskostnad', i)">{{ t(r.sum_driftskostnad) }}</td></tr>
-            <tr class="sum"><td>Driftsresultat</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="[retning('driftsresultat', i), { negativ: Number(r.driftsresultat) < 0 }]" :title="tittel('driftsresultat', i)">{{ t(r.driftsresultat) }}</td></tr>
-            <tr><td>Finansinntekter</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_finansinntekter', i)" :title="tittel('sum_finansinntekter', i)">{{ t(r.sum_finansinntekter) }}</td></tr>
-            <tr><td>Finanskostnader</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_finanskostnad', i)" :title="tittel('sum_finanskostnad', i)">{{ t(r.sum_finanskostnad) }}</td></tr>
-            <tr class="sum"><td>Årsresultat</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="[retning('aarsresultat', i), { negativ: Number(r.aarsresultat) < 0 }]" :title="tittel('aarsresultat', i)">{{ t(r.aarsresultat) }}</td></tr>
-            <tr class="skille"><td>Anleggsmidler</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_anleggsmidler', i)" :title="tittel('sum_anleggsmidler', i)">{{ t(r.sum_anleggsmidler) }}</td></tr>
-            <tr><td>Omløpsmidler</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_omloepsmidler', i)" :title="tittel('sum_omloepsmidler', i)">{{ t(r.sum_omloepsmidler) }}</td></tr>
-            <tr class="sum"><td>Sum eiendeler</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_eiendeler', i)" :title="tittel('sum_eiendeler', i)">{{ t(r.sum_eiendeler) }}</td></tr>
-            <tr><td>Egenkapital</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="[retning('sum_egenkapital', i), { negativ: Number(r.sum_egenkapital) < 0 }]" :title="tittel('sum_egenkapital', i)">{{ t(r.sum_egenkapital) }}</td></tr>
-            <tr><td>Gjeld</td><td v-for="(r, i) in data.aar" :key="r.periode_til" :class="retning('sum_gjeld', i)" :title="tittel('sum_gjeld', i)">{{ t(r.sum_gjeld) }}</td></tr>
-
+            <tr v-for="rad in RADER" :key="rad.felt" :class="rad.klasse">
+              <td>{{ rad.tittel }}</td>
+              <td
+                v-for="(r, i) in data.aar" :key="r.periode_til"
+                :class="[retning(rad.felt, i), { negativ: rad.negativ && Number(r[rad.felt]) < 0 }]"
+                :title="tittel(rad.felt, i)">
+                {{ t(r[rad.felt]) }}<span
+                  v-if="visProsent && prosent(rad.felt, i)"
+                  class="pst">{{ prosent(rad.felt, i) }}</span>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

@@ -1,0 +1,19 @@
+# Daily toplist regeneration
+[Unit]
+Description=Daily toplist regeneration
+
+[Timer]
+Unit=nordata@topplister.service
+# 04:30, half an hour after the incremental company update at 04:00, so the
+# lists are computed from the day's data rather than yesterday's.
+OnCalendar=*-*-* 04:30:00
+
+# If the machine was off when this was due, run it at next boot instead of
+# skipping the day silently.
+Persistent=true
+
+# Stop every job on the box firing at the same instant.
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

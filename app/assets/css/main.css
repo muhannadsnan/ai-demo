@@ -356,3 +356,39 @@ table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #
   .boble { animation: none; }
   .prikk { animation-duration: 3s; }
 }
+
+/* ---- Foretakssøk: tømmeknapp, statusmerke, midtstilt paginator ---- */
+
+/* The clear button sits inside the field, so the input keeps its own flex
+   growth and the button does not become a third column in .sokefelt. */
+.sokeboks { position: relative; display: flex; flex: 1; min-width: 200px; }
+.sokeboks input { flex: 1; padding-right: 34px; }
+.sokeboks .tom {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; padding: 0; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; border: none; border-radius: 50%;
+  background: transparent; color: var(--text-dim); cursor: pointer;
+}
+.sokeboks .tom:hover { background: var(--surface-2); color: var(--text); }
+
+/* Only exceptions get a dot: green newly registered, red bankrupt or forcibly
+   wound up, grey winding down. An ordinary active company gets nothing, so the
+   colour means something wherever it appears. */
+.merke {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  display: inline-block; cursor: help;
+}
+.merke.ny      { background: var(--ok); }
+.merke.konkurs { background: #c0392b; }
+.merke.inaktiv { background: var(--text-dim); }
+
+.paginator.midtstilt { justify-content: center; }
+
+/* The year-on-year percentage, shown only when "Vis prosent" is on. Dimmer and
+   smaller than the figure it annotates, so the column of numbers still reads
+   as a column of numbers. */
+.regnskap .pst {
+  margin-left: 6px; font-size: 11px; opacity: .75;
+  font-variant-numeric: tabular-nums;
+}

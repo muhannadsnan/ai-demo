@@ -7,7 +7,7 @@ const kommune = ref(String(route.query.kommune ?? ''))
 const ansatte = ref(String(route.query.ansatte ?? ''))
 const aktive  = ref(route.query.aktive !== 'false')
 const side    = ref(Number(route.query.side ?? 1))
-const per     = ref(Number(route.query.per ?? 25))
+const per     = ref(Number(route.query.per ?? 10))
 
 const params = computed(() => ({
   q: q.value || undefined,
@@ -49,6 +49,37 @@ const sidetall = computed(() => {
 const inaktiv = (f: any) => f.konkurs || f.under_avvikling || f.under_tvangsavvikling
 const status_tekst = (f: any) =>
   f.konkurs ? 'Konkurs' : f.under_tvangsavvikling ? 'Tvangsavvikling' : f.under_avvikling ? 'Under avvikling' : ''
+
+function tomtSok() {
+  q.value = ''
+  sok()
+}
+
+const TRE_MND_MS = 92 * 24 * 60 * 60 * 1000
+
+/**
+ * The coloured dot in front of the name.
+ *
+ * Returns null for an ordinary active company, which is the common case: a dot
+ * on every row would carry no information. Only the exceptions get a marker.
+ *
+ * Order matters — a company can be both newly registered and already bankrupt,
+ * and bankruptcy is the more important fact.
+ */
+function merke(f: any): { klasse: string, tittel: string } | null {
+  if (f.konkurs) return { klasse: 'konkurs', tittel: 'Konkurs' }
+  if (f.under_tvangsavvikling) return { klasse: 'konkurs', tittel: 'Under tvangsavvikling' }
+  if (f.under_avvikling) return { klasse: 'inaktiv', tittel: 'Under avvikling' }
+
+  const reg = f.registreringsdato_enhetsregisteret
+  if (reg && Date.now() - new Date(reg).getTime() < TRE_MND_MS) {
+    return {
+      klasse: 'ny',
+      tittel: `Nyetablert — registrert ${new Date(reg).toLocaleDateString('nb-NO')}`
+    }
+  }
+  return null
+}
 </script>
 
 <template>
@@ -60,7 +91,10 @@ const status_tekst = (f: any) =>
     </p>
 
     <div class="sokefelt">
-      <input v-model="q" type="text" placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="sok">
+      <span class="sokeboks">
+        <input v-model="q" type="text" placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="sok">
+        <button v-if="q" class="tom" type="button" title="Tøm søket" aria-label="Tøm søket" @click="tomtSok">×</button>
+      </span>
       <input v-model="kommune" type="text" placeholder="Kommunenr" style="max-width:120px" @keydown.enter="sok">
       <input v-model="ansatte" type="text" placeholder="Min. ansatte" style="max-width:130px" @keydown.enter="sok">
       <button @click="sok">Søk</button>
@@ -96,6 +130,7 @@ const status_tekst = (f: any) =>
         :to="`/foretak/${f.organisasjonsnummer}`"
         class="treffrad" :class="{ inaktiv: inaktiv(f) }">
         <span class="treffrad-navn">
+          <i v-if="merke(f)" class="merke" :class="merke(f)!.klasse" :title="merke(f)!.tittel" />
           {{ f.navn }}
           <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
         </span>
@@ -108,7 +143,7 @@ const status_tekst = (f: any) =>
         </span>
       </NuxtLink>
 
-      <nav v-if="data.sider > 1" class="paginator">
+      <nav v-if="data.sider > 1" class="paginator midtstilt">
         <button class="ghost" :disabled="side <= 1" @click="gaaTil(side - 1)">‹</button>
         <template v-for="(s, i) in sidetall" :key="i">
           <span v-if="s === '…'" class="paginator-hopp">…</span>

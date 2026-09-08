@@ -318,6 +318,7 @@ sudo systemctl start nordata@oppdateringer     # run one now
 | `roller` | Sunday 03:00 | Full roles reload, archiving ended roles |
 | `referansedata` | Monday 05:00 | Counties, municipalities, NACE, postcodes |
 | `regnskap` | 1st of month 06:00 | Refreshes accounts older than 90 days |
+| `topplister` | daily 04:30 | Recomputes the 20 toplists from the day's data |
 
 `Persistent=true` means a job missed because the machine was off runs at next
 boot rather than being skipped silently.
@@ -571,6 +572,58 @@ import, and confirming it was marked rather than removed.
 of them contain newlines inside quoted address fields. Any importer that splits
 on newlines rather than parsing CSV properly would mangle a fifth of the file
 and never say so.
+
+### Toplists: precomputed, because the query is the expensive part
+
+`ingest/generer-topplister.mjs` writes 20 rankings into the `topplister` table
+once a day. The page then reads one small table: **4 ms**, against 8.4 s if the
+biggest aggregate ran per visitor.
+
+Three things are worth knowing about how it is built.
+
+**The lists are data, not code.** Each entry in `ingest/topplister.mjs` carries
+its SQL *and* its column definitions, and the definitions are stored alongside
+the results. The Vue page renders whatever columns the row describes, so adding
+a 21st list is adding an entry to one array — no endpoint, no template, no
+migration.
+
+**The rows never travel through Node.** Each list is a single
+`INSERT ... SELECT jsonb_agg(...) FROM (<the query>) ON CONFLICT DO UPDATE`.
+Postgres builds the JSON and stores it in the same statement.
+
+**A failed list keeps its old data.** If a query breaks, the error goes in
+`feilmelding` and the previous rows stay put, so one bad query cannot blank the
+page. This was tested by accident: running the job with the production compose
+file failed all 20 lists at once, and every list still served its previous data.
+
+#### The filter that stops the lists being wrong
+
+A "largest revenue" list is a magnet for bad data — one misfiled number
+outranks every real company. The top of the list was `STRØM HANSEN NUF` at
+145 billion, up 129,868 % in a year, when its previous ten years all sit near
+110 million: the filing is in kroner where the rest of the file is in thousands.
+
+Before assuming an import bug, it is worth measuring. 19 of 232,531 companies
+jumped more than 500× from 2024 to 2025 — and **16 of 231,525 did the same from
+2023 to 2024**. The same rate in a year the importer handled differently means
+this is steady noise in the source, not something the import introduced.
+
+0.008 % of rows is harmless in aggregate and fatal to a ranking, so the accounts
+lists drop any year that grew more than 50× over the previous one. With that
+filter the list reads KLP, Helse Sør-Øst, DNB, Hydro, Coop, TotalEnergies —
+which is the actual top of Norwegian business.
+
+### Gender is inferred from first names, and labelled as such
+
+`kvinner i business` needs a gender per role-holder, which no register
+publishes. SSB table 10501 codes first names with a `1` prefix for girls' names
+and `2` for boys' — official data, not a guess. `import-fornavn.mjs` loads
+2,144 names (1,126 girls', 1,010 boys', 8 in both, stored as `?`), which
+classifies 2,400,112 of 2,697,229 person roles.
+
+It is an inference, so every list built on it says so on the page. The
+county-level figures land at 18–22 % female CEOs, which matches published
+statistics — a useful check that the join is doing what it claims.
 
 ### Not yet written
 

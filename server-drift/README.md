@@ -638,6 +638,24 @@ The column is `GENERATED ALWAYS ... STORED`, so the importers never write to it
 and it cannot drift out of date; the incremental import was re-run against the
 new schema to confirm it still promotes cleanly.
 
+### No person is named in a toplist
+
+Role holders are public in Brønnøysundregistrene and the company pages show them
+as the register does — one company at a time. A national *ranking* of named
+individuals is a different thing: it is profiling, a new purpose the register was
+not published for, and it is the highest-visibility, lowest-value place to do it.
+
+So the toplists name no one. "Flest styreverv" was dropped rather than
+anonymised, because without the name it had no row identity left. "Norges
+mektigste kvinner" ranks one row per person but labels her by the largest
+company she leads — the ranking is real, the name is one click away on the
+company page where the register itself publishes it.
+
+Its score logs every dimension before adding them (revenue, employees,
+subsidiaries controlled, other board seats), so no single one runs away with the
+list. Ranking on raw seat count put one woman who chairs 259 kindergartens in
+twelve of the top twelve rows.
+
 ### Gender is inferred from first names, and labelled as such
 
 `kvinner i business` needs a gender per role-holder, which no register

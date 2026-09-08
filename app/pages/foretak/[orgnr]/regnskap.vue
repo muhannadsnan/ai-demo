@@ -36,7 +36,7 @@ function prosent(felt: string, i: number) {
   // A company going from 12k to 4.7m is up 39,000 %, which is true and useless
   // in a table cell. Past a point the arrow and the figures say it better.
   if (Math.abs(p) >= 1000) return null
-  return `${p > 0 ? '+' : ''}${p.toFixed(0)} %`
+  return `(${p > 0 ? '+' : ''}${p.toFixed(0)} %)`
 }
 const tittel = (felt: string, i: number) => {
   const p = endring(felt, i)

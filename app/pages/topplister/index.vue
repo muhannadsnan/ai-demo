@@ -4,6 +4,8 @@ useHead({ title: 'Topplister — norske foretak' })
 const { data, status } = await useFetch('/api/topplister', { lazy: true })
 const laster = computed(() => status.value === 'pending')
 
+const antallLister = computed(() => data.value?.lister?.length ?? 0)
+
 /** Group by category, keeping the order the API sorted them into. */
 const grupper = computed(() => {
   const ut = new Map<string, any[]>()
@@ -19,19 +21,22 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
 
 <template>
   <div>
-    <h1>Topplister</h1>
-    <p class="lede">
-      Tjue rangeringer regnet ut av hele datasettet — konkurser, regnskap, roller,
+    <div class="sidehode">
+      <h1>Topplister</h1>
+      <span v-if="data?.generert" class="oppdatert">Sist oppdatert {{ tid(data.generert) }}</span>
+    </div>
+
+    <p class="lede innramma">
+      <template v-if="antallLister">{{ antallLister }}</template><template v-else>—</template>
+      rangeringer regnet ut av hele datasettet — konkurser, regnskap, roller,
       eierskap og geografi. Listene beregnes én gang i døgnet og leses ferdige,
       så sidene svarer på millisekunder i stedet for å kjøre en aggregering per besøk.
     </p>
 
-    <p v-if="data?.generert" class="muted">Sist oppdatert {{ tid(data.generert) }}.</p>
-
     <p v-if="laster" class="muted">Henter listene …</p>
 
     <section v-for="[kategori, lister] in grupper" :key="kategori" class="gruppe">
-      <h2>{{ kategori }}</h2>
+      <h2>{{ kategori }} <span class="gruppe-antall">({{ lister.length }})</span></h2>
       <div class="liste-rutenett">
         <NuxtLink v-for="l in lister" :key="l.type" class="liste-kort" :to="`/topplister/${l.type}`">
           <span class="liste-tittel">{{ l.tittel }}</span>
@@ -49,37 +54,59 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
 </template>
 
 <style scoped>
-.gruppe { margin-top: 28px; }
-.gruppe h2 { font-size: 15px; margin: 0 0 10px; letter-spacing: -0.01em; }
+/* Heading and freshness on one line: when the list was last computed is the
+   first thing to check on a page of precomputed numbers. */
+.sidehode { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.sidehode h1 { margin-right: auto; }
+.oppdatert {
+  font: 500 12px/1 var(--mono); color: var(--info);
+  background: var(--info-soft); padding: 5px 9px; border-radius: 6px; white-space: nowrap;
+}
+
+/* The intro reads as a note about the page rather than as body copy, so it gets
+   its own ground and sits centred above the grid. */
+.innramma {
+  max-width: 74ch; margin: 14px auto 4px; text-align: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 20px;
+}
+
+.gruppe { margin-top: 30px; }
+.gruppe h2 {
+  font-size: 13px; margin: 0 0 12px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--text-dim); font-weight: 650;
+}
+.gruppe-antall { color: var(--text-dim); font-weight: 500; }
+
 .liste-rutenett {
   display: grid; gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
 }
 .liste-kort {
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: 5px;
   padding: 12px 14px; text-decoration: none; color: inherit;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   transition: border-color .12s ease;
+  overflow: hidden;
 }
 .liste-kort:hover { border-color: var(--accent); }
-.liste-tittel { font-weight: 600; font-size: 14px; line-height: 1.3; }
-/* The first three entries, numbered, as a teaser for the ranking. `counter`
-   rather than a real <ol> marker so the numbers sit tight against the names
-   at this size. */
-.liste-topp { list-style: none; margin: 2px 0 0; padding: 0; counter-reset: plass; }
+.liste-tittel { font-weight: 650; font-size: 14px; line-height: 1.3; color: var(--accent); }
+
+/* `counter` rather than a real <ol> marker so the numbers sit tight against
+   the names at this size. */
+.liste-topp { list-style: none; margin: 0; padding: 0; counter-reset: plass; }
 .liste-topp li {
-  counter-increment: plass;
-  font-size: 13px; line-height: 1.45;
+  counter-increment: plass; color: var(--text);
+  font-size: 13px; line-height: 1.5;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .liste-topp li::before {
   content: counter(plass) ". ";
   color: var(--text-dim); font: 11px/1 var(--mono);
 }
-.liste-topp li:first-child { color: var(--accent); font-weight: 500; }
 .liste-topp.feil { color: var(--text-dim); font-style: italic; font-size: 13px; }
 .liste-meta {
-  margin-top: auto; padding-top: 6px;
+  margin-top: auto; padding-top: 8px;
   font: 11px/1 var(--mono); color: var(--text-dim);
   text-transform: uppercase; letter-spacing: .05em;
 }

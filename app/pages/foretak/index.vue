@@ -11,11 +11,9 @@ const side    = ref(Number(route.query.side ?? 1))
 const per     = ref(Number(route.query.per ?? 10))
 
 // --- advanced filters ---
-// Open on load when the URL already carries one, so a shared or bookmarked
-// search shows why it returned what it did instead of looking arbitrary.
-const AVANSERTE = ['fylke', 'kommune', 'nace', 'konkurs', 'avvikling', 'nye', 'ansatte', 'ansatte_maks']
-const visFiltre = ref(Object.keys(route.query).some(
-  k => AVANSERTE.includes(k) || k.endsWith('_min') || k.endsWith('_maks')))
+// The filters live in a sidebar that is open by default. On a narrow screen
+// there is no room for two columns, so it collapses to a button.
+const visFiltre = ref(true)
 const fylke        = ref(String(route.query.fylke ?? ''))
 const ansatteMaks  = ref(String(route.query.ansatte_maks ?? ''))
 const konkurs      = ref(route.query.konkurs === 'true')
@@ -73,7 +71,88 @@ const antallFiltre = computed(() =>
   + BELOP.reduce((n, b) =>
       n + (belop[`${b.navn}_min`]?.trim() ? 1 : 0) + (belop[`${b.navn}_maks`]?.trim() ? 1 : 0), 0))
 
+// Same request the tree makes; useFetch dedupes on the key, so the badges get
+// the industry names without a second round trip.
+const { data: naeringer } = await useFetch('/api/naeringskoder', { lazy: true })
+const naeringsnavn = computed(() =>
+  new Map(((naeringer.value?.noder ?? []) as any[]).map(n => [n.kode, n.navn])))
+
+/**
+ * One badge per active filter, each able to remove just itself.
+ *
+ * Built from the same state the query is built from, so a badge can never
+ * describe a filter that is not actually applied.
+ */
+const merkelapper = computed(() => {
+  const ut: { nokkel: string; tekst: string; fjern: () => void }[] = []
+  const tekstfelt: [string, any, string][] = [
+    ['q', q, 'Navn'], ['gjor', gjor, 'Driver med'],
+    ['fylke', fylke, 'Fylke'], ['kommune', kommune, 'Kommune'],
+    ['ansatte', ansatte, 'Ansatte fra'], ['ansatte_maks', ansatteMaks, 'Ansatte til']
+  ]
+  for (const [nokkel, felt, etikett] of tekstfelt) {
+    if (felt.value) ut.push({ nokkel, tekst: `${etikett}: ${felt.value}`, fjern: () => { felt.value = ''; sok() } })
+  }
+  const bokser: [string, any, string][] = [
+    ['nye', nye, 'Nyetablerte'], ['konkurs', konkurs, 'Konkurs'], ['avvikling', avvikling, 'Under avvikling']
+  ]
+  for (const [nokkel, felt, etikett] of bokser) {
+    if (felt.value) ut.push({ nokkel, tekst: etikett, fjern: () => { felt.value = false; sok() } })
+  }
+  for (const b of BELOP) {
+    for (const ende of ['min', 'maks'] as const) {
+      const v = belop[`${b.navn}_${ende}`]
+      if (v?.trim()) ut.push({
+        nokkel: `${b.navn}_${ende}`,
+        tekst: `${b.tittel} ${ende === 'min' ? 'fra' : 'til'} ${Number(v).toLocaleString('nb-NO')}k`,
+        fjern: () => { belop[`${b.navn}_${ende}`] = ''; sok() }
+      })
+    }
+  }
+  for (const kode of nace.value) {
+    ut.push({
+      nokkel: `nace-${kode}`,
+      tekst: `Næring: ${naeringsnavn.value.get(kode) ?? kode}`,
+      fjern: () => { nace.value = nace.value.filter(k => k !== kode); sok() }
+    })
+  }
+  return ut
+})
+
+/**
+ * Saved searches, in localStorage.
+ *
+ * This app has no accounts, so "per user" is per browser — an honest
+ * implementation of the feature rather than a fake user id. A saved search is
+ * just the query string, so restoring one is a navigation and it survives
+ * every future change to what the filters can express.
+ */
+const NOKKEL = 'foretak-lagrede-sok'
+const lagrede = ref<{ navn: string; query: string }[]>([])
+
+onMounted(() => {
+  try { lagrede.value = JSON.parse(localStorage.getItem(NOKKEL) || '[]') } catch { lagrede.value = [] }
+})
+function skrivLagrede() {
+  try { localStorage.setItem(NOKKEL, JSON.stringify(lagrede.value)) } catch { /* private mode */ }
+}
+function lagreSok() {
+  const forslag = merkelapper.value.slice(0, 2).map(m => m.tekst).join(', ') || 'Alle foretak'
+  const navn = window.prompt('Navn på søket', forslag)?.trim()
+  if (!navn) return
+  const query = new URLSearchParams(
+    Object.entries(params.value).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+  ).toString()
+  lagrede.value = [{ navn, query }, ...lagrede.value.filter(l => l.navn !== navn)].slice(0, 20)
+  skrivLagrede()
+}
+function slettLagret(navn: string) {
+  lagrede.value = lagrede.value.filter(l => l.navn !== navn)
+  skrivLagrede()
+}
+
 function nullstill() {
+  q.value = ''; gjor.value = ''
   kommune.value = ''; fylke.value = ''; ansatte.value = ''; ansatteMaks.value = ''
   konkurs.value = false; avvikling.value = false; nye.value = false
   nace.value = []
@@ -158,7 +237,7 @@ function merke(f: any): { klasse: string, tittel: string } | null {
     <h1>Foretak</h1>
     <p class="lede">
       Søk i 1 173 013 norske foretak fra Enhetsregisteret.
-      Skriv et navn eller lim inn et organisasjonsnummer.
+      Skriv et navn, lim inn et organisasjonsnummer, eller søk på hva de driver med.
     </p>
 
     <div class="sokefelt">
@@ -179,124 +258,151 @@ function merke(f: any): { klasse: string, tittel: string } | null {
       </span>
     </div>
 
-    <div class="row" style="margin-top:10px; gap:18px; align-items:center">
-      <button class="ghost" @click="visFiltre = !visFiltre">
-        {{ visFiltre ? 'Skjul filtre' : 'Flere filtre' }}
-        <span v-if="antallFiltre" class="filterteller">{{ antallFiltre }}</span>
-      </button>
-      <label class="muted" :class="{ avslaatt: statusValgt }">
-        <input type="checkbox" v-model="aktive" :disabled="statusValgt" @change="sok"> Bare aktive foretak
-      </label>
-      <label class="muted">
-        Per side
-        <select v-model.number="per" @change="sok" class="velger">
-          <option :value="10">10</option><option :value="25">25</option>
-          <option :value="50">50</option><option :value="100">100</option>
-        </select>
-      </label>
-      <span v-if="data && !laster" class="muted" style="margin-left:auto">
-        {{ data.treff.toLocaleString('nb-NO') }}{{ data.flere ? '+' : '' }} treff
+    <!-- One badge per active filter. Each removes only itself, which is the
+         quickest way to walk back from a search that returned nothing. -->
+    <div v-if="merkelapper.length" class="merkelapper">
+      <span v-for="m in merkelapper" :key="m.nokkel" class="merkelapp">
+        {{ m.tekst }}
+        <button type="button" :aria-label="`Fjern ${m.tekst}`" @click="m.fjern()">×</button>
       </span>
+      <button class="lenkeknapp" @click="nullstill">Fjern alle</button>
     </div>
 
-    <div v-if="visFiltre" class="filterpanel">
-      <div class="filtergrid">
-        <fieldset>
-          <legend>Status</legend>
-          <label><input type="checkbox" v-model="nye" @change="sok"> Nyetablerte (siste 90 dager)</label>
-          <label><input type="checkbox" v-model="konkurs" @change="sok"> Konkurs</label>
-          <label><input type="checkbox" v-model="avvikling" @change="sok"> Under avvikling</label>
-          <p class="muted hint">Flere avkryssinger betyr «eller», ikke «og».</p>
-        </fieldset>
+    <div class="soke-layout">
+      <aside class="filter-sidebar" :class="{ skjult: !visFiltre }">
+        <div class="sidebar-hode">
+          <span>Filtre <span v-if="antallFiltre" class="filterteller">{{ antallFiltre }}</span></span>
+          <button class="lenkeknapp" @click="visFiltre = !visFiltre">{{ visFiltre ? 'Skjul' : 'Vis' }}</button>
+        </div>
 
-        <fieldset>
-          <legend>Geografi</legend>
-          <label class="feltrad">Fylke
-            <input v-model="fylke" type="text" placeholder="navn eller nr" @keydown.enter="sok"></label>
-          <label class="feltrad">Kommune
-            <input v-model="kommune" type="text" placeholder="navn eller nr" @keydown.enter="sok"></label>
-          <p class="muted hint">Både «Oslo» og «0301» virker.</p>
-        </fieldset>
+        <template v-if="visFiltre">
+          <fieldset>
+            <legend>Status</legend>
+            <label><input type="checkbox" v-model="nye" @change="sok"> Nyetablerte (90 dager)</label>
+            <label><input type="checkbox" v-model="konkurs" @change="sok"> Konkurs</label>
+            <label><input type="checkbox" v-model="avvikling" @change="sok"> Under avvikling</label>
+            <label :class="{ avslaatt: statusValgt }">
+              <input type="checkbox" v-model="aktive" :disabled="statusValgt" @change="sok"> Bare aktive
+            </label>
+            <p class="muted hint">Flere avkryssinger betyr «eller», ikke «og».</p>
+          </fieldset>
 
-        <fieldset>
-          <legend>Ansatte</legend>
-          <div class="omraade">
-            <input v-model="ansatte" type="number" placeholder="fra" @keydown.enter="sok">
-            <span>–</span>
-            <input v-model="ansatteMaks" type="number" placeholder="til" @keydown.enter="sok">
+          <fieldset>
+            <legend>Geografi</legend>
+            <label class="feltrad">Fylke
+              <input v-model="fylke" type="text" placeholder="navn eller nr" @keydown.enter="sok"></label>
+            <label class="feltrad">Kommune
+              <input v-model="kommune" type="text" placeholder="navn eller nr" @keydown.enter="sok"></label>
+            <p class="muted hint">Både «Oslo» og «0301» virker.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Ansatte</legend>
+            <div class="omraade">
+              <input v-model="ansatte" type="number" placeholder="fra" @keydown.enter="sok">
+              <span>–</span>
+              <input v-model="ansatteMaks" type="number" placeholder="til" @keydown.enter="sok">
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Regnskap — i tusen kr</legend>
+            <div v-for="b in BELOP" :key="b.navn" class="omraade merket">
+              <span class="omraade-navn">{{ b.tittel }}</span>
+              <div class="omraade-par">
+                <input v-model="belop[`${b.navn}_min`]" type="number" placeholder="fra" @keydown.enter="sok">
+                <span>–</span>
+                <input v-model="belop[`${b.navn}_maks`]" type="number" placeholder="til" @keydown.enter="sok">
+              </div>
+            </div>
+            <p class="muted hint">Siste innsendte regnskap.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Næring<span v-if="nace.length" class="filterteller">{{ nace.length }}</span></legend>
+            <NaeringsTre v-model="nace" />
+          </fieldset>
+
+          <div class="sidebar-knapper">
+            <button @click="sok">Bruk filtre</button>
+            <button class="ghost" :disabled="!antallFiltre" @click="nullstill">Nullstill</button>
           </div>
-        </fieldset>
 
-        <fieldset class="bred">
-          <legend>Regnskap — siste år, i tusen kroner</legend>
-          <div v-for="b in BELOP" :key="b.navn" class="omraade merket">
-            <span class="omraade-navn">{{ b.tittel }}</span>
-            <input v-model="belop[`${b.navn}_min`]" type="number" placeholder="fra" @keydown.enter="sok">
-            <span>–</span>
-            <input v-model="belop[`${b.navn}_maks`]" type="number" placeholder="til" @keydown.enter="sok">
-          </div>
-          <p class="muted hint">
-            Fra siste innsendte regnskap. Filinger med åpenbart feil målestokk er utelatt.
-          </p>
-        </fieldset>
-
-        <fieldset class="bred">
-          <legend>Næring<span v-if="nace.length" class="filterteller">{{ nace.length }}</span></legend>
-          <NaeringsTre v-model="nace" />
-        </fieldset>
-      </div>
-
-      <div class="row" style="justify-content:flex-end; gap:8px; margin-top:12px">
-        <button class="ghost" :disabled="!antallFiltre" @click="nullstill">Nullstill filtre</button>
-        <button @click="sok">Bruk filtre</button>
-      </div>
-    </div>
-
-    <!-- Old results are cleared while a new search runs, so what is on screen is
-         never a stale answer to a question that has already changed. -->
-    <div v-if="laster" class="laster">
-      <span class="spinner" /> Søker…
-    </div>
-
-    <template v-else-if="data">
-      <div v-if="!data.foretak.length" class="card muted" style="margin-top:18px">
-        Ingen treff. Prøv et kortere navn, eller slå av «bare aktive».
-      </div>
-
-      <NuxtLink
-        v-for="f in data.foretak" :key="f.organisasjonsnummer"
-        :to="`/foretak/${f.organisasjonsnummer}`"
-        class="treffrad" :class="{ inaktiv: inaktiv(f) }">
-        <span class="treffrad-navn">
-          <i v-if="merke(f)" class="merke" :class="merke(f)!.klasse" :title="merke(f)!.tittel" />
-          {{ f.navn }}
-          <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
-        </span>
-        <span class="treffrad-meta">
-          <code>{{ f.organisasjonsnummer }}</code>
-          · {{ f.organisasjonsform_kode }}
-          <template v-if="f.forretningsadresse_poststed"> · {{ f.forretningsadresse_poststed }}</template>
-          <template v-if="f.har_registrert_antall_ansatte"> · {{ f.antall_ansatte }} ansatte</template>
-          <template v-if="f.naeringskode1_beskrivelse"> · {{ f.naeringskode1_beskrivelse }}</template>
-        </span>
-        <span v-if="data.medRegnskap && f.sum_driftsinntekter != null" class="treffrad-tall">
-          {{ Math.round(Number(f.sum_driftsinntekter) / 1000).toLocaleString('nb-NO') }} i driftsinntekter
-          <template v-if="f.aarsresultat != null">
-            · <span :class="{ neg: Number(f.aarsresultat) < 0 }">{{ Math.round(Number(f.aarsresultat) / 1000).toLocaleString('nb-NO') }}</span> i resultat
-          </template>
-          <span class="muted">({{ f.aar }}, tusen kr)</span>
-        </span>
-      </NuxtLink>
-
-      <nav v-if="data.sider > 1" class="paginator midtstilt">
-        <button class="ghost" :disabled="side <= 1" @click="gaaTil(side - 1)">‹</button>
-        <template v-for="(s, i) in sidetall" :key="i">
-          <span v-if="s === '…'" class="paginator-hopp">…</span>
-          <button v-else class="paginator-tall" :class="{ aktiv: s === side }" @click="gaaTil(s as number)">{{ s }}</button>
+          <fieldset>
+            <legend>Lagrede søk</legend>
+            <button class="ghost full" @click="lagreSok">Lagre dette søket</button>
+            <ul v-if="lagrede.length" class="lagret-liste">
+              <li v-for="l in lagrede" :key="l.navn">
+                <NuxtLink :to="`/foretak?${l.query}`">{{ l.navn }}</NuxtLink>
+                <button type="button" :aria-label="`Slett ${l.navn}`" @click="slettLagret(l.navn)">×</button>
+              </li>
+            </ul>
+            <p class="muted hint">Lagres i denne nettleseren — appen har ingen innlogging.</p>
+          </fieldset>
         </template>
-        <button class="ghost" :disabled="side >= data.sider" @click="gaaTil(side + 1)">›</button>
-        <span class="muted" v-if="data.flere" style="margin-left:8px">av mange</span>
-      </nav>
-    </template>
+      </aside>
+
+      <div class="soke-resultat">
+        <div class="row" style="gap:18px; align-items:center; margin-bottom:6px">
+          <label class="muted">
+            Per side
+            <select v-model.number="per" @change="sok" class="velger">
+              <option :value="10">10</option><option :value="25">25</option>
+              <option :value="50">50</option><option :value="100">100</option>
+            </select>
+          </label>
+          <span v-if="data && !laster" class="muted" style="margin-left:auto">
+            {{ data.treff.toLocaleString('nb-NO') }}{{ data.flere ? '+' : '' }} treff
+          </span>
+        </div>
+
+        <!-- Old results are cleared while a new search runs, so what is on screen is
+             never a stale answer to a question that has already changed. -->
+        <div v-if="laster" class="laster">
+          <span class="spinner" /> Søker…
+        </div>
+
+        <template v-else-if="data">
+          <div v-if="!data.foretak.length" class="card muted">
+            Ingen treff. Fjern et filter over, eller prøv et kortere navn.
+          </div>
+
+          <NuxtLink
+            v-for="f in data.foretak" :key="f.organisasjonsnummer"
+            :to="`/foretak/${f.organisasjonsnummer}`"
+            class="treffrad" :class="{ inaktiv: inaktiv(f) }">
+            <span class="treffrad-navn">
+              <i v-if="merke(f)" class="merke" :class="merke(f)!.klasse" :title="merke(f)!.tittel" />
+              {{ f.navn }}
+              <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
+            </span>
+            <span class="treffrad-meta">
+              <code>{{ f.organisasjonsnummer }}</code>
+              · {{ f.organisasjonsform_kode }}
+              <template v-if="f.forretningsadresse_poststed"> · {{ f.forretningsadresse_poststed }}</template>
+              <template v-if="f.har_registrert_antall_ansatte"> · {{ f.antall_ansatte }} ansatte</template>
+              <template v-if="f.naeringskode1_beskrivelse"> · {{ f.naeringskode1_beskrivelse }}</template>
+            </span>
+            <span v-if="data.medRegnskap && f.sum_driftsinntekter != null" class="treffrad-tall">
+              {{ Math.round(Number(f.sum_driftsinntekter) / 1000).toLocaleString('nb-NO') }} i driftsinntekter
+              <template v-if="f.aarsresultat != null">
+                · <span :class="{ neg: Number(f.aarsresultat) < 0 }">{{ Math.round(Number(f.aarsresultat) / 1000).toLocaleString('nb-NO') }}</span> i resultat
+              </template>
+              <span class="muted">({{ f.aar }}, tusen kr)</span>
+            </span>
+          </NuxtLink>
+
+          <nav v-if="data.sider > 1" class="paginator midtstilt">
+            <button class="ghost" :disabled="side <= 1" @click="gaaTil(side - 1)">‹</button>
+            <template v-for="(s, i) in sidetall" :key="i">
+              <span v-if="s === '…'" class="paginator-hopp">…</span>
+              <button v-else class="paginator-tall" :class="{ aktiv: s === side }" @click="gaaTil(s as number)">{{ s }}</button>
+            </template>
+            <button class="ghost" :disabled="side >= data.sider" @click="gaaTil(side + 1)">›</button>
+            <span class="muted" v-if="data.flere" style="margin-left:8px">av mange</span>
+          </nav>
+        </template>
+      </div>
+    </div>
   </div>
 </template>

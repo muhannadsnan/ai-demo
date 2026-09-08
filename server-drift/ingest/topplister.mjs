@@ -206,20 +206,80 @@ export const LISTER = [
 
   // ---- roller og mennesker -----------------------------------------------
   {
+    type: 'mektigste-kvinner', kategori: 'Roller',
+    tittel: 'Norges mektigste kvinner',
+    beskrivelse: 'Kvinner som er daglig leder eller styreleder, rangert på en samlet poengsum: omsetning og antall ansatte i foretaket de leder, hvor mange datterselskap konsernet kontrollerer, og hvor mange styreverv de har ellers. Én rad er én person, representert ved det største foretaket hun leder — navnet vises ikke, det står i Enhetsregisteret på foretakets egen side. Kjønn er utledet fra fornavn.',
+    kolonner: [
+      { felt: 'navn', tittel: 'Leder foretaket', format: 'lenke' },
+      { felt: 'rolle', tittel: 'Rolle', format: 'tekst' },
+      { felt: 'omsetning', tittel: 'Driftsinntekter', format: 'belop' },
+      { felt: 'ansatte', tittel: 'Ansatte', format: 'tall' },
+      { felt: 'datterselskap', tittel: 'Datterselskap', format: 'tall' },
+      { felt: 'verv', tittel: 'Verv i alt', format: 'tall' },
+      { felt: 'poeng', tittel: 'Poeng', format: 'tall' }
+    ],
+    sql: `WITH kvinne_rolle AS (
+            SELECT r.organisasjonsnummer, r.rolletype_beskrivelse AS rolle,
+                   r.person_fornavn AS fn, r.person_etternavn AS en, r.person_fodselsdato AS fd
+            FROM roller r
+            JOIN fornavn_kjonn f ON f.fornavn = upper(split_part(r.person_fornavn,' ',1)) AND f.kjonn = 'K'
+            WHERE r.rolletype_kode IN ('DAGL','LEDE') AND NOT r.avregistrert
+              AND r.person_etternavn IS NOT NULL),
+          verv AS (
+            SELECT person_fornavn fn, person_etternavn en, person_fodselsdato fd,
+                   count(DISTINCT organisasjonsnummer) AS antall_verv
+            FROM roller
+            WHERE NOT avregistrert AND rollegruppe_kode IN ('STYR','DAGL')
+              AND person_etternavn IS NOT NULL
+            GROUP BY 1, 2, 3),
+          datter AS (
+            SELECT eier_orgnr, count(*) AS antall FROM (
+              SELECT eier_orgnr, organisasjonsnummer FROM aksjonar
+              WHERE eier_orgnr IS NOT NULL AND regnskapsaar = (SELECT max(regnskapsaar) FROM aksjonar)
+              GROUP BY 1, 2 HAVING sum(andel_prosent) > 50) s
+            GROUP BY 1),
+          -- One row per person: her largest company stands for her, so a woman
+          -- who chairs 259 kindergartens does not fill the whole list.
+          flaggskip AS (
+            SELECT DISTINCT ON (k.fn, k.en, k.fd)
+                   k.fn, k.en, k.fd, k.organisasjonsnummer, k.rolle, e.navn,
+                   e.antall_ansatte, rs.sum_driftsinntekter, coalesce(d.antall, 0) AS datter
+            FROM kvinne_rolle k
+            JOIN enheter e USING (organisasjonsnummer)
+            LEFT JOIN regnskap_siste rs ON rs.organisasjonsnummer = e.organisasjonsnummer AND rs.rimelig
+            LEFT JOIN datter d ON d.eier_orgnr = e.organisasjonsnummer
+            WHERE e.slettet_dato IS NULL AND NOT e.konkurs
+            ORDER BY k.fn, k.en, k.fd,
+                     coalesce(rs.sum_driftsinntekter,0) + coalesce(e.antall_ansatte,0)::numeric * 1000000 DESC)
+          -- Everything is logged before it is added, so no single dimension can
+          -- run away with the ranking the way raw revenue or raw seat count would.
+          SELECT g.organisasjonsnummer, g.navn, g.rolle,
+                 g.sum_driftsinntekter AS omsetning,
+                 nullif(g.antall_ansatte, 0) AS ansatte,
+                 g.datter AS datterselskap,
+                 v.antall_verv AS verv,
+                 round((ln(greatest(coalesce(g.sum_driftsinntekter,0),1)) * 2
+                      + ln(greatest(coalesce(g.antall_ansatte,0),1)) * 3
+                      + ln(g.datter + 1) * 4
+                      + ln(v.antall_verv) * 4)::numeric, 1) AS poeng
+          FROM flaggskip g JOIN verv v USING (fn, en, fd)
+          ORDER BY poeng DESC LIMIT 50`
+  },
+  {
     type: 'kvinner-daglig-leder', kategori: 'Roller',
     tittel: 'Størst med kvinnelig daglig leder',
-    beskrivelse: 'De største foretakene der daglig leder har et fornavn SSB registrerer som jentenavn. Kjønn er utledet fra fornavn, ikke en registrert opplysning.',
+    beskrivelse: 'De største foretakene der daglig leder har et fornavn SSB registrerer som jentenavn. Kjønn er utledet fra fornavn, ikke en registrert opplysning. Navnet på lederen vises ikke her — det står i Enhetsregisteret og på foretakets egen side.',
     kolonner: [
       { felt: 'navn', tittel: 'Foretak', format: 'lenke' },
-      { felt: 'leder', tittel: 'Daglig leder', format: 'tekst' },
       { felt: 'ansatte', tittel: 'Ansatte', format: 'tall' },
+      { felt: 'naering', tittel: 'Næring', format: 'tekst' },
       { felt: 'sted', tittel: 'Sted', format: 'tekst' }
     ],
     sql: `SELECT * FROM (
             SELECT DISTINCT ON (e.organisasjonsnummer)
                    e.organisasjonsnummer, e.navn,
-                   r.person_fornavn || ' ' || r.person_etternavn AS leder,
-                   e.antall_ansatte AS ansatte, e.forretningsadresse_poststed AS sted
+                   e.antall_ansatte AS ansatte, e.forretningsadresse_poststed AS sted,
+                   e.naeringskode1_beskrivelse AS naering
             FROM roller r
             JOIN fornavn_kjonn f ON f.fornavn = upper(split_part(r.person_fornavn,' ',1)) AND f.kjonn = 'K'
             JOIN enheter e USING (organisasjonsnummer)
@@ -252,19 +312,26 @@ export const LISTER = [
           ORDER BY andel DESC`
   },
   {
-    type: 'flest-styreverv', kategori: 'Roller',
-    tittel: 'Flest styreverv',
-    beskrivelse: 'Personer med flest aktive styreverv. Identifisert på fornavn, etternavn og fødselsdato.',
+    type: 'kvinneandel-naering', kategori: 'Roller',
+    tittel: 'Kvinneandel blant daglige ledere, etter næring',
+    beskrivelse: 'Andel daglige ledere med jentenavn, per næring. Kjønn er utledet fra fornavn, ikke en registrert opplysning.',
     kolonner: [
-      { felt: 'person', tittel: 'Person', format: 'tekst' },
-      { felt: 'verv', tittel: 'Styreverv', format: 'tall' }
+      { felt: 'naering', tittel: 'Næring', format: 'tekst' },
+      { felt: 'andel', tittel: 'Kvinneandel', format: 'prosent' },
+      { felt: 'kvinner', tittel: 'Kvinner', format: 'tall' },
+      { felt: 'totalt', tittel: 'Totalt', format: 'tall' }
     ],
-    sql: `SELECT max(person_fornavn || ' ' || person_etternavn) AS person,
-                 count(DISTINCT organisasjonsnummer) AS verv
-          FROM roller
-          WHERE rollegruppe_kode='STYR' AND NOT avregistrert AND person_etternavn IS NOT NULL
-          GROUP BY person_fornavn, person_etternavn, person_fodselsdato
-          ORDER BY verv DESC LIMIT 50`
+    sql: `SELECT n.navn AS naering,
+                 count(*) FILTER (WHERE f.kjonn='K') AS kvinner,
+                 count(*) AS totalt,
+                 round(100.0*count(*) FILTER (WHERE f.kjonn='K')/count(*), 1) AS andel
+          FROM roller r
+          JOIN fornavn_kjonn f ON f.fornavn = upper(split_part(r.person_fornavn,' ',1)) AND f.kjonn IN ('K','M')
+          JOIN enheter e USING (organisasjonsnummer)
+          JOIN naeringskoder n ON n.kode = e.naeringskode1_kode
+          WHERE r.rolletype_kode='DAGL' AND NOT r.avregistrert AND e.slettet_dato IS NULL
+          GROUP BY n.navn HAVING count(*) > 300
+          ORDER BY andel DESC LIMIT 50`
   },
   {
     type: 'flest-datterselskap', kategori: 'Eierskap',

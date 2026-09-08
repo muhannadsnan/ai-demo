@@ -96,6 +96,16 @@ for (const l of kjor) {
   else console.log(`  ${String(r.antall).padEnd(8)} ${tid}  ${l.type}`)
 }
 
+// A list removed from the definitions must not linger in the table serving
+// stale data forever. Only on a full run — a partial run says nothing about
+// the lists it was not asked to build.
+if (!valgt.length) {
+  const beholdt = LISTER.map(l => `'${l.type}'`).join(', ')
+  const fjernet = await psql(
+    `DELETE FROM topplister WHERE type NOT IN (${beholdt}) RETURNING type;`)
+  if (fjernet) console.log(`  fjernet utgåtte lister: ${fjernet.split('\n').join(', ')}`)
+}
+
 const feilet = resultat.filter(r => r.feil)
 const rader = resultat.reduce((s, r) => s + r.antall, 0)
 console.log(`\n${kjor.length} lister, ${rader} rader, ${feilet.length} feilet`)

@@ -250,9 +250,13 @@ function merke(f: any): { klasse: string, tittel: string } | null {
   <div>
     <h1>Foretak</h1>
     <p class="lede">
-      Søk i 1 173 078 norske foretak fra Enhetsregisteret.
-      Skriv et navn, lim inn et organisasjonsnummer, eller beskriv i sidefeltet
-      hva du leter etter.
+      Søk i 1 173 078 norske foretak fra Enhetsregisteret. Skriv et navn eller
+      lim inn et organisasjonsnummer — eller søk i sidefeltet på
+      <strong>hva foretaket driver med</strong>, i 940 807 beskrivelser
+      foretakene har skrevet om seg selv. Slår du på «forstå meningen»,
+      sammenlignes spørsmålet og beskrivelsene som mening i stedet for som ord,
+      så «folk som passer hunder» også finner et hundepensjonat som aldri skrev
+      noen av de ordene.
     </p>
 
     <div class="sokefelt">

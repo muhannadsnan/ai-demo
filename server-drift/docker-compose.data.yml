@@ -13,7 +13,8 @@ services:
     # Pinned to a minor version on purpose. "postgres:latest" means a major
     # version upgrade can arrive during an unrelated deploy and refuse to start
     # on the old data directory.
-    image: postgres:16-alpine
+    image: nordata-postgres:16-pgvector
+    build: ./docker/postgres
     restart: unless-stopped
 
     environment:

@@ -4,6 +4,7 @@ const router = useRouter()
 
 const q       = ref(String(route.query.q ?? ''))
 const gjor    = ref(String(route.query.gjor ?? ''))
+const semantisk = ref(route.query.semantisk === 'true')
 const kommune = ref(String(route.query.kommune ?? ''))
 const ansatte = ref(String(route.query.ansatte ?? ''))
 const aktive  = ref(route.query.aktive !== 'false')
@@ -44,6 +45,7 @@ const params = computed(() => {
   const p: Record<string, unknown> = {
     q: q.value || undefined,
     gjor: gjor.value || undefined,
+    semantisk: semantisk.value && gjor.value ? 'true' : undefined,
     kommune: kommune.value || undefined,
     fylke: fylke.value || undefined,
     ansatte: ansatte.value || undefined,
@@ -253,10 +255,18 @@ function merke(f: any): { klasse: string, tittel: string } | null {
          description, and it finds businesses whose name gives nothing away. -->
     <div class="sokefelt" style="margin-top:8px">
       <span class="sokeboks">
-        <input v-model="gjor" type="text" placeholder="…eller hva foretaket driver med: «undervannssveising», «kunstig intelligens»" @keydown.enter="sok">
+        <input v-model="gjor" type="text" :placeholder="semantisk
+          ? '…beskriv hva du leter etter: «folk som passer hunder»'
+          : '…eller hva foretaket driver med: «undervannssveising», «kunstig intelligens»'"
+          @keydown.enter="sok">
         <button v-if="gjor" class="tom" type="button" title="Tøm" aria-label="Tøm" @click="tomtGjor">×</button>
       </span>
     </div>
+    <label class="muted modusvalg">
+      <input type="checkbox" v-model="semantisk" @change="sok">
+      Forstå meningen, ikke bare ordene
+      <span class="hjelp" title="Uten: finner foretak som skrev nøyaktig de ordene. Med: spørsmålet og beskrivelsene sammenlignes som mening, så «folk som passer hunder» finner et hundepensjonat som aldri skrev noen av ordene.">?</span>
+    </label>
 
     <!-- One badge per active filter. Each removes only itself, which is the
          quickest way to walk back from a search that returned nothing. -->
@@ -382,6 +392,10 @@ function merke(f: any): { klasse: string, tittel: string } | null {
               <template v-if="f.forretningsadresse_poststed"> · {{ f.forretningsadresse_poststed }}</template>
               <template v-if="f.har_registrert_antall_ansatte"> · {{ f.antall_ansatte }} ansatte</template>
               <template v-if="f.naeringskode1_beskrivelse"> · {{ f.naeringskode1_beskrivelse }}</template>
+            </span>
+            <span v-if="data.semantisk && f.utdrag" class="treffrad-utdrag">
+              <span class="likhet">{{ Number(f.likhet).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+              {{ f.utdrag }}
             </span>
             <span v-if="data.medRegnskap && f.sum_driftsinntekter != null" class="treffrad-tall">
               {{ Math.round(Number(f.sum_driftsinntekter) / 1000).toLocaleString('nb-NO') }} i driftsinntekter

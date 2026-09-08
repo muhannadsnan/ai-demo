@@ -1,4 +1,5 @@
 import { query } from '../../utils/db'
+import { requireAiProvider } from '../../utils/ai/provider'
 
 /**
  * Company search.
@@ -52,18 +53,57 @@ export default defineEventHandler(async (event) => {
    * syntax `to_tsquery` demands, which errors out on a stray space.
    */
   const gjor = String(q.gjor ?? '').trim()
-  if (gjor) where.push(`e.fritekst @@ websearch_to_tsquery('norwegian', ${bind(gjor)})`)
+  const semantisk = q.semantisk === 'true' && gjor.length > 0
 
-  // Municipality and county accept either the number or the name, because
-  // nobody remembers that Bergen is 4601 and typing it should still work.
-  const sted = (verdi: string, nrKolonne: string, tabell: string, nrFelt: string) =>
-    /^\d+$/.test(verdi)
-      ? `${nrKolonne} LIKE ${bind(verdi + '%')}`
-      : `${nrKolonne} IN (SELECT ${nrFelt} FROM ${tabell} WHERE navn ILIKE ${bind('%' + verdi + '%')})`
+  /**
+   * Two ways to ask the same question.
+   *
+   * Keyword (default) matches the words that were written. Semantic embeds the
+   * question with the same model the descriptions were embedded with and ranks
+   * by distance in that space, so "folk som fikser tenner på hunder" can find a
+   * veterinary dental clinic that never wrote any of those words.
+   *
+   * Semantic ranking replaces the usual sort — the whole point is that the
+   * closest match comes first — and a cutoff keeps it from returning the least
+   * bad of a million companies when nothing is actually close.
+   */
+  let semantiskLedd = ''
+  if (semantisk) {
+    // 'search_query: ' must match the 'search_document: ' the descriptions were
+    // embedded with — see server-drift/ingest/embed-foretak.mjs. nomic-embed-text
+    // is trained with these task prefixes and separates matches from noise about
+    // three times as well with them as without.
+    const [vektor] = await requireAiProvider().embed([`search_query: ${gjor}`])
+    if (!vektor) throw createError({ statusCode: 503, statusMessage: 'Kunne ikke tolke søket' })
+    const v = bind(`[${vektor.join(',')}]`)
+    semantiskLedd = `em.embedding <=> ${v}::halfvec(768)`
+    // 0.62 measured: genuine matches sit below it, unrelated companies above.
+    where.push(`${semantiskLedd} < 0.62`)
+  } else if (gjor) {
+    where.push(`e.fritekst @@ websearch_to_tsquery('norwegian', ${bind(gjor)})`)
+  }
 
+  /**
+   * Municipality accepts either the number or the name, because nobody
+   * remembers that Bergen is 4601.
+   *
+   * A complete four-digit number is matched with `=`, not `LIKE 'nnnn%'`.
+   * Under the en_US.utf8 collation this database was created with, Postgres
+   * cannot prove a LIKE prefix maps to a btree range, so it will not use the
+   * index: a sparse municipality took 253 ms on a parallel sequential scan of
+   * 1.17 million rows. Dense ones hid it, because the sort index finds ten
+   * matches immediately when there are 57,000 of them.
+   *
+   * A shorter numeric prefix keeps LIKE — it is the rare input, and the county
+   * field is the better way to ask that question anyway.
+   */
   const kommune = String(q.kommune ?? '').trim()
   if (kommune) {
-    where.push(sted(kommune, 'e.forretningsadresse_kommunenummer', 'kommuner', 'kommunenummer'))
+    where.push(
+      /^\d{4}$/.test(kommune) ? `e.forretningsadresse_kommunenummer = ${bind(kommune)}`
+      : /^\d+$/.test(kommune) ? `e.forretningsadresse_kommunenummer LIKE ${bind(kommune + '%')}`
+      : `e.forretningsadresse_kommunenummer IN (
+           SELECT kommunenummer FROM kommuner WHERE navn ILIKE ${bind('%' + kommune + '%')})`)
   }
   const fylke = String(q.fylke ?? '').trim()
   if (fylke) {
@@ -130,7 +170,14 @@ export default defineEventHandler(async (event) => {
   const trengerRegnskap = belopsledd.length > 0
   if (trengerRegnskap) where.push('r.rimelig', ...belopsledd)
 
-  const join = trengerRegnskap ? 'JOIN regnskap_siste r USING (organisasjonsnummer)' : ''
+  const join = [
+    trengerRegnskap ? 'JOIN regnskap_siste r USING (organisasjonsnummer)' : '',
+    semantisk ? 'JOIN enheter_embedding em USING (organisasjonsnummer)' : ''
+  ].filter(Boolean).join(' ')
+
+  const sortering = semantisk
+    ? `${semantiskLedd} ASC`
+    : 'e.antall_ansatte DESC NULLS LAST, e.navn'
 
   const perPage = Math.min(Math.max(Number(q.per) || 10, 1), 100)
   const page    = Math.max(Number(q.side) || 1, 1)
@@ -155,9 +202,10 @@ export default defineEventHandler(async (event) => {
              e.konkurs, e.under_avvikling, e.under_tvangsavvikling,
              e.stiftelsesdato, e.registreringsdato_enhetsregisteret
              ${trengerRegnskap ? ', r.sum_driftsinntekter, r.aarsresultat, r.aar' : ''}
+             ${semantisk ? `, round((1 - (${semantiskLedd}))::numeric, 3) AS likhet, left(coalesce(e.aktivitet, e.vedtektsfestet_formaal), 160) AS utdrag` : ''}
       FROM enheter e ${join}
       WHERE ${where.join(' AND ')}
-      ORDER BY e.antall_ansatte DESC NULLS LAST, e.navn
+      ORDER BY ${sortering}
       LIMIT ${bind(perPage)} OFFSET ${bind((page - 1) * perPage)}`, params),
 
     query(`SELECT count(*)::int AS n FROM (
@@ -176,6 +224,7 @@ export default defineEventHandler(async (event) => {
     per: perPage,
     sider: Math.max(1, Math.ceil(total / perPage)),
     medRegnskap: trengerRegnskap,
+    semantisk,
     foretak: rows
   }
 })

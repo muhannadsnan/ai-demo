@@ -47,7 +47,10 @@ body {
 
 a { color: var(--accent); }
 
-.shell { max-width: 940px; margin: 0 auto; padding: 0 20px 80px; }
+/* Wide enough for a filter rail plus a results column. Prose inside stays
+   narrow on its own (.lede, .thread, .composer) — a 1180px line of text is
+   unreadable, but a 1180px table is not. */
+.shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; }
 
 /* ---- Header --------------------------------------------------------------- */
 header.top {
@@ -56,7 +59,7 @@ header.top {
   margin-bottom: 28px;
 }
 .top-inner {
-  max-width: 940px; margin: 0 auto; padding: 14px 20px;
+  max-width: 1180px; margin: 0 auto; padding: 14px 20px;
   display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
 }
 .brand { font-weight: 650; letter-spacing: -0.01em; margin-right: auto; }
@@ -98,7 +101,7 @@ code {
 .muted { color: var(--text-dim); font-size: 13px; }
 
 /* ---- Forms ---------------------------------------------------------------- */
-.composer { display: flex; gap: 8px; align-items: flex-end; }
+.composer { display: flex; gap: 8px; align-items: flex-end; max-width: 78ch; }
 textarea, input[type="text"] {
   flex: 1; width: 100%; resize: vertical;
   font: inherit; color: var(--text);
@@ -118,7 +121,7 @@ button.ghost { background: transparent; color: var(--text-dim); border: 1px soli
 button.ghost:hover:not(:disabled) { color: var(--text); }
 
 /* ---- Chat ----------------------------------------------------------------- */
-.thread { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.thread { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; max-width: 78ch; }
 .msg { display: flex; gap: 12px; }
 .msg .who {
   flex: none; width: 62px; padding-top: 2px;
@@ -451,7 +454,7 @@ table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #
    1fr)` rather than `1fr` so a long company name cannot push the grid wider
    than its container. */
 .soke-layout {
-  display: grid; grid-template-columns: 250px minmax(0, 1fr);
+  display: grid; grid-template-columns: 310px minmax(0, 1fr);
   gap: 20px; align-items: start; margin-top: 14px;
 }
 @media (max-width: 760px) { .soke-layout { grid-template-columns: 1fr; } }
@@ -549,3 +552,53 @@ label.avslaatt { opacity: .45; }
 
 .treffrad-tall { display: block; font-size: 12.5px; color: var(--text-dim); margin-top: 3px; font-variant-numeric: tabular-nums; }
 .treffrad-tall .neg { color: #c0392b; }
+
+/* ---- Eierskapsnettverk ---- */
+
+.note-avkortet {
+  background: var(--info-soft); border: 1px solid var(--border);
+  border-left: 3px solid var(--info); border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 12px; font-size: 13px; line-height: 1.55;
+}
+
+/* Two columns because the two directions are two different questions — who
+   controls this, and what does this control — and reading them side by side is
+   the point of the section. */
+.nett-kolonner { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.nett-side {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px; min-width: 0;
+}
+.nett-side h3 { font-size: 14px; margin: 0 0 10px; }
+.nett-niva { margin-bottom: 12px; }
+.nett-merkelapp {
+  display: block; font: 500 10.5px/1 var(--mono); color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px;
+}
+.nett-node {
+  display: flex; align-items: baseline; gap: 8px; min-width: 0;
+  padding: 3px 6px; border-radius: 5px; text-decoration: none; color: inherit;
+  border-left: 2px solid var(--border);
+}
+.nett-node:hover { background: var(--surface-2); border-left-color: var(--accent); }
+.nett-andel {
+  flex: none; min-width: 58px; text-align: right;
+  font: 500 11.5px/1.5 var(--mono); color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.nett-navn { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nett-side .hint { font-size: 11.5px; margin: 4px 0 0; }
+
+/* ---- Semantisk søk ---- */
+.modusvalg { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 13px; }
+.hjelp {
+  width: 15px; height: 15px; border-radius: 50%; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font: 600 10px/1 var(--mono); cursor: help;
+}
+/* The matched description, so a semantic hit can be judged rather than trusted. */
+.treffrad-utdrag { display: block; font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
+.treffrad-utdrag .likhet {
+  font: 500 11px/1 var(--mono); color: var(--accent);
+  background: var(--accent-soft); padding: 2px 5px; border-radius: 3px; margin-right: 6px;
+}

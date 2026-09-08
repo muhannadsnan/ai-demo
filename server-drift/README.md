@@ -318,7 +318,8 @@ sudo systemctl start nordata@oppdateringer     # run one now
 | `roller` | Sunday 03:00 | Full roles reload, archiving ended roles |
 | `referansedata` | Monday 05:00 | Counties, municipalities, NACE, postcodes |
 | `regnskap` | 1st of month 06:00 | Refreshes accounts older than 90 days |
-| `topplister` | daily 04:30 | Refreshes `regnskap_siste`, then recomputes the 20 toplists |
+| `topplister` | daily 04:30 | Refreshes `regnskap_siste` and `eierskap_kant`, then recomputes the toplists |
+| `embedding` | daily 05:15 | Embeds descriptions that are new or rewritten |
 
 `Persistent=true` means a job missed because the machine was off runs at next
 boot rather than being skipped silently.
@@ -655,6 +656,68 @@ Its score logs every dimension before adding them (revenue, employees,
 subsidiaries controlled, other board seats), so no single one runs away with the
 list. Ranking on raw seat count put one woman who chairs 259 kindergartens in
 twelve of the top twelve rows.
+
+### Semantic search, and the indexes behind the filters
+
+Keyword search (migration 027) finds a company only if it wrote the word you
+typed. Migration 028 adds the other half: every description is embedded with
+nomic-embed-text into 768 numbers positioned so that texts meaning similar
+things land near each other, so "folk som passer hunder" can find a
+hundepensjonat that wrote none of those words.
+
+Three things were measured rather than assumed.
+
+**Batch size.** 230 texts/sec at batch 16, 265 at 64, 285 at 256. Past that the
+GPU is saturated and a bigger batch only makes a failure more expensive to
+retry. 1.1 million descriptions take about 100 minutes.
+
+**halfvec, not vector.** pgvector stores `vector` as 4-byte floats — 2.9 GB
+before the index. halfvec is 2 bytes, and the precision lost sits far below the
+noise in "are these two business descriptions similar".
+
+**Task prefixes.** nomic-embed-text is trained with `search_document:` on what
+is indexed and `search_query:` on what is asked. Without them the right company
+still won, but by 0.011 over the wrong one; with them, by 0.029. Three times the
+separation, which is the difference between a usable relevance cutoff and one
+that admits an eiendomsutvikler into a search for dog sitters. This was caught
+after 78,000 rows and cost seven minutes to redo — it would have cost 100
+minutes at the end.
+
+A near-miss worth recording: the first evaluation looked catastrophic — a query
+for *kunstig intelligens* returned machine rental firms. The model was fine.
+The job runs in organisation-number order and had not yet reached the AI
+companies, so the test was measuring an index that was 7% built.
+
+#### Which index serves which filter
+
+Verified with EXPLAIN ANALYZE, not assumed:
+
+| Filter | Index | Added for this |
+|---|---|---|
+| Name (`ILIKE`) | `enheter_navn_trgm_idx` (GIN trigram), or the sort index when hits are dense | no — 004 |
+| What they do, keyword | `enheter_fritekst_idx` (GIN tsvector) | **yes — 027** |
+| What they do, meaning | `enheter_embedding_hnsw` | **yes — 028** |
+| Municipality, county | `enheter_sok_sortering_idx` | no — 023 |
+| Industry (NACE) | `enheter_naering_idx`, `naeringskoder_parent_idx` for the tree walk | no — 004, 008 |
+| Employees, default sort | `enheter_sok_sortering_idx` | no — 023 |
+| Five accounts ranges | `regnskap_siste_*_idx`, one per field, all partial `WHERE rimelig` | **yes — 026** |
+| Ownership network | `eierskap_kant_eier_idx`, `eierskap_kant_selskap_idx` | **yes — 029** |
+
+So the advanced filters needed four migrations of new indexes; geography,
+industry, employees and name search all ran on indexes that were already there.
+
+#### The one filter that was quietly broken
+
+Municipality was written as `kommunenummer LIKE '4601%'` so that a shorter
+prefix would also work. Under the `en_US.utf8` collation this database was
+created with, Postgres cannot prove a LIKE prefix maps to a btree range, so it
+did not use the index: **253 ms on a parallel sequential scan of 1.17 million
+rows** for a sparse municipality. Dense ones hid it completely — Bergen has
+57,000 companies, so the sort index found ten matches immediately and returned
+in 0.7 ms.
+
+A complete four-digit number now uses `=`. Utsira, the smallest municipality in
+the country with 68 companies: **253 ms → 5 ms**.
 
 ### Gender is inferred from first names, and labelled as such
 

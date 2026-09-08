@@ -29,7 +29,8 @@ services:
     networks: [local]
 
   db:
-    image: postgres:16-alpine
+    image: nordata-postgres:16-pgvector
+    build: ./docker/postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nordata}

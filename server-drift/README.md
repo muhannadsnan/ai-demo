@@ -223,6 +223,7 @@ was, and re-running is safe.
 | `012_roller_history.sql` | Keeps ended roles instead of destroying them each import |
 | `013_regnskap.sql` | Annual accounts, plus a log of every fetch attempt |
 | `014_aksjeeie.sql` | Shareholdings, with a personal-data-free view for publishing |
+| `015_regnskap_kilde.sql` | Marks each accounting row's source and precision |
 
 ### What the real data changed
 
@@ -285,6 +286,7 @@ turn out to contain.
 | `naeringskoder` | 1,785 | SSB JSON API | — |
 | `postnummer` | 5,122 | Bring, tab-separated **ISO-8859-1** | — |
 | `aksjeeie` | 3,092,787 | Skatteetaten CSV, 303 MB | — |
+| `regnskap` | 4,959,968 | bulk history 1999-2025 + live API | — |
 
 Roles break down as 2,697,229 held by people and 708,736 held by companies
 (auditors and accountants are firms). 128 roles were dropped because their
@@ -324,6 +326,45 @@ halves the load time and is safe precisely because it is disposable.
 `ingest/column-map.mjs` holds the CSV-header-to-column mapping and the type of
 each field. Both the staging DDL and the upsert are generated from it, so the
 mapping exists in exactly one place.
+
+### Accounting history, and why it does not come from the API
+
+Brreg's accounts API serves **only the most recent period**. There is no year
+parameter — `?år=2023`, `?aar=2023` and `?regnskapstype=KONSERN` were all tried
+and all return the same current period. Revenue trends cannot be built from it.
+
+History therefore comes from an earlier bulk collection, loaded by
+`ingest/import-regnskap-historikk.mjs`. **It was verified before being trusted**:
+fourteen fields across the resultatregnskap and balanse were compared against the
+live API and matched exactly once scaled by ×1000, for four companies including
+one reporting in USD. The source stores *tusen kroner*.
+
+Only the columns Brreg itself publishes are imported. Two more are derived
+exactly and checked against the API: `driftskostnad` = inntekter − driftsresultat,
+`sum_eiendeler` = anleggsmidler + omløpsmidler.
+
+Every row records its own provenance and precision:
+
+| `kilde` | Meaning |
+|---|---|
+| `brreg-api` | Exact kroner, current period, currency known |
+| `historikk` | Rounded to the nearest 1000, currency **NULL** |
+
+`valuta` is deliberately NULL on historical rows rather than assumed to be NOK —
+Equinor reports in USD, and labelling dollars as kroner would corrupt every
+comparison built on it.
+
+Two things the numbers revealed:
+
+- **7,408,725 rows parsed became 4,959,968 stored.** The source holds 808,682
+  companies; only 448,600 still exist in Brreg's current file. The other 360,082
+  were deregistered over 27 years, have no company row to attach to, and no
+  profile page to appear on.
+- **0.56% of rows have a non-December fiscal year end** — 41,406 of them, June
+  and September mostly. The first version of the loader wrote 31 December for
+  everything, which stores the wrong period and can collide in the primary key
+  when a company later switches to a calendar year. Now it uses the month column
+  that was there all along.
 
 ### Shareholdings — and the one table that is not freely publishable
 

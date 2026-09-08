@@ -222,6 +222,7 @@ was, and re-running is safe.
 | `011_referential_integrity.sql` | Adds three foreign keys, after making the data satisfy them |
 | `012_roller_history.sql` | Keeps ended roles instead of destroying them each import |
 | `013_regnskap.sql` | Annual accounts, plus a log of every fetch attempt |
+| `014_aksjeeie.sql` | Shareholdings, with a personal-data-free view for publishing |
 
 ### What the real data changed
 
@@ -283,6 +284,7 @@ turn out to contain.
 | `kommuner` | 358 | SSB JSON API | — |
 | `naeringskoder` | 1,785 | SSB JSON API | — |
 | `postnummer` | 5,122 | Bring, tab-separated **ISO-8859-1** | — |
+| `aksjeeie` | 3,092,787 | Skatteetaten CSV, 303 MB | — |
 
 Roles break down as 2,697,229 held by people and 708,736 held by companies
 (auditors and accountants are firms). 128 roles were dropped because their
@@ -322,6 +324,43 @@ halves the load time and is safe precisely because it is disposable.
 `ingest/column-map.mjs` holds the CSV-header-to-column mapping and the type of
 each field. Both the staging DDL and the upsert are generated from it, so the
 mapping exists in exactly one place.
+
+### Shareholdings — and the one table that is not freely publishable
+
+`aksjeeie` is different from everything else here. Brreg data is NLOD: free to
+republish with attribution. Skatteetaten's Aksjonærregisteret is not. It is
+released under the same criteria as the tax lists, and the covering message
+states that the extract contains personal data and that the recipient must
+comply with personopplysningsloven.
+
+Of 3,092,787 shareholdings, **2,526,639 identify a private individual** by name,
+birth year, postcode and town.
+
+So personal columns are isolated and a view exists without them:
+
+```sql
+SELECT * FROM aksjeeie_offentlig   -- corporate holders in full, individuals anonymous
+```
+
+Corporate holders keep their name and organisation number — an organisation
+number is not personal data, and company-owns-company is the half of the graph
+worth showing. Individuals appear as a row carrying only a percentage. The
+ownership structure survives intact; the people do not appear.
+
+**Public-facing code should read the view, never the table.**
+
+File quirks, all of which fail silently:
+
+- **UTF-8 with BOM**, which lands on the first header cell so `Orgnr` never matches.
+- **Semicolon** separated.
+- **No quoting at all** — and seven shareholder names contain a `"`. A standard
+  CSV reader treats the first as an opening quote and swallows the rest of the
+  file; Python aborts with "field larger than field limit". COPY is told to use
+  `E'\x01'` as the quote character, which cannot occur in the data. All seven
+  names survived intact.
+- The holder identifier is **dual purpose**: 4 digits is a birth year (a person),
+  9 digits is an organisation number (a company), empty is usually a foreign
+  holder. That one field is what separates personal from public data.
 
 ### Annual accounts
 

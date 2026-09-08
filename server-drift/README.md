@@ -225,6 +225,7 @@ was, and re-running is safe.
 | `014_aksjeeie.sql` | Shareholdings, with a personal-data-free view for publishing |
 | `015_regnskap_kilde.sql` | Marks each accounting row's source and precision |
 | `016_valuta_default.sql` | Defaults historical currency to NOK, unless the API said otherwise |
+| `017_round_to_thousand.sql` | Stores all amounts at thousand granularity, for consistency |
 
 ### What the real data changed
 
@@ -307,14 +308,18 @@ All are idempotent. `import-enheter` skips unchanged rows by content hash and
 marks companies that have disappeared; `import-roller` archives ended roles
 rather than deleting them.
 
-### Presentation convention
+### Amounts are stored in thousands
 
-Historical accounting figures are rounded to the nearest thousand at source.
-Rather than round the exact API figures to match, storage keeps whatever
-precision it was given and **the interface presents everything in thousands**
-— the Norwegian convention, labelled *"tall i tusen"*. Rounding at display costs
-one formatting function; rounding at storage throws away precision that cannot
-be recovered.
+The bulk historical source arrives rounded to tusen kroner; the live API returns
+exact kroner. Keeping both meant one column held two precisions, so a company's
+2024 and 2025 figures were not strictly comparable and any aggregate silently
+mixed them.
+
+All amounts are therefore **rounded to the nearest thousand on write**, and
+presented as *"tall i tusen"*. The exact API response is preserved in
+`regnskap.raw`, so the precise figures remain available if ever needed.
+
+Verified: zero rows sit off a thousand boundary.
 
 ## Stage 3 — the importer
 

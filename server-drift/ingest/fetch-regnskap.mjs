@@ -54,7 +54,10 @@ function run(extra, { source = null } = {}) {
 const sql   = s => run(['-c', s])
 const query = s => run(['-t', '-A', '-F', '|', '-c', s])
 const lit   = v => v === null || v === undefined ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`
-const num   = v => v === null || v === undefined || v === '' ? 'NULL' : Number(v)
+// Amounts are stored rounded to the nearest thousand, matching the bulk
+// historical source so that a 2024 figure and a 2025 figure are comparable and
+// aggregates do not mix two precisions. The exact response is kept in `raw`.
+const num   = v => v === null || v === undefined || v === '' ? 'NULL' : Math.round(Number(v) / 1000) * 1000
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 /** Pull a nested value out safely: get(o, 'a.b.c'). */

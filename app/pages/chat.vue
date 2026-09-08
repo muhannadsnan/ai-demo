@@ -18,10 +18,17 @@ const errorMessage = ref('')
 const lastMeta = ref<Record<string, unknown> | null>(null)
 let controller: AbortController | null = null
 
+/**
+ * This page is the teaching demo for streaming, not the product feature — the
+ * model here has no access to the database. The suggestions say so by being
+ * about the platform and its data model rather than pretending to query it;
+ * the page that does query company data is /foretak.
+ */
 const suggestions = [
-  'Explain what an embedding is, for a backend developer.',
-  'What is the difference between RAG and fine-tuning?',
-  'How should I handle API failures when calling an LLM from PHP?'
+  'Hva betyr «tvangsavvikling» i Enhetsregisteret, og hvordan skiller det seg fra konkurs?',
+  'Forklar forskjellen på en hovedenhet og en underenhet i Brreg.',
+  'Vi lagrer 5 millioner regnskapsrader i Postgres. Hvordan bør jeg indeksere for søk på driftsinntekter?',
+  'What is the difference between RAG and text-to-SQL, and which fits structured company data?'
 ]
 
 async function send() {
@@ -102,8 +109,9 @@ function onKeydown(e: KeyboardEvent) {
           <template v-if="streaming && i === messages.length - 1 && !m.content">
             <span class="prikk" /><span class="prikk" /><span class="prikk" />
           </template>
-          <template v-else>{{ m.content
-            }}<span v-if="streaming && i === messages.length - 1" class="caret" /></template>
+          <template v-else-if="m.role === 'assistant'"><Markdown :text="m.content"
+            /><span v-if="streaming && i === messages.length - 1" class="caret" /></template>
+          <template v-else>{{ m.content }}</template>
         </div>
       </div>
     </div>
@@ -118,15 +126,23 @@ function onKeydown(e: KeyboardEvent) {
     <div v-if="errorMessage" class="error-box">{{ errorMessage }}</div>
 
     <div class="composer" style="margin-top:16px">
-      <textarea
-        v-model="draft"
-        rows="3"
-        placeholder="Ask something… (Enter to send, Shift+Enter for a new line)"
-        :disabled="streaming"
-        @keydown="onKeydown"
-      />
-      <button v-if="streaming" class="ghost" @click="stop">Stop</button>
-      <button v-else :disabled="!draft.trim()" @click="send">Send</button>
+      <div class="skrivefelt">
+        <textarea
+          v-model="draft"
+          rows="3"
+          placeholder="Ask something… (Enter to send, Shift+Enter for a new line)"
+          :disabled="streaming"
+          @keydown="onKeydown"
+        />
+        <!-- Stop sits inside the field, where the eye already is while the
+             answer streams, rather than as a second button beside Send. -->
+        <button
+          v-if="streaming" class="stoppknapp" type="button"
+          title="Stopp svaret" aria-label="Stopp svaret" @click="stop">
+          <span class="firkant" />
+        </button>
+      </div>
+      <button v-if="!streaming" :disabled="!draft.trim()" @click="send">Send</button>
     </div>
 
     <div class="row" style="margin-top:10px; justify-content:space-between">

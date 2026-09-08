@@ -24,6 +24,11 @@ const pst = (v: any) => v == null ? '—' : Number(v).toLocaleString('nb-NO', { 
         en personopplysning.
       </div>
 
+      <p v-if="data.oppsummering.avkortet" class="muted">
+        Viser de {{ data.oppsummering.vist }} største eierpostene av
+        {{ data.oppsummering.antall_eiere.toLocaleString('nb-NO') }}.
+      </p>
+
       <div class="card">
         <table class="meta">
           <tbody>

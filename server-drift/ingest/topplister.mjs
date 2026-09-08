@@ -1,32 +1,18 @@
 /**
- * Shared CTEs for the accounts lists.
+ * The accounts lists all rank on "the newest annual accounts per company".
  *
- * `siste` is the newest annual accounts per company, `forrige` the one before.
+ * That used to be two DISTINCT ON passes over 4.96 million rows inside every
+ * list, which cost 8.4 seconds each. It is now the `regnskap_siste`
+ * materialised view (migration 026), refreshed by the same nightly job that
+ * runs these lists, so a list is a scan of 448,599 rows with an index on the
+ * column it sorts by.
  *
- * The `rimelig` flag exists because a small number of filings each year are
- * reported in kroner where the rest of the file is in thousands, which makes
- * the figure 1000x too large. Measured: 19 of 232,531 companies jumped more
- * than 500x from 2024 to 2025 — and 16 of 231,525 did the same from 2023 to
- * 2024, so it is steady noise in the source, not an import bug. It is
- * harmless in aggregate but it owns the top of any "largest" list, so the
- * accounts lists drop a year that grew more than 50x over the previous one.
+ * `rimelig` is the plausibility flag described in that migration: it drops the
+ * handful of filings each year that are reported in kroner where the file is in
+ * thousands, which are harmless in aggregate and own the top of any ranking.
  */
 export const REGNSKAP_CTE = `
-  siste AS (
-    SELECT DISTINCT ON (organisasjonsnummer) *
-    FROM regnskap WHERE valuta = 'NOK'
-    ORDER BY organisasjonsnummer, periode_til DESC),
-  forrige AS (
-    SELECT DISTINCT ON (r.organisasjonsnummer) r.organisasjonsnummer,
-           r.sum_driftsinntekter AS forrige_inntekter, r.periode_til AS forrige_periode
-    FROM regnskap r JOIN siste s USING (organisasjonsnummer)
-    WHERE r.periode_til < s.periode_til AND r.valuta = 'NOK'
-    ORDER BY r.organisasjonsnummer, r.periode_til DESC),
-  rimelig AS (
-    SELECT s.*, f.forrige_inntekter, f.forrige_periode
-    FROM siste s LEFT JOIN forrige f USING (organisasjonsnummer)
-    WHERE f.forrige_inntekter IS NULL OR f.forrige_inntekter <= 0
-       OR s.sum_driftsinntekter <= f.forrige_inntekter * 50)
+  rimelig AS (SELECT * FROM regnskap_siste WHERE rimelig)
 `
 
 /**
@@ -94,7 +80,7 @@ export const LISTER = [
       { felt: 'aar', tittel: 'År', format: 'tekst' }
     ],
     sql: `WITH ${REGNSKAP_CTE} SELECT e.organisasjonsnummer, e.navn, r.sum_driftsinntekter AS omsetning,
-                 r.aarsresultat AS resultat, extract(year from r.periode_til)::text AS aar
+                 r.aarsresultat AS resultat, r.aar::text AS aar
           FROM rimelig r JOIN enheter e USING (organisasjonsnummer)
           WHERE e.slettet_dato IS NULL
           ORDER BY r.sum_driftsinntekter DESC NULLS LAST LIMIT 50`
@@ -110,7 +96,7 @@ export const LISTER = [
       { felt: 'aar', tittel: 'År', format: 'tekst' }
     ],
     sql: `WITH ${REGNSKAP_CTE} SELECT e.organisasjonsnummer, e.navn, r.aarsresultat AS resultat,
-                 r.sum_driftsinntekter AS omsetning, extract(year from r.periode_til)::text AS aar
+                 r.sum_driftsinntekter AS omsetning, r.aar::text AS aar
           FROM rimelig r JOIN enheter e USING (organisasjonsnummer)
           WHERE e.slettet_dato IS NULL
           ORDER BY r.aarsresultat DESC NULLS LAST LIMIT 50`
@@ -126,7 +112,7 @@ export const LISTER = [
       { felt: 'aar', tittel: 'År', format: 'tekst' }
     ],
     sql: `WITH ${REGNSKAP_CTE} SELECT e.organisasjonsnummer, e.navn, r.aarsresultat AS resultat,
-                 r.sum_driftsinntekter AS omsetning, extract(year from r.periode_til)::text AS aar
+                 r.sum_driftsinntekter AS omsetning, r.aar::text AS aar
           FROM rimelig r JOIN enheter e USING (organisasjonsnummer)
           WHERE e.slettet_dato IS NULL
           ORDER BY r.aarsresultat ASC NULLS LAST LIMIT 50`
@@ -143,7 +129,7 @@ export const LISTER = [
     ],
     sql: `WITH ${REGNSKAP_CTE} SELECT e.organisasjonsnummer, e.navn,
                  r.forrige_inntekter AS fra, r.sum_driftsinntekter AS til,
-                 round(100.0*(r.sum_driftsinntekter - r.forrige_inntekter)/r.forrige_inntekter, 1) AS vekst
+                 r.vekst_prosent AS vekst
           FROM rimelig r JOIN enheter e USING (organisasjonsnummer)
           WHERE e.slettet_dato IS NULL AND r.forrige_inntekter >= 10000000
             AND r.sum_driftsinntekter > r.forrige_inntekter
@@ -161,7 +147,7 @@ export const LISTER = [
     ],
     sql: `WITH ${REGNSKAP_CTE} SELECT e.organisasjonsnummer, e.navn,
                  r.forrige_inntekter AS fra, r.sum_driftsinntekter AS til,
-                 round(100.0*(r.sum_driftsinntekter - r.forrige_inntekter)/r.forrige_inntekter, 1) AS vekst
+                 r.vekst_prosent AS vekst
           FROM rimelig r JOIN enheter e USING (organisasjonsnummer)
           WHERE e.slettet_dato IS NULL AND r.forrige_inntekter >= 10000000
             AND r.sum_driftsinntekter < r.forrige_inntekter

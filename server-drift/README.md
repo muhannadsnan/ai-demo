@@ -318,7 +318,7 @@ sudo systemctl start nordata@oppdateringer     # run one now
 | `roller` | Sunday 03:00 | Full roles reload, archiving ended roles |
 | `referansedata` | Monday 05:00 | Counties, municipalities, NACE, postcodes |
 | `regnskap` | 1st of month 06:00 | Refreshes accounts older than 90 days |
-| `topplister` | daily 04:30 | Recomputes the 20 toplists from the day's data |
+| `topplister` | daily 04:30 | Refreshes `regnskap_siste`, then recomputes the 20 toplists |
 
 `Persistent=true` means a job missed because the machine was off runs at next
 boot rather than being skipped silently.
@@ -612,6 +612,31 @@ this is steady noise in the source, not something the import introduced.
 lists drop any year that grew more than 50× over the previous one. With that
 filter the list reads KLP, Helse Sør-Øst, DNB, Hydro, Coop, TotalEnergies —
 which is the actual top of Norwegian business.
+
+### Free-text search over what companies say they do
+
+`aktivitet` and `vedtektsfestet_formaal` are prose the company wrote about
+itself. 940,807 rows have a real description; 1,172,704 have one of the two.
+This is the only genuinely unstructured text in the dataset, and it holds what
+no code can express: NACE has 738 leaf codes and Norwegian business does not fit
+in 738 boxes.
+
+Migration 027 adds a stored `tsvector` column over name, activity and purpose,
+weighted A/B/C, with a GIN index and the `norwegian` text search configuration
+so "sveising" also matches "sveiser".
+
+| | unindexed | with the GIN index |
+|---|---|---|
+| `undervannssveising` | 6,629 ms (seq scan) | **0.065 ms** |
+
+It finds things the structured columns cannot: 687 companies working on
+*kunstig intelligens*, 117 *hundepensjonat*, 95 doing drone inspection, 2 doing
+underwater welding. Combined with the other filters it answers questions like
+"AI companies in Oslo with revenue over 5 million" — six of them.
+
+The column is `GENERATED ALWAYS ... STORED`, so the importers never write to it
+and it cannot drift out of date; the incremental import was re-run against the
+new schema to confirm it still promotes cleanly.
 
 ### Gender is inferred from first names, and labelled as such
 

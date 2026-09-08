@@ -2,19 +2,25 @@
 const route = useRoute()
 const { data, error } = await useFetch(`/api/foretak/${route.params.orgnr}`)
 
-// Subsidiaries are fetched only when the section is opened. Most companies have
-// none, and a few have hundreds — no reason for every profile to pay for it.
-const visDatter = ref(false)
+/**
+ * Subsidiaries load in a second request, after the page is on screen.
+ *
+ * `immediate: false` keeps them out of the server render, so the profile is not
+ * held back by a query that most companies do not need — the ownership rollup
+ * is the slowest thing on this page. `onMounted` then fires it in the browser
+ * and the box shows a spinner until it lands.
+ */
 const { data: datter, status: datterStatus, execute: hentDatter } = await useFetch(
   `/api/foretak/${route.params.orgnr}/datterselskap`,
   { lazy: true, immediate: false, watch: false }
 )
-function aapneDatter() {
-  visDatter.value = true
+const datterLaster = computed(() => datterStatus.value !== 'success')
+
+onMounted(() => {
   // execute() runs this one request. refreshNuxtData() would refetch every
   // useFetch on the page, which is a lot of work to load one list.
-  if (!datter.value) hentDatter()
-}
+  if (Number(data.value?.antall?.datterselskap) > 0) hentDatter()
+})
 const nok = (v: any) => v == null ? '—' : (Number(v) / 1000).toLocaleString('nb-NO', { maximumFractionDigits: 0 })
 const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO') : '—'
 </script>
@@ -98,23 +104,19 @@ const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO
               <NuxtLink :to="`/foretak/${data.foretak.overordnet_enhet}`">{{ data.foretak.morselskap_navn }}</NuxtLink>
             </td></tr>
             <tr v-if="Number(data.antall.datterselskap) > 0">
-              <td>Datterselskap</td>
+              <td>Datterselskap<br><span class="muted">{{ data.antall.datterselskap }} med eierandel over 50 %</span></td>
               <td>
-                <button v-if="!visDatter" class="lenkeknapp" @click="aapneDatter">
-                  Vis {{ data.antall.datterselskap }} datterselskap
-                </button>
-                <template v-else>
-                  <span v-if="datterStatus === 'pending'" class="muted"><span class="spinner" /> laster…</span>
-                  <ul v-else class="datterliste">
-                    <li v-for="d in datter?.datterselskap ?? []" :key="d.organisasjonsnummer">
-                      <NuxtLink :to="`/foretak/${d.organisasjonsnummer}`">{{ d.navn }}</NuxtLink>
-                      <span class="muted">
-                        {{ d.organisasjonsform_kode }}<template v-if="d.forretningsadresse_poststed"> · {{ d.forretningsadresse_poststed }}</template><template v-if="d.har_registrert_antall_ansatte"> · {{ d.antall_ansatte }} ansatte</template>
-                      </span>
-                      <span v-if="d.konkurs" class="pill bad">Konkurs</span>
-                    </li>
-                  </ul>
-                </template>
+                <span v-if="datterLaster" class="muted"><span class="spinner" /> laster datterselskap…</span>
+                <ul v-else class="datterliste">
+                  <li v-for="d in datter?.datterselskap ?? []" :key="d.organisasjonsnummer">
+                    <NuxtLink :to="`/foretak/${d.organisasjonsnummer}`">{{ d.navn }}</NuxtLink>
+                    <span v-if="d.andel" class="andel">{{ Number(d.andel).toLocaleString('nb-NO', { maximumFractionDigits: 1 }) }} %</span>
+                    <span class="muted">
+                      {{ d.organisasjonsform_kode }}<template v-if="d.forretningsadresse_poststed"> · {{ d.forretningsadresse_poststed }}</template><template v-if="d.har_registrert_antall_ansatte"> · {{ d.antall_ansatte }} ansatte</template>
+                    </span>
+                    <span v-if="d.konkurs" class="pill bad">Konkurs</span>
+                  </li>
+                </ul>
               </td>
             </tr>
           </tbody>

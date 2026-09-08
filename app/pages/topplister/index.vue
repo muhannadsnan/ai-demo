@@ -35,9 +35,13 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
       <div class="liste-rutenett">
         <NuxtLink v-for="l in lister" :key="l.type" class="liste-kort" :to="`/topplister/${l.type}`">
           <span class="liste-tittel">{{ l.tittel }}</span>
-          <span v-if="l.topp && !l.feilet" class="liste-topp">1. {{ l.topp }}</span>
+          <ol v-if="l.topp?.length && !l.feilet" class="liste-topp">
+            <li v-for="(navn, i) in l.topp" :key="i">{{ navn }}</li>
+          </ol>
           <span v-else-if="l.feilet" class="liste-topp feil">kunne ikke beregnes</span>
-          <span class="liste-meta">{{ l.antall }} rader</span>
+          <span class="liste-meta">
+            <span class="prikker">·····</span>{{ l.antall }} rader
+          </span>
         </NuxtLink>
       </div>
     </section>
@@ -59,7 +63,25 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
 }
 .liste-kort:hover { border-color: var(--accent); }
 .liste-tittel { font-weight: 600; font-size: 14px; line-height: 1.3; }
-.liste-topp { font-size: 13px; color: var(--accent); }
-.liste-topp.feil { color: var(--text-dim); font-style: italic; }
-.liste-meta { font: 11px/1 var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; }
+/* The first three entries, numbered, as a teaser for the ranking. `counter`
+   rather than a real <ol> marker so the numbers sit tight against the names
+   at this size. */
+.liste-topp { list-style: none; margin: 2px 0 0; padding: 0; counter-reset: plass; }
+.liste-topp li {
+  counter-increment: plass;
+  font-size: 13px; line-height: 1.45;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.liste-topp li::before {
+  content: counter(plass) ". ";
+  color: var(--text-dim); font: 11px/1 var(--mono);
+}
+.liste-topp li:first-child { color: var(--accent); font-weight: 500; }
+.liste-topp.feil { color: var(--text-dim); font-style: italic; font-size: 13px; }
+.liste-meta {
+  margin-top: auto; padding-top: 6px;
+  font: 11px/1 var(--mono); color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.liste-meta .prikker { letter-spacing: .18em; margin-right: 6px; opacity: .7; }
 </style>

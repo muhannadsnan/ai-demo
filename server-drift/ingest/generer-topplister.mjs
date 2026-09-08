@@ -78,6 +78,14 @@ if (valgt.length && kjor.length !== valgt.length) {
   process.exit(1)
 }
 
+// The lists rank on `regnskap_siste`, so it has to be current before they run.
+// CONCURRENTLY keeps the site answering while it rebuilds — without it the
+// refresh takes an exclusive lock and every search waits on it.
+process.stdout.write('  oppdaterer regnskap_siste … ')
+const tRefresh = Date.now()
+await psql('REFRESH MATERIALIZED VIEW CONCURRENTLY regnskap_siste;')
+console.log(`${((Date.now() - tRefresh) / 1000).toFixed(1)}s`)
+
 const logg = await startLogg('topplister').catch(() => null)
 const resultat = []
 for (const l of kjor) {

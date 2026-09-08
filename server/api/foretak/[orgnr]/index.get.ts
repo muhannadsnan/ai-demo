@@ -29,7 +29,15 @@ export default defineEventHandler(async (event) => {
       (SELECT count(*) FROM roller_historikk WHERE organisasjonsnummer = $1) AS tidligere_roller,
       (SELECT count(*) FROM regnskap WHERE organisasjonsnummer = $1) AS regnskapsaar,
       (SELECT count(*) FROM aksjonar WHERE organisasjonsnummer = $1) AS aksjonaerer,
-      (SELECT count(*) FROM enheter  WHERE overordnet_enhet = $1)    AS datterselskap`, [orgnr])
+      -- Subsidiaries are counted from majority SHAREHOLDING, not from
+      -- enheter.overordnet_enhet. That field links a branch to its main unit
+      -- and names only 322 parent companies in the whole register, so the
+      -- section never appeared: Equinor showed 0 subsidiaries by that field
+      -- and has 32 by ownership.
+      (SELECT count(*) FROM (
+         SELECT organisasjonsnummer FROM aksjonar
+         WHERE eier_orgnr = $1 AND regnskapsaar = (SELECT max(regnskapsaar) FROM aksjonar)
+         GROUP BY 1 HAVING sum(andel_prosent) > 50) d)              AS datterselskap`, [orgnr])
 
   // Latest accounts for the summary card.
   const sisteRegnskap = await queryOne(`

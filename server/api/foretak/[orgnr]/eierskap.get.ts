@@ -18,6 +18,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Organisasjonsnummer må være 9 siffer' })
   }
 
+  /**
+   * Capped at the 200 largest holdings.
+   *
+   * Equinor has 131,597 registered shareholders. Returning all of them took
+   * 0.5 s in the API and 3.8 s in the browser, for a list nobody scrolls past
+   * the top of — ownership is a power-law distribution and everything after the
+   * first page is a private individual with a rounding error of the shares,
+   * whose name is not published anyway. The totals below are counted
+   * separately, so the summary still describes the whole register.
+   */
+  const TAK = 200
   const eiere = await query(`
     SELECT a.er_person, a.eier_orgnr, a.eier_navn, a.aksjeklasse,
            a.antall_aksjer, a.antall_aksjer_selskap, a.andel_prosent,
@@ -25,7 +36,8 @@ export default defineEventHandler(async (event) => {
     FROM aksjonar a
     LEFT JOIN enheter e ON e.organisasjonsnummer = a.eier_orgnr
     WHERE a.organisasjonsnummer = $1
-    ORDER BY a.andel_prosent DESC NULLS LAST`, [orgnr])
+    ORDER BY a.andel_prosent DESC NULLS LAST
+    LIMIT ${TAK}`, [orgnr])
 
   // Where this company is itself a shareholder.
   const eierandeler = await query(`
@@ -35,15 +47,22 @@ export default defineEventHandler(async (event) => {
     WHERE a.eier_orgnr = $1
     ORDER BY a.andel_prosent DESC NULLS LAST LIMIT 200`, [orgnr])
 
-  const personer = eiere.filter(e => e.er_person).length
+  // Counted over the whole register, not over the capped list above.
+  const [sum] = await query(`
+    SELECT count(*)::int AS alle,
+           count(*) FILTER (WHERE er_person)::int AS personer
+    FROM aksjonar WHERE organisasjonsnummer = $1`, [orgnr])
+
   return {
     eiere,
     eierandeler,
     oppsummering: {
-      antall_eiere: eiere.length,
-      antall_personeiere: personer,
-      antall_foretakseiere: eiere.length - personer,
-      personer_skjult: personer > 0
+      antall_eiere: sum?.alle ?? 0,
+      antall_personeiere: sum?.personer ?? 0,
+      antall_foretakseiere: (sum?.alle ?? 0) - (sum?.personer ?? 0),
+      personer_skjult: (sum?.personer ?? 0) > 0,
+      vist: eiere.length,
+      avkortet: (sum?.alle ?? 0) > eiere.length
     }
   }
 })

@@ -25,6 +25,7 @@ import { spawn } from 'node:child_process'
 import { Readable } from 'node:stream'
 import { basename } from 'node:path'
 import { streamJsonArrayObjects } from './json-array-stream.mjs'
+import { startLogg, ferdigLogg, feiletLogg } from './logg.mjs'
 
 const FILE         = process.argv[2] || '../data/raw/roller.json.gz'
 const COMPOSE_FILE = process.env.COMPOSE_FILE || 'docker-compose.local.yml'
@@ -33,6 +34,9 @@ const DB_NAME      = process.env.POSTGRES_DB   || 'nordata'
 
 const t0    = Date.now()
 const since = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
+const logg = await startLogg('roller')
+process.on('uncaughtException', async e => { await feiletLogg(logg, e); process.exit(1) })
 
 function psqlArgs(extra) {
   return ['compose', '-f', COMPOSE_FILE, 'exec', '-T', 'db',
@@ -194,6 +198,8 @@ const people = Number(await query('SELECT count(*) FROM roller WHERE person_ette
 const firms  = Number(await query('SELECT count(*) FROM roller WHERE innehaver_orgnr IS NOT NULL;'))
 
 await sql('DROP TABLE IF EXISTS staging_roller;')
+
+await ferdigLogg(logg, { lest: staged, nye: brandNew, endret: 0, uendret: loaded - brandNew, slettet: archived })
 
 console.log(`
   companies staged   ${staged.toLocaleString()}

@@ -1,7 +1,7 @@
 /**
  * Import Skatteetaten's Aksjonærregisteret.
  *
- *   node ingest/import-aksjeeie.mjs [path/to/aksjeeiebok_2025.csv] [--year 2025]
+ *   node ingest/import-aksjonar.mjs [path/to/aksjeeiebok_2025.csv] [--year 2025]
  *
  * The file is an annual snapshot, so the year's rows are replaced wholesale.
  *
@@ -25,6 +25,7 @@
 import { createReadStream } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { basename } from 'node:path'
+import { startLogg, ferdigLogg, feiletLogg } from './logg.mjs'
 
 const args  = process.argv.slice(2)
 const FILE  = args.find(a => !a.startsWith('--')) || '../data/raw/aksjeeiebok_2025.csv'
@@ -37,6 +38,9 @@ const DB_NAME = process.env.POSTGRES_DB   || 'nordata'
 
 const t0 = Date.now()
 const since = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
+const logg = await startLogg('aksjonar')
+process.on('uncaughtException', async e => { await feiletLogg(logg, e); process.exit(1) })
 
 function run(extra, { source = null } = {}) {
   const a = ['compose', '-f', COMPOSE_FILE, 'exec', '-T', 'db',
@@ -56,8 +60,8 @@ const query = s => run(['-t', '-A', '-F', '|', '-c', s])
 // ------------------------------------------------------------------ staging
 console.log('creating staging table…')
 await sql(`
-  DROP TABLE IF EXISTS staging_aksjeeie;
-  CREATE UNLOGGED TABLE staging_aksjeeie (
+  DROP TABLE IF EXISTS staging_aksjonar;
+  CREATE UNLOGGED TABLE staging_aksjonar (
     orgnr text, selskap text, aksjeklasse text, eier_navn text,
     fodselsaar_orgnr text, postnr_sted text, landkode text,
     antall_aksjer text, antall_aksjer_selskap text
@@ -66,9 +70,9 @@ await sql(`
 // \x01 as the quote character: it cannot appear in this data, so COPY treats
 // every field as literal and the seven names containing `"` survive intact.
 console.log(`streaming ${basename(FILE)} into staging…`)
-await run(['-c', `\\copy staging_aksjeeie FROM STDIN WITH (FORMAT csv, DELIMITER ';', QUOTE E'\\x01', HEADER true)`],
+await run(['-c', `\\copy staging_aksjonar FROM STDIN WITH (FORMAT csv, DELIMITER ';', QUOTE E'\\x01', HEADER true)`],
           { source: createReadStream(FILE) })
-const staged = Number(await query('SELECT count(*) FROM staging_aksjeeie;'))
+const staged = Number(await query('SELECT count(*) FROM staging_aksjonar;'))
 console.log(`  ${staged.toLocaleString()} rows staged (${since()})`)
 
 // ------------------------------------------------------------------ promote
@@ -76,9 +80,9 @@ console.log('classifying holders and loading…')
 await sql(`
 BEGIN;
 
-DELETE FROM aksjeeie_persondata WHERE regnskapsaar = ${YEAR};
+DELETE FROM aksjonar_persondata WHERE regnskapsaar = ${YEAR};
 
-INSERT INTO aksjeeie_persondata (
+INSERT INTO aksjonar_persondata (
     regnskapsaar, organisasjonsnummer, selskap_navn, aksjeklasse,
     er_person, eier_orgnr, eier_navn, eier_fodselsaar,
     eier_sted_raw, eier_postnr, eier_poststed, eier_landkode,
@@ -106,7 +110,7 @@ SELECT
 
     nullif(trim(s.antall_aksjer), '')::bigint,
     nullif(trim(s.antall_aksjer_selskap), '')::bigint
-FROM staging_aksjeeie s
+FROM staging_aksjonar s
 WHERE trim(s.orgnr) <> ''
 ON CONFLICT DO NOTHING;
 
@@ -115,15 +119,17 @@ COMMIT;`)
 const [rows, persons, firms, unknown, companies] = (await query(`
   SELECT count(*), count(*) FILTER (WHERE er_person), count(*) FILTER (WHERE er_person IS FALSE),
          count(*) FILTER (WHERE er_person IS NULL), count(DISTINCT organisasjonsnummer)
-  FROM aksjeeie_persondata WHERE regnskapsaar = ${YEAR};`)).split('|').map(Number)
+  FROM aksjonar_persondata WHERE regnskapsaar = ${YEAR};`)).split('|').map(Number)
 
-await sql('DROP TABLE IF EXISTS staging_aksjeeie;')
+await sql('DROP TABLE IF EXISTS staging_aksjonar;')
+
+await ferdigLogg(logg, { lest: staged, nye: rows, endret: 0, uendret: 0, slettet: 0 })
 
 console.log(`
   year               ${YEAR}
   staged             ${staged.toLocaleString()}
   loaded             ${rows.toLocaleString()}   across ${companies.toLocaleString()} companies
-    individuals      ${persons.toLocaleString()}   <- personal data, excluded by the aksjeeie view
+    individuals      ${persons.toLocaleString()}   <- personal data, excluded by the aksjonar view
     companies        ${firms.toLocaleString()}
     unidentified     ${unknown.toLocaleString()}   <- mostly foreign holders with no identifier
   done in ${since()}

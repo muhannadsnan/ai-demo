@@ -226,6 +226,9 @@ was, and re-running is safe.
 | `015_regnskap_kilde.sql` | Marks each accounting row's source and precision |
 | `016_valuta_default.sql` | Defaults historical currency to NOK, unless the API said otherwise |
 | `017_round_to_thousand.sql` | Stores all amounts at thousand granularity, for consistency |
+| `018_rename_aksjeeie.sql` | Makes the safe name the obvious one |
+| `019_rename_aksjonar.sql` | Shortens to `aksjonar` / `aksjonar_persondata` |
+| `020_import_logg.sql` | Records every import run, for the status page |
 
 ### What the real data changed
 

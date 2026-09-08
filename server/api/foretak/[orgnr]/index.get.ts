@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
       (SELECT count(*) FROM roller   WHERE organisasjonsnummer = $1) AS roller,
       (SELECT count(*) FROM roller_historikk WHERE organisasjonsnummer = $1) AS tidligere_roller,
       (SELECT count(*) FROM regnskap WHERE organisasjonsnummer = $1) AS regnskapsaar,
-      (SELECT count(*) FROM aksjeeie WHERE organisasjonsnummer = $1) AS aksjonaerer,
+      (SELECT count(*) FROM aksjonar WHERE organisasjonsnummer = $1) AS aksjonaerer,
       (SELECT count(*) FROM enheter  WHERE overordnet_enhet = $1)    AS datterselskap`, [orgnr])
 
   // Latest accounts for the summary card.

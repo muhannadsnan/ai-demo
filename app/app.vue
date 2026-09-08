@@ -15,6 +15,7 @@ useHead({
           <NuxtLink to="/chat">1 · Chat</NuxtLink>
           <NuxtLink to="/search">2 · AI Search</NuxtLink>
           <NuxtLink to="/foretak">Foretak</NuxtLink>
+          <NuxtLink to="/status">Status</NuxtLink>
         </nav>
         <ProviderBadge />
       </div>

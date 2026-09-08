@@ -243,3 +243,12 @@ footer.kilde {
    is 27 columns for an old company; without this the whole layout scrolls
    sideways and the navigation goes off screen. */
 .tablewrap { overflow-x: auto; max-width: 100%; margin: 14px 0; }
+
+.fersk  { color: var(--ok); font-weight: 600; }
+.gammel { color: var(--warn); font-weight: 600; }
+table.meta thead th {
+  font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.meta td { padding-right: 10px; }

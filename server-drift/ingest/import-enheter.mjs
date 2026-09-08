@@ -25,6 +25,7 @@ import { createGunzip } from 'node:zlib'
 import { spawn } from 'node:child_process'
 import { basename } from 'node:path'
 import { COLUMNS, cast } from './column-map.mjs'
+import { startLogg, ferdigLogg, feiletLogg } from './logg.mjs'
 
 const FILE         = process.argv[2] || '../data/raw/enheter.csv.gz'
 const COMPOSE_FILE = process.env.COMPOSE_FILE || 'docker-compose.local.yml'
@@ -33,6 +34,9 @@ const DB_NAME      = process.env.POSTGRES_DB   || 'nordata'
 
 const t0    = Date.now()
 const since = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
+const logg = await startLogg('enheter')
+process.on('uncaughtException', async e => { await feiletLogg(logg, e); process.exit(1) })
 
 function dockerPsql(extraArgs, { stdinStream = null, inheritOut = false } = {}) {
   const args = ['compose', '-f', COMPOSE_FILE, 'exec', '-T', 'db',
@@ -163,6 +167,8 @@ const deletions = await query(`
 const [markedDeleted, reappeared] = deletions.split('|').map(v => Number(v.trim()))
 
 await sql('DROP TABLE IF EXISTS staging_enheter;')
+
+await ferdigLogg(logg, { lest: staged, nye: newRows, endret: changedRows, uendret: staged - newRows - changedRows, slettet: markedDeleted })
 
 console.log(`
   staged      ${staged.toLocaleString()}

@@ -1,0 +1,33 @@
+# One template unit for every import job.
+#
+#   systemctl start nordata@oppdateringer
+#
+# The part after @ is passed to run-import.sh, which maps it to a script. A
+# template means one file instead of six near-identical ones, and adding a job
+# is adding a timer, not a service.
+#
+# Copy this and the .timer files to /etc/systemd/system/ and edit
+# WorkingDirectory to match where the project lives.
+
+[Unit]
+Description=Nordata import: %i
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/nordata/server-drift
+ExecStart=/opt/nordata/server-drift/run-import.sh %i
+
+# An import that hangs must not still be running when tomorrow's fires.
+TimeoutStartSec=7200
+
+# Give the database and the Brreg API room to recover before retrying, rather
+# than hammering either at one-second intervals.
+Restart=on-failure
+RestartSec=15min
+
+# The job writes only to the project directory and Docker's socket.
+NoNewPrivileges=true
+ProtectHome=read-only
+ProtectSystem=full

@@ -1,0 +1,17 @@
+# Weekly reference data
+[Unit]
+Description=Weekly reference data
+
+[Timer]
+Unit=nordata@referansedata.service
+OnCalendar=Mon *-*-* 05:00:00
+
+# If the machine was off when this was due, run it at next boot instead of
+# skipping the day silently.
+Persistent=true
+
+# Stop every job on the box firing at the same instant.
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

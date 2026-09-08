@@ -1,0 +1,17 @@
+# Monthly accounts refresh
+[Unit]
+Description=Monthly accounts refresh
+
+[Timer]
+Unit=nordata@regnskap.service
+OnCalendar=*-*-01 06:00:00
+
+# If the machine was off when this was due, run it at next boot instead of
+# skipping the day silently.
+Persistent=true
+
+# Stop every job on the box firing at the same instant.
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

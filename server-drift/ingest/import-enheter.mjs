@@ -149,22 +149,36 @@ const total = Number(await query('SELECT count(*) FROM enheter;'))
 // The reverse case matters too. A company that reappears (re-registered, or
 // missing from one bad download) gets un-marked, so a single glitched file
 // cannot permanently retire a live company.
+const GRACE_DAYS = 7
 const deletions = await query(`
-  WITH gone AS (
-    UPDATE enheter e SET slettet_dato = current_date, updated_at = now()
-    WHERE e.slettet_dato IS NULL
+  WITH savnet AS (
+    -- First time absent: record it, do not act on it. The bulk download is not
+    -- a complete picture of the register — companies have been found that are
+    -- live in Brreg's API and simply missing from the file.
+    UPDATE enheter e SET savnet_siden = current_date, updated_at = now()
+    WHERE e.savnet_siden IS NULL AND e.slettet_dato IS NULL
       AND NOT EXISTS (SELECT 1 FROM staging_enheter s
                       WHERE s."organisasjonsnummer" = e.organisasjonsnummer)
     RETURNING 1
-  ), back AS (
-    UPDATE enheter e SET slettet_dato = NULL, updated_at = now()
-    WHERE e.slettet_dato IS NOT NULL
+  ), bekreftet AS (
+    -- Still absent after the grace period: now it is a deletion.
+    UPDATE enheter e SET slettet_dato = current_date, updated_at = now()
+    WHERE e.slettet_dato IS NULL
+      AND e.savnet_siden IS NOT NULL
+      AND e.savnet_siden <= current_date - ${GRACE_DAYS}
+      AND NOT EXISTS (SELECT 1 FROM staging_enheter s
+                      WHERE s."organisasjonsnummer" = e.organisasjonsnummer)
+    RETURNING 1
+  ), tilbake AS (
+    -- Present again: clear both marks. One bad download cannot retire a company.
+    UPDATE enheter e SET savnet_siden = NULL, slettet_dato = NULL, updated_at = now()
+    WHERE (e.savnet_siden IS NOT NULL OR e.slettet_dato IS NOT NULL)
       AND EXISTS (SELECT 1 FROM staging_enheter s
                   WHERE s."organisasjonsnummer" = e.organisasjonsnummer)
     RETURNING 1
   )
-  SELECT (SELECT count(*) FROM gone), (SELECT count(*) FROM back);`)
-const [markedDeleted, reappeared] = deletions.split('|').map(v => Number(v.trim()))
+  SELECT (SELECT count(*) FROM bekreftet), (SELECT count(*) FROM tilbake), (SELECT count(*) FROM savnet);`)
+const [markedDeleted, reappeared, nowMissing] = deletions.split('|').map(v => Number(v.trim()))
 
 await sql('DROP TABLE IF EXISTS staging_enheter;')
 
@@ -175,7 +189,8 @@ console.log(`
   inserted    ${newRows.toLocaleString()}
   updated     ${changedRows.toLocaleString()}
   unchanged   ${(staged - newRows - changedRows).toLocaleString()}   <- skipped by the content hash
-  deregistered ${markedDeleted.toLocaleString()}   <- absent from the file, marked not deleted
+  savnet      ${nowMissing.toLocaleString()}   <- absent from the file, not yet a deletion
+  deregistered ${markedDeleted.toLocaleString()}   <- still absent after ${GRACE_DAYS} days
   reappeared  ${reappeared.toLocaleString()}
   ----------------------------------------
   enheter now ${total.toLocaleString()} rows        (${since()})

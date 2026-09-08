@@ -229,6 +229,8 @@ was, and re-running is safe.
 | `018_rename_aksjeeie.sql` | Makes the safe name the obvious one |
 | `019_rename_aksjonar.sql` | Shortens to `aksjonar` / `aksjonar_persondata` |
 | `020_import_logg.sql` | Records every import run, for the status page |
+| `021_import_cursor.sql` | Where each incremental feed has been read to |
+| `022_savnet_for_sletting.sql` | Confirms a disappearance before calling it a deletion |
 
 ### What the real data changed
 
@@ -295,6 +297,60 @@ turn out to contain.
 | `fylker` | 18 | SSB + Svalbard + Jan Mayen | |
 
 **5.7 GB**, 16 migrations, 5 validated foreign keys.
+
+### Scheduling
+
+Docker has no scheduler; the host does. `systemd/` holds a template service and
+five timers, and `run-import.sh` is the single entry point both systemd and a
+human use — running a job by hand is the same command the timer runs.
+
+```bash
+sudo ./systemd/install.sh /opt/nordata
+systemctl list-timers 'nordata@*'
+journalctl -u nordata@oppdateringer -f
+sudo systemctl start nordata@oppdateringer     # run one now
+```
+
+| Job | Schedule | What it does |
+|---|---|---|
+| `oppdateringer` | daily 04:00 | Asks Brreg what changed, fetches only those companies |
+| `enheter` | Sunday 02:00 | Full file: catches anything the feed missed |
+| `roller` | Sunday 03:00 | Full roles reload, archiving ended roles |
+| `referansedata` | Monday 05:00 | Counties, municipalities, NACE, postcodes |
+| `regnskap` | 1st of month 06:00 | Refreshes accounts older than 90 days |
+
+`Persistent=true` means a job missed because the machine was off runs at next
+boot rather than being skipped silently.
+
+### Incremental updates, and why gaps are safe
+
+`import-oppdateringer.mjs` reads Brreg's change feed. Every event carries an
+increasing `oppdateringsid`; the last one handled is stored in `import_cursor`,
+and the next run asks for everything after it.
+
+That is what makes interruptions harmless. A "what changed yesterday" query
+loses those days permanently if a run is missed. A cursor just returns a larger
+batch — the importer can be off for a week, fail, or be deliberately paused, and
+it resumes exactly where it stopped.
+
+`--maks` caps how many companies one run will fetch, and the cursor advances
+only past events actually processed, so the remainder is simply the start of the
+next run.
+
+### The bulk download is not complete
+
+Discovered while testing the incremental import: companies exist that are **live
+in Brreg's API** — active, not bankrupt, registered in 2009 — and **absent from
+the bulk CSV**.
+
+That broke the deletion logic. The full import marked them deleted because they
+were not in the file; the incremental revived them because the API said they
+existed. Both correct, and together a nightly flip-flop.
+
+So absence is now recorded rather than acted on: a missing company gets
+`savnet_siden`, and only becomes `slettet_dato` if it is still missing after a
+seven-day grace period. Anything the API confirms alive has both cleared. One
+source disagreeing with another is a question, not a verdict.
 
 ### Running the imports
 

@@ -39,7 +39,30 @@ case "${1:-}" in
   # content hash means a normal night is a few thousand rows, not a million.
   embedding)     exec node ingest/embed-foretak.mjs ;;
 
+  # Everything, in dependency order. This is the "the machine has been off for
+  # months and I need current data" button.
+  #
+  # It works because the daily job is cursor-based: import-oppdateringer.mjs
+  # remembers the last oppdateringsid it handled, so a gap of one day and a gap
+  # of six months are the same operation — start where you stopped and keep
+  # going. --maks 0 removes the per-run event cap, which exists to keep a
+  # nightly run short and is exactly wrong when catching up.
+  #
+  # The full files run first anyway, so even if the change feed had aged out
+  # entirely the data would be complete; the cursor then only has to cover what
+  # changed since the files were published.
+  alt)
+    set -x
+    ./run-import.sh referansedata
+    ./run-import.sh enheter
+    ./run-import.sh roller
+    node ingest/import-oppdateringer.mjs --maks 0 --throttle 120
+    ./run-import.sh regnskap
+    ./run-import.sh topplister
+    ./run-import.sh embedding
+    ;;
+
   *) echo "ukjent jobb: ${1:-<ingen>}" >&2
-     echo "gyldige: oppdateringer enheter roller referansedata regnskap topplister embedding" >&2
+     echo "gyldige: oppdateringer enheter roller referansedata regnskap topplister embedding alt" >&2
      exit 64 ;;
 esac

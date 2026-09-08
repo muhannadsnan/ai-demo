@@ -14,6 +14,7 @@
   --warn: #9a6b12;
   --info: #2563a8;
   --info-soft: #e8f0fa;
+  --user-boble: #93400f;
   --radius: 10px;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -32,6 +33,7 @@
     --warn: #d8a94a;
     --info: #6fb3ee;
     --info-soft: #17293b;
+    --user-boble: #a8501c;
   }
 }
 
@@ -50,7 +52,7 @@ a { color: var(--accent); }
 /* Wide enough for a filter rail plus a results column. Prose inside stays
    narrow on its own (.lede, .thread, .composer) — a 1180px line of text is
    unreadable, but a 1180px table is not. */
-.shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; }
+.shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; min-height: 600px; }
 
 /* ---- Header --------------------------------------------------------------- */
 header.top {
@@ -86,7 +88,15 @@ nav.tabs a.router-link-active { background: var(--accent-soft); color: var(--acc
 /* ---- Typography ----------------------------------------------------------- */
 h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 6px; }
 h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
-.lede { color: var(--text-dim); margin: 0 0 24px; max-width: 62ch; }
+/* The description under every page heading. Its own ground, inset from the
+   content on both sides, square corners — it reads as a note about the page
+   rather than as the first paragraph of it. */
+.lede, .sidebeskrivelse {
+  color: var(--text-dim); max-width: none;
+  margin: 0 10% 22px; padding: 12px 20px;
+  background: var(--surface-2); border-radius: 0;
+  line-height: 1.6;
+}
 code {
   font: 13px/1.4 var(--mono);
   background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
@@ -101,7 +111,7 @@ code {
 .muted { color: var(--text-dim); font-size: 13px; }
 
 /* ---- Forms ---------------------------------------------------------------- */
-.composer { display: flex; gap: 8px; align-items: flex-end; max-width: 78ch; }
+.composer { display: flex; gap: 8px; align-items: flex-end; }
 textarea, input[type="text"] {
   flex: 1; width: 100%; resize: vertical;
   font: inherit; color: var(--text);
@@ -121,7 +131,7 @@ button.ghost { background: transparent; color: var(--text-dim); border: 1px soli
 button.ghost:hover:not(:disabled) { color: var(--text); }
 
 /* ---- Chat ----------------------------------------------------------------- */
-.thread { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; max-width: 78ch; }
+.thread { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
 .msg { display: flex; gap: 12px; }
 .msg .who {
   flex: none; width: 62px; padding-top: 2px;
@@ -334,15 +344,20 @@ table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #
 .avatar.assistant { background: var(--accent-soft, var(--surface-2)); color: var(--accent); border-color: transparent; }
 
 .boble {
-  max-width: 46rem; padding: 11px 14px; border-radius: 14px;
-  white-space: pre-wrap; word-break: break-word; line-height: 1.6;
+  max-width: none; padding: 11px 14px; border-radius: 14px;
+  word-break: break-word; line-height: 1.6;
   background: var(--surface); border: 1px solid var(--border);
   /* New text arrives constantly; animating the whole bubble would flicker on
      every token, so only its first appearance is animated. */
   animation: bobleInn 0.18s ease-out;
 }
+/* A user message is plain text, so its own newlines have to be honoured. An
+   assistant message is rendered Markdown, and pre-wrap there turns every
+   newline BETWEEN block elements into visible blank space — which is what made
+   the answers look double-spaced. */
 .melding.user .boble {
-  background: var(--accent); border-color: transparent; color: #fff;
+  white-space: pre-wrap;
+  background: var(--user-boble); border-color: transparent; color: #fff;
   border-bottom-right-radius: 4px;
 }
 .melding.assistant .boble { border-bottom-left-radius: 4px; }
@@ -414,9 +429,12 @@ table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #
    lists, headings, code — renders as unstyled runs of text. */
 .md > :first-child { margin-top: 0; }
 .md > :last-child { margin-bottom: 0; }
-.md p { margin: 0 0 10px; }
-.md ul, .md ol { margin: 0 0 10px; padding-left: 22px; }
-.md li { margin: 2px 0; }
+/* Model output is dense prose; the default paragraph rhythm leaves it airy to
+   the point of looking padded. */
+.md { line-height: 1.5; }
+.md p { margin: 0 0 7px; }
+.md ul, .md ol { margin: 0 0 7px; padding-left: 20px; }
+.md li { margin: 0; }
 .md h1, .md h2, .md h3 { font-size: 15px; margin: 14px 0 6px; line-height: 1.3; }
 .md code {
   font: 12.5px/1.5 var(--mono); background: var(--surface-2);
@@ -487,7 +505,7 @@ button.full { width: 100%; }
 
 /* Label and both inputs on one line: the rail is wide enough now, and stacking
    them made five accounts ranges fifteen rows tall. */
-.omraade { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.omraade { display: flex; align-items: center; gap: 6px; padding: 2px 0; position: relative; }
 .omraade .omraade-navn { flex: 0 0 122px; font-size: 12.5px; color: var(--text-dim); }
 .omraade input { flex: 1; min-width: 0; width: 100%; }
 .omraade .strek { color: var(--text-dim); flex: none; }
@@ -601,7 +619,7 @@ label.avslaatt { opacity: .45; }
 }
 
 /* ---- Fylke- og kommunevelger ---- */
-.geo { position: relative; }
+.geo { position: relative; flex: 1; min-width: 0; }
 .geo-sok { width: 100%; }
 .geo-valgt {
   display: flex; align-items: center; gap: 6px;
@@ -615,6 +633,7 @@ label.avslaatt { opacity: .45; }
 }
 .geo-valgt button:hover { background: var(--surface-2); color: var(--text); }
 .geo-liste {
+  position: absolute; left: 0; right: 0; z-index: 5;
   list-style: none; margin: 4px 0 0; padding: 4px;
   max-height: 210px; overflow-y: auto;
   background: var(--surface); border: 1px solid var(--border); border-radius: 6px;

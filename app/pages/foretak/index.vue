@@ -183,6 +183,26 @@ const statusValgt = computed(() => konkurs.value || avvikling.value || nye.value
 const { data, status } = await useFetch('/api/foretak/search', { query: params, lazy: true })
 const laster = computed(() => status.value === 'pending')
 
+/**
+ * The exact number of matches, fetched separately.
+ *
+ * The search returns a count capped at 10 000 because an exact count(*) has to
+ * touch every matching row — 955 ms unfiltered against about 20 ms capped, and
+ * paying that on every search to serve a number nobody has read yet is the
+ * wrong trade. So the results land immediately showing "10 000+", this request
+ * follows, and the figure is replaced when it arrives.
+ */
+const { data: eksakt } = await useFetch('/api/foretak/antall', {
+  query: params, lazy: true, server: false
+})
+const treffTekst = computed(() => {
+  if (!data.value) return ''
+  // Semantic search ranks by distance and has no fixed membership to count.
+  if (data.value.semantisk) return `${data.value.treff.toLocaleString('nb-NO')} nærmeste`
+  if (eksakt.value) return `${eksakt.value.antall.toLocaleString('nb-NO')} treff`
+  return `${data.value.treff.toLocaleString('nb-NO')}${data.value.flere ? '+' : ''} treff`
+})
+
 function oppdaterUrl() { router.replace({ query: params.value }) }
 function sok()          { side.value = 1; oppdaterUrl() }
 function gaaTil(n: number) {
@@ -308,31 +328,31 @@ function merke(f: any): { klasse: string, tittel: string } | null {
 
         <fieldset>
           <legend>Geografi</legend>
-          <span class="feltnavn">Fylke</span>
-          <GeoVelger type="fylke" v-model="fylke" @update:model-value="sok" />
-          <span class="feltnavn">Kommune</span>
-          <GeoVelger type="kommune" v-model="kommune" :fylke-filter="fylke" @update:model-value="sok" />
-        </fieldset>
-
-        <fieldset>
-          <legend>Ansatte</legend>
           <div class="omraade">
-            <span class="omraade-navn">Antall</span>
-            <input v-model="ansatte" type="number" placeholder="fra" @keydown.enter="sok">
-            <span class="strek">–</span>
-            <input v-model="ansatteMaks" type="number" placeholder="til" @keydown.enter="sok">
+            <span class="omraade-navn">Fylke</span>
+            <GeoVelger type="fylke" v-model="fylke" @update:model-value="sok" />
+          </div>
+          <div class="omraade">
+            <span class="omraade-navn">Kommune</span>
+            <GeoVelger type="kommune" v-model="kommune" :fylke-filter="fylke" @update:model-value="sok" />
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Regnskap — i tusen kr</legend>
+          <legend>Størrelse og regnskap</legend>
+          <div class="omraade">
+            <span class="omraade-navn">Ansatte</span>
+            <input v-model="ansatte" type="number" placeholder="fra" @keydown.enter="sok">
+            <span class="strek">–</span>
+            <input v-model="ansatteMaks" type="number" placeholder="til" @keydown.enter="sok">
+          </div>
           <div v-for="b in BELOP" :key="b.navn" class="omraade">
             <span class="omraade-navn">{{ b.tittel }}</span>
             <input v-model="belop[`${b.navn}_min`]" type="number" placeholder="fra" @keydown.enter="sok">
             <span class="strek">–</span>
             <input v-model="belop[`${b.navn}_maks`]" type="number" placeholder="til" @keydown.enter="sok">
           </div>
-          <p class="muted hint">Fra siste innsendte regnskap.</p>
+          <p class="muted hint">Beløp i tusen kroner, fra siste innsendte regnskap.</p>
         </fieldset>
 
         <fieldset>
@@ -374,9 +394,7 @@ function merke(f: any): { klasse: string, tittel: string } | null {
               <option :value="50">50</option><option :value="100">100</option>
             </select>
           </label>
-          <span v-if="data && !laster" class="muted" style="margin-left:auto">
-            {{ data.treff.toLocaleString('nb-NO') }}{{ data.flere ? '+' : '' }} treff
-          </span>
+          <span v-if="data && !laster" class="muted" style="margin-left:auto">{{ treffTekst }}</span>
         </div>
 
         <!-- Old results are cleared while a new search runs, so what is on screen is

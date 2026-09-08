@@ -35,7 +35,11 @@ const ENHET   = 'https://data.brreg.no/enhetsregisteret/api/enheter'
 
 const args    = process.argv.slice(2)
 const valueOf = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : d }
-const MAKS      = Number(valueOf('--maks', 5000))
+// --maks 0 means no cap. The cap exists to keep a nightly run short; when
+// catching up after the machine has been off for months it is exactly the wrong
+// limit, and `run-import.sh alt` passes 0 to remove it.
+const MAKS_ARG  = Number(valueOf('--maks', 5000))
+const MAKS      = MAKS_ARG > 0 ? MAKS_ARG : Infinity
 const THROTTLE  = Number(valueOf('--throttle', 200))
 const SIDE      = 10000
 

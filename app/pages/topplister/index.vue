@@ -27,7 +27,7 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
     </div>
 
     <p class="lede innramma">
-      <template v-if="antallLister">{{ antallLister }}</template><template v-else>—</template>
+      <strong class="listetall">{{ antallLister || '—' }}</strong>
       rangeringer regnet ut av hele datasettet — konkurser, regnskap, roller,
       eierskap og geografi. Listene beregnes én gang i døgnet og leses ferdige,
       så sidene svarer på millisekunder i stedet for å kjøre en aggregering per besøk.
@@ -71,6 +71,7 @@ const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—
   border-radius: var(--radius); padding: 12px 20px;
 }
 
+.listetall { color: var(--info); font-weight: 700; font-size: 15px; }
 .gruppe { margin-top: 30px; }
 .gruppe h2 {
   font-size: 13px; margin: 0 0 12px; letter-spacing: .09em;

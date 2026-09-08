@@ -25,7 +25,7 @@ const mill = (n: number | undefined) =>
       faktisk driver med.
     </p>
 
-    <div class="sokefelt" style="margin-bottom:22px">
+    <div class="sokefelt forsidesok">
       <span class="sokeboks">
         <input v-model="sok" type="text"
                placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="gaaTilSok">
@@ -57,6 +57,13 @@ const mill = (n: number | undefined) =>
            finne foretak som aldri skrev de ordene.</p>
       </NuxtLink>
 
+      <NuxtLink class="inngang" to="/sporring">
+        <h2>Spør med egne ord</h2>
+        <p>«Aktive byggefirmaer i Bergen med over 50 ansatte». En språkmodell
+           oversetter setningen til et filter — ikke til SQL — og tolkningen
+           vises over resultatene så du ser hva som faktisk ble spurt om.</p>
+      </NuxtLink>
+
       <NuxtLink class="inngang" to="/topplister">
         <h2>Topplister</h2>
         <p>Rangeringer regnet ut av hele datasettet hver natt.</p>
@@ -70,8 +77,12 @@ const mill = (n: number | undefined) =>
 
       <NuxtLink class="inngang" to="/status">
         <h2>Hvordan dataene holdes ferske</h2>
-        <p>Importene kjører på timere og logger hver kjøring, så det er mulig å
-           se når hver kilde sist ble oppdatert — og om den feilet.</p>
+        <p>Den daglige importen leser Brønnøysunds endringsstrøm og husker hvor
+           den slapp, som en <strong>markør</strong> i strømmen. Står maskinen
+           stille i en måned, fortsetter neste kjøring fra samme punkt og henter
+           alt som skjedde i mellomtiden — ingenting hoppes over, og ingenting
+           hentes to ganger. Hver kjøring logges, så det er synlig når hver
+           kilde sist ble oppdatert og om den feilet.</p>
       </NuxtLink>
     </div>
 
@@ -83,6 +94,11 @@ const mill = (n: number | undefined) =>
 </template>
 
 <style scoped>
+/* Not full width: a single input stretched across 1180px reads as a form field,
+   not as the thing the page is for. */
+.forsidesok { width: 75%; margin: 0 auto 22px; }
+@media (max-width: 700px) { .forsidesok { width: 100%; } }
+
 .forsidekort {
   display: grid; gap: 12px; margin-top: 22px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

@@ -324,6 +324,28 @@ sudo systemctl start nordata@oppdateringer     # run one now
 `Persistent=true` means a job missed because the machine was off runs at next
 boot rather than being skipped silently.
 
+**The timers are deployment artefacts, not something a development machine
+runs.** They are installed by `systemd/install.sh` on a server. Nothing is
+scheduled until you run it, so a laptop with this repo checked out does no
+background work at all.
+
+To catch up after a long gap — before a demo, say — one command runs everything
+in dependency order:
+
+```bash
+./run-import.sh alt
+```
+
+This works because the daily job is cursor-based. `import-oppdateringer.mjs`
+stores the last `oppdateringsid` it handled in `import_cursor`, so a gap of one
+day and a gap of six months are the same operation: start where you stopped and
+keep going. `alt` passes `--maks 0` to lift the per-run event cap, which exists
+to keep a nightly run short and is exactly the wrong limit when catching up.
+
+It runs the full files first anyway, so even if the change feed had aged out
+entirely the data would still be complete; the cursor then only has to cover
+what changed since those files were published.
+
 ### Incremental updates, and why gaps are safe
 
 `import-oppdateringer.mjs` reads Brreg's change feed. Every event carries an
@@ -656,6 +678,37 @@ Its score logs every dimension before adding them (revenue, employees,
 subsidiaries controlled, other board seats), so no single one runs away with the
 list. Ranking on raw seat count put one woman who chairs 259 kindergartens in
 twelve of the top twelve rows.
+
+### Running the embeddings somewhere other than this machine
+
+The embedding pass is the only part of this project that wants a GPU, and it is
+worth being clear about what that means for hosting.
+
+The vectors live in PostgreSQL, not in the repository: about 2.5 GB in the
+database volume, and the git checkout does not change size at all. So there are
+two ways to get them onto a server.
+
+**Carry them.** `pg_dump` the `enheter_embedding` table and restore it. It is a
+one-off transfer of finished work, and the nightly job then only ever embeds
+descriptions that changed — a few thousand rows, which any CPU handles in
+seconds.
+
+**Regenerate them.** Point `OLLAMA_BASE_URL` at wherever Ollama runs and start
+the job. On a CPU-only host the same pass takes hours rather than 100 minutes,
+which is fine as a one-off and irrelevant afterwards.
+
+The job is resumable either way: each row stores a hash of the text it was built
+from, so it can be stopped and restarted at any point and picks up where it
+left off.
+
+**Why Ollama and not a hosted model.** Nothing in the design requires Ollama —
+`AiProvider` has an `embed` method and OpenAI implements it. Local wins here for
+three reasons: 1.1 million embedding calls to a paid API is a real bill for a
+portfolio project; the descriptions are public register data but sending a
+million of them to a third party is a decision that should be deliberate; and
+the run is bounded work on hardware that is already sitting there. Swapping to a
+hosted embedder is a config change, not a rewrite — but the dimension count
+would differ, so the column and every stored vector would have to be rebuilt.
 
 ### Semantic search, and the indexes behind the filters
 

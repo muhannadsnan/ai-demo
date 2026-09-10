@@ -5,8 +5,11 @@ published. Written to be readable by someone who asks *"how did you get this,
 and are you allowed to?"* — a reasonable question about a demo holding 27 years
 of Norwegian company accounts.
 
-**Short answer: all of it is public data, obtained from the official sources.
-One dataset contains personal data and is therefore not published.**
+**Short answer: it is public data. Most of it was taken from the official
+sources directly; the historical accounts came from an earlier project of mine
+whose collection I cannot fully document, so only the part with a documented
+origin is ever published. One dataset contains personal data and is not
+published at all.**
 
 ---
 
@@ -16,7 +19,8 @@ One dataset contains personal data and is therefore not published.**
 |---|---|---|---|---|
 | `enheter` | 1,173,013 | Brønnøysundregistrene, bulk CSV | NLOD | Yes, with attribution |
 | `roller` | 3,418,541 | Brønnøysundregistrene, bulk JSON | NLOD | Yes, with attribution |
-| `regnskap` | 4,959,968 | Brønnøysundregistrene, per-company API | NLOD | Yes, with attribution |
+| `regnskap` (`kilde='brreg-api'`) | current period | Brønnøysundregistrene, per-company API | NLOD | Yes, with attribution |
+| `regnskap` (`kilde='historikk'`) | 1999–2024 | earlier project, collection not fully documented | figures are Brreg's (NLOD) | **No — local development only** |
 | `naeringskoder` | 1,785 | SSB Klass API | Open data | Yes |
 | `kommuner`, `fylker` | 377 | SSB Klass API | Open data | Yes |
 | `postnummer` | 5,122 | Bring | Free | Yes |
@@ -41,32 +45,47 @@ simplest answer to "where did this come from".
 
 ## "How do you have 27 years of accounts? That is not downloadable."
 
-It is a fair question, and the answer is straightforward: **patience, not
-privilege**.
+A fair question, and the honest answer has two halves that are worth keeping
+apart, because they are not equally well documented.
 
-Brønnøysundregistrene publishes annual accounts through a public API at
-`data.brreg.no/regnskapsregisteret/regnskap/{orgnr}`. It requires no key and no
-registration. What it does not offer is a bulk download — it serves **one
-company per request**, and **only the most recent period**.
+**The current period comes from Brønnøysundregistrene directly.** Their public
+API at `data.brreg.no/regnskapsregisteret/regnskap/{orgnr}` requires no key and
+no registration. What it does not offer is a bulk download — it serves **one
+company per request**, and **only the most recent period**. This project fetches
+from it one organisation number at a time, throttled. Those rows carry
+`kilde = 'brreg-api'`: exact kroner, currency known, and re-derivable by anyone
+who cares to repeat the exercise.
 
-So a full history is assembled the slow way: request each organisation number
-in turn, throttled, over days, and keep what comes back. Do that for a few years
-and you accumulate history that no single request can return. That is exactly
-how the commercial providers built their archives, and there is nothing
-privileged about it — only time.
+**The historical years came from an earlier project of mine**, assembled over
+several months by more than one collection method. I do not hold a complete
+record of every step, so this document makes no claim about how each part of it
+was obtained.
 
-Two things follow, and both are visible in the schema:
+What *can* be stated is what was checked. Before the historical data was
+trusted, fourteen fields across the resultatregnskap and balanse were compared
+against the live Brreg API and matched exactly once scaled by ×1000, for four
+companies including one reporting in USD. See `server-drift/README.md`. Those
+rows carry `kilde = 'historikk'` — rounded to the nearest thousand, currency not
+recorded.
 
-- The figures were **verified against the live API** before being trusted.
-  Fourteen fields across the resultatregnskap and balanse matched exactly, for
-  four companies including one reporting in USD. See `server-drift/README.md`.
-- Every row records its own provenance in `regnskap.kilde`:
-  `brreg-api` (exact, current period) or `historikk` (bulk-collected, rounded to
-  the nearest thousand).
+That column is not decoration. It is what keeps the two halves separable, and
+the separation is the point:
 
-**Nothing here was scraped from a commercial provider.** Purehelp and Proff add
-their own analysis on top of the same public registers and their terms prohibit
-redistribution; this project takes only from the primary sources.
+> **Anything this project publishes serves `kilde = 'brreg-api'` only.** The
+> historical rows exist to develop against locally.
+
+As of September 2026 the platform is not publicly deployed, and the accounting
+data has never left this machine.
+
+### Why the distinction matters
+
+The figures themselves are Brreg's and carry NLOD, which permits redistribution
+with attribution. But a licence on the facts is not the whole question. In the
+EEA a *compilation* can carry a database right of its own, earned by the
+investment in assembling it, even when every individual fact inside it is free
+to use. So "the numbers are public" answers less than it appears to, and the
+honest position is to publish the half whose origin is documented rather than to
+argue about the half that is not.
 
 ---
 
@@ -122,10 +141,16 @@ committed.
 
 - **"Is this legal?"** Yes. Brreg data is NLOD — free to republish with
   attribution. The shareholder data is not republished in identifiable form.
-- **"How did you get the history?"** The public API, one company at a time,
-  throttled, over days. No key, no special access, just time.
-- **"Did you scrape Purehelp or Proff?"** No. Only the primary registers.
-  Their terms prohibit redistribution, which is precisely why they were avoided.
+- **"How did you get the history?"** The current period comes from Brreg's
+  public API, one company at a time, throttled — no key, no special access. The
+  older years came from an earlier project of mine and I do not have a complete
+  record of how every part was collected, so I do not claim one. I verified the
+  figures against the API before trusting them, I label every row with its
+  source, and I publish only the rows I can account for.
+- **"So can you publish the history?"** I don't. `kilde = 'brreg-api'` is the
+  only source served publicly; the rest is local development data. Facts under
+  NLOD are free to redistribute, but a compilation can carry a database right
+  of its own — so the answer here is a deployment rule, not an argument.
 - **"What about GDPR?"** The one dataset containing personal data is stored but
   not published, and the separation is enforced in the database by a view rather
   than by convention.

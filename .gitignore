@@ -8,3 +8,10 @@ dist
 
 # Downloaded source data — large, and reproducible from the sources
 data/
+
+# Source data dropped in the project root. Untracked is not the same as safe:
+# `git add -A` would commit 2.9 GB, including a production dump from another
+# system and a file of personal data that must not be republished.
+/org_regnskap.sql
+/aksjeeiebok_2025.csv
+*.sql.gz

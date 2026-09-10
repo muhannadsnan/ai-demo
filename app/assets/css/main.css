@@ -926,11 +926,15 @@ nav.tabs a.router-link-active {
    the point — 66 rows should be scannable without scrolling past prose. */
 .indekstre { padding: 8px 10px; }
 .indekstabell-rad {
-  display: flex; align-items: baseline; gap: 10px;
+  display: flex; align-items: baseline; gap: 7px;
   padding: 7px 0 2px; margin-top: 4px; border-top: 1px solid var(--border);
 }
 .indekstre > .indekstabell-rad:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+/* A marker on the group rows: 66 index lines run together without something
+   to catch the eye at each table boundary. */
 .indekstabell-navn { font-weight: 650; font-size: 13px; }
+.indekstabell-navn::before { content: '● '; color: var(--accent); font-size: 10px; }
+.indekstabell-antall { font: 11px/1 var(--mono); color: var(--text-dim); }
 .indekstabell-tall { margin-left: auto; font: 11px/1 var(--mono); color: var(--text-dim); }
 .indeksrad {
   display: flex; align-items: baseline; gap: 10px;
@@ -943,3 +947,6 @@ nav.tabs a.router-link-active {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .indeksbytes { flex: none; font: 11px/1.45 var(--mono); color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+/* A count or size that belongs to the heading it follows, not to the prose. */
+.hodetall { font: 400 12px/1 var(--mono); color: var(--text-dim); }

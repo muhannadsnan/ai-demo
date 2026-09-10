@@ -32,6 +32,10 @@ function kolonnerAv(def: string) {
   return m[1].replace(/\s+/g, ' ') + (hvor ? ` — kun ${hvor[1]}` : '')
 }
 
+/** Every index added up, for the heading. */
+const indeksBytes = computed(() =>
+  (data.value?.indekser ?? []).reduce((n: number, i: any) => n + i.bytes, 0))
+
 /** Indexes grouped by table, biggest table first. */
 const indeksGrupper = computed(() => {
   const m = new Map<string, { tabell: string; indekser: any[]; bytes: number }>()
@@ -238,17 +242,17 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       </p>
     </div>
 
-    <h2>Indekser</h2>
+    <h2>Indekser <span class="hodetall">({{ data.indekser.length }} · {{ storrelse(indeksBytes) }})</span></h2>
     <p class="muted avsnitt">
-      {{ data.indekser.length }} indekser. Hver av dem er en avgjørelse om hva
-      som skal være raskt — kommentarene i <code>server-drift/migrations/</code>
-      sier hvorfor hver enkelt finnes.
+      Hver av dem er en avgjørelse om hva som skal være raskt — kommentarene i
+      <code>server-drift/migrations/</code> sier hvorfor hver enkelt finnes.
     </p>
     <div class="card indekstre">
       <template v-for="g in indeksGrupper" :key="g.tabell">
         <div class="indekstabell-rad">
           <span class="indekstabell-navn">{{ beskrivTabell(g.tabell).tittel }}</span>
-          <span class="indekstabell-tall">{{ g.indekser.length }} · {{ storrelse(g.bytes) }}</span>
+          <span class="indekstabell-antall">({{ g.indekser.length }})</span>
+          <span class="indekstabell-tall">{{ storrelse(g.bytes) }}</span>
         </div>
         <div v-for="i in g.indekser" :key="i.navn" class="indeksrad">
           <code class="indeksnavn">{{ i.navn }}</code>

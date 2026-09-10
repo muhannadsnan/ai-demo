@@ -64,6 +64,60 @@ export const TABELLER: Record<string, Datasett> = {
     tittel: 'Postnummer',
     hva: 'Postnummer og poststed.',
     kilde: 'Bring'
+  },
+
+  // Derived and internal tables. They do not appear in the content listing,
+  // but the index tree lists every table in the database, and a raw name there
+  // is the same problem as a raw name anywhere else.
+  enheter_embedding: {
+    tittel: 'Meningsvektorer',
+    hva: 'Foretakenes beskrivelser omgjort til tall, så søket kan sammenligne mening.',
+    kilde: 'Utledet · OpenAI'
+  },
+  aksjonar_persondata: {
+    tittel: 'Aksjonærer (med persondata)',
+    hva: 'Tabellen bak aksjonærvisningen. Navn på privatpersoner ligger her, men vises aldri — visningen leser et view som fjerner dem.',
+    kilde: 'Skatteetatens aksjonærregister'
+  },
+  regnskap_siste: {
+    tittel: 'Siste regnskap per foretak',
+    hva: 'Én ferdig rad per foretak, så søkefiltre og topplister slipper å lete gjennom fem millioner.',
+    kilde: 'Utledet'
+  },
+  eierskap_kant: {
+    tittel: 'Eierskapsgraf',
+    hva: 'Eierforhold mellom foretak som kanter i en graf, for eierskapsnettverket.',
+    kilde: 'Utledet'
+  },
+  regnskap_hentelogg: {
+    tittel: 'Hentelogg for regnskap',
+    hva: 'Hva som ble forsøkt hentet fra regnskaps-API-et, og hva som skjedde — inkludert foretak som aldri har sendt inn.',
+    kilde: 'Utledet'
+  },
+  fornavn_kjonn: {
+    tittel: 'Fornavn og kjønn',
+    hva: 'SSBs navnestatistikk, brukt til å anslå kjønnsfordeling.',
+    kilde: 'SSB tabell 10501'
+  },
+  topplister: {
+    tittel: 'Topplister',
+    hva: 'Ferdig utregnede rangeringer.',
+    kilde: 'Utledet'
+  },
+  import_logg: {
+    tittel: 'Importlogg',
+    hva: 'Hver kjøring av hver importrutine.',
+    kilde: 'Utledet'
+  },
+  import_cursor: {
+    tittel: 'Markør i endringsstrømmen',
+    hva: 'Hvor langt vi har kommet i Brønnøysunds endringslogg.',
+    kilde: 'Utledet'
+  },
+  schema_migrations: {
+    tittel: 'Migrasjoner',
+    hva: 'Hvilke skjemaendringer som er kjørt, og når.',
+    kilde: 'Utledet'
   }
 }
 

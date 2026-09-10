@@ -1,4 +1,4 @@
-import { requireAiProvider } from './ai/provider'
+import { requireEmbeddingProvider } from './ai/provider'
 
 /**
  * Build the WHERE clauses for a company search from the query string.
@@ -77,7 +77,7 @@ export async function byggFilter(q: Record<string, any>, medSemantikk = true): P
    */
   let semantiskLedd = ''
   if (semantisk) {
-    const leverandor = requireAiProvider()
+    const leverandor = requireEmbeddingProvider()
 
     // Task prefixes are a nomic-embed-text feature: it is trained with
     // 'search_query: ' on the question and 'search_document: ' on what is

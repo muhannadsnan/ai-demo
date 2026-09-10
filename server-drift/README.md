@@ -733,6 +733,24 @@ Two things that switching costs, and neither is optional:
   with the provider for the same reason `relevanceFloor` does. A number carried
   across models does not error; the filter just stops filtering.
 
+### Chat and embeddings are configured separately
+
+`NUXT_AI_PROVIDER` picks the chat model; `NUXT_EMBEDDING_PROVIDER` picks the
+embedder, defaulting to the same one.
+
+They are separate because they can be swapped on completely different terms. A
+chat model can be changed whenever you like — a different model just answers
+differently. An embedder cannot: every stored vector was produced by one
+specific model, and the question must be embedded by that same model or the
+comparison is meaningless. 1.11 million rows is not something to rebuild because
+the chat model changed.
+
+Switching the index to OpenAI while the config still said `ollama` made this
+concrete: the query side embedded questions with nomic into 768 numbers and
+compared them to 1536-number vectors, and every semantic search returned a bare
+503. The split is what lets this machine run chat locally and free while
+semantic search matches the vectors that are actually in the database.
+
 ### Semantic search, and the indexes behind the filters
 
 Keyword search (migration 027) finds a company only if it wrote the word you

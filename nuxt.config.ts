@@ -16,6 +16,11 @@ export default defineNuxtConfig({
    */
   runtimeConfig: {
     aiProvider: 'mock',              // 'mock' | 'openai' | 'ollama'
+    // Which provider produces EMBEDDINGS. Empty means "same as aiProvider".
+    // Set separately because a stored vector is bound to the model that made
+    // it: 1.11 million rows cannot be re-embedded because the chat model
+    // changed. NUXT_EMBEDDING_PROVIDER.
+    embeddingProvider: '',
     openaiApiKey: '',                // SERVER ONLY. Never expose this.
     openaiBaseUrl: 'https://api.openai.com/v1',
     openaiChatModel: 'gpt-4o-mini',

@@ -79,6 +79,7 @@ export default defineEventHandler(async (event) => {
              e.organisasjonsform_kode, e.organisasjonsform_beskrivelse,
              e.naeringskode1_kode, e.naeringskode1_beskrivelse,
              e.forretningsadresse_poststed, e.forretningsadresse_kommune,
+             e.forretningsadresse_postnummer,
              e.antall_ansatte, e.har_registrert_antall_ansatte,
              e.konkurs, e.under_avvikling, e.under_tvangsavvikling,
              e.stiftelsesdato, e.registreringsdato_enhetsregisteret

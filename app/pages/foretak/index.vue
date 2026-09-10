@@ -33,12 +33,26 @@ const BELOP = [
   { navn: 'egenkapital',    tittel: 'Egenkapital' },
   { navn: 'eiendeler',      tittel: 'Sum eiendeler' }
 ]
-const belop = reactive<Record<string, string>>({})
+// string | number: <input type="number"> hands back a Number via v-model.
+const belop = reactive<Record<string, string | number>>({})
 for (const b of BELOP) {
   belop[`${b.navn}_min`]  = String(route.query[`${b.navn}_min`]  ?? '')
   belop[`${b.navn}_maks`] = String(route.query[`${b.navn}_maks`] ?? '')
 }
-const iKroner = (v: string) => v.trim() === '' ? undefined : String(Math.round(Number(v) * 1000))
+/**
+ * These fields are <input type="number">, and Vue casts a numeric v-model on
+ * those to an actual Number — so `belop` holds numbers at runtime even though
+ * it is declared Record<string, string>. The declared type is what hid this:
+ * TypeScript saw a string and allowed .trim(), which then threw
+ * "v.trim is not a function" from inside a computed, taking the whole render
+ * with it. Everything that reads these values goes through somTekst().
+ */
+const somTekst = (v: unknown) => v === null || v === undefined ? '' : String(v)
+
+const iKroner = (v: unknown) => {
+  const s = somTekst(v).trim()
+  return s === '' ? undefined : String(Math.round(Number(s) * 1000))
+}
 
 const params = computed(() => {
   const p: Record<string, unknown> = {
@@ -71,7 +85,8 @@ const antallFiltre = computed(() =>
   + nace.value.length
   + [konkurs.value, avvikling.value, nye.value].filter(Boolean).length
   + BELOP.reduce((n, b) =>
-      n + (belop[`${b.navn}_min`]?.trim() ? 1 : 0) + (belop[`${b.navn}_maks`]?.trim() ? 1 : 0), 0))
+      n + (somTekst(belop[`${b.navn}_min`]).trim() ? 1 : 0)
+        + (somTekst(belop[`${b.navn}_maks`]).trim() ? 1 : 0), 0))
 
 // Same request the tree makes; useFetch dedupes on the key, so the badges get
 // the industry names without a second round trip.
@@ -120,7 +135,7 @@ const merkelapper = computed(() => {
   for (const b of BELOP) {
     for (const ende of ['min', 'maks'] as const) {
       const v = belop[`${b.navn}_${ende}`]
-      if (v?.trim()) ut.push({
+      if (somTekst(v).trim()) ut.push({
         nokkel: `${b.navn}_${ende}`,
         tekst: `${b.tittel} ${ende === 'min' ? 'fra' : 'til'} ${Number(v).toLocaleString('nb-NO')}k`,
         fjern: () => { belop[`${b.navn}_${ende}`] = ''; sok() }
@@ -254,6 +269,37 @@ const TRE_MND_MS = 92 * 24 * 60 * 60 * 1000
  * Order matters — a company can be both newly registered and already bankrupt,
  * and bankruptcy is the more important fact.
  */
+/**
+ * Cap a label so one long value cannot break the two-column result row.
+ *
+ * Norwegian company names and NACE descriptions both run long — the register
+ * holds names past 200 characters, and descriptions like "Produksjon av andre
+ * ikke-metallholdige mineralprodukter ikke nevnt annet sted" are routine. Left
+ * whole, one of them pushes the right-hand column off the row.
+ *
+ * Truncated on a word boundary rather than mid-word, and the full value stays
+ * in the title attribute so nothing is actually lost.
+ */
+/**
+ * "5014, BERGEN" — postcode, comma, one space, place.
+ *
+ * Built as a single string rather than two elements so the separator is fixed.
+ * A company can have one without the other, and the filter drops the empty side
+ * so a lone place never arrives with a leading comma.
+ */
+function sted(f: any): string {
+  return [f.forretningsadresse_postnummer, f.forretningsadresse_kommune]
+    .filter(Boolean).join(', ')
+}
+
+function avkort(tekst: string | null, tak = 100): string {
+  if (!tekst) return ''
+  if (tekst.length <= tak) return tekst
+  const kuttet = tekst.slice(0, tak)
+  const mellomrom = kuttet.lastIndexOf(' ')
+  return `${mellomrom > tak * 0.6 ? kuttet.slice(0, mellomrom) : kuttet}…`
+}
+
 function merke(f: any): { klasse: string, tittel: string } | null {
   if (f.konkurs) return { klasse: 'konkurs', tittel: 'Konkurs' }
   if (f.under_tvangsavvikling) return { klasse: 'konkurs', tittel: 'Under tvangsavvikling' }
@@ -285,8 +331,12 @@ function merke(f: any): { klasse: string, tittel: string } | null {
     </p>
 
     <div class="sokefelt">
+      <!-- A real <label for>, not a styled span: clicking it focuses the field,
+           and a screen reader announces the field by name instead of reading
+           out the placeholder, which disappears the moment you type. -->
+      <label class="sokefelt-etikett" for="foretak-sok">Søk</label>
       <span class="sokeboks">
-        <input v-model="q" type="text" placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="sok">
+        <input id="foretak-sok" v-model="q" type="text" placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="sok">
         <button v-if="q" class="tom" type="button" title="Tøm søket" aria-label="Tøm søket" @click="tomtSok">×</button>
       </span>
       <button @click="sok">Søk</button>
@@ -417,17 +467,28 @@ function merke(f: any): { klasse: string, tittel: string } | null {
             v-for="f in data.foretak" :key="f.organisasjonsnummer"
             :to="`/foretak/${f.organisasjonsnummer}`"
             class="treffrad" :class="{ inaktiv: inaktiv(f) }">
-            <span class="treffrad-navn">
-              <i v-if="merke(f)" class="merke" :class="merke(f)!.klasse" :title="merke(f)!.tittel" />
-              {{ f.navn }}
-              <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
+            <!-- Line 1: name left, where-and-what-kind right.
+                 Line 2: the identifiers. Two aligned columns rather than one
+                 run-on line, so the eye can scan down either side. -->
+            <span class="treffrad-topp">
+              <span class="treffrad-navn">
+                <i v-if="merke(f)" class="merke" :class="merke(f)!.klasse" :title="merke(f)!.tittel" />
+                {{ avkort(f.navn) }}
+                <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
+              </span>
+              <span class="treffrad-sted">
+                <span class="pill nokkel">{{ f.organisasjonsform_kode }}</span>
+                <!-- One expression, so the separator is exactly ", " and cannot
+                     be collapsed or widened by layout. Two adjacent elements
+                     could not guarantee a single space: whitespace between tags
+                     collapses, and a flex gap is not a space character. -->
+                <span class="treffrad-adresse">{{ sted(f) }}</span>
+              </span>
             </span>
             <span class="treffrad-meta">
               <code>{{ f.organisasjonsnummer }}</code>
-              · {{ f.organisasjonsform_kode }}
-              <template v-if="f.forretningsadresse_poststed"> · {{ f.forretningsadresse_poststed }}</template>
               <template v-if="f.har_registrert_antall_ansatte"> · {{ f.antall_ansatte }} ansatte</template>
-              <template v-if="f.naeringskode1_beskrivelse"> · {{ f.naeringskode1_beskrivelse }}</template>
+              <template v-if="f.naeringskode1_beskrivelse"> · {{ avkort(f.naeringskode1_beskrivelse) }}</template>
             </span>
             <span v-if="data.semantisk && f.utdrag" class="treffrad-utdrag">
               <span class="likhet">{{ Number(f.likhet).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>

@@ -49,11 +49,44 @@ function tom() {
   valgt.value = ''
   sok.value = ''
 }
+
+/**
+ * Close the list on a click outside it, or on Escape.
+ *
+ * Without this the list only ever closed by picking something: `apen` was set
+ * on focus and never cleared, so moving on without choosing left an absolutely
+ * positioned panel open on top of the filters below it. The fields underneath
+ * were then unreachable — clicks landed on the list, not on them — which looked
+ * like those filters being broken rather than like a dropdown being stuck.
+ *
+ * `mousedown`, not `click`: it fires before focus moves, so the panel is gone
+ * by the time the field you aimed at receives the event. A `blur` handler is
+ * the other common approach and it is worse here — blur beats the list item's
+ * own click, so choosing a municipality would close the list before `velg` ran.
+ */
+const rot = ref<HTMLElement | null>(null)
+
+function utenfor(e: MouseEvent) {
+  if (rot.value && !rot.value.contains(e.target as Node)) apen.value = false
+}
+function paaEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape') apen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', utenfor)
+  document.addEventListener('keydown', paaEscape)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', utenfor)
+  document.removeEventListener('keydown', paaEscape)
+})
+
 const tall = kort
 </script>
 
 <template>
-  <div class="geo">
+  <div ref="rot" class="geo">
     <div v-if="valgt" class="geo-valgt">
       <span class="geo-navn">{{ valgtNavn || valgt }}</span>
       <button type="button" aria-label="Fjern" @click="tom">×</button>
@@ -63,8 +96,11 @@ const tall = kort
       <input
         v-model="sok" type="text" class="geo-sok"
         :placeholder="type === 'fylke' ? 'Søk fylke…' : 'Søk kommune…'"
-        @focus="apen = true">
-      <ul v-if="apen || sok" class="geo-liste">
+        @focus="apen = true"
+        @input="apen = true">
+      <!-- `apen` alone, not `apen || sok`: with the text still in the box, the
+           old condition kept the panel open after it had been dismissed. -->
+      <ul v-if="apen" class="geo-liste">
         <li v-for="s in treff" :key="s.nr">
           <button type="button" @click="velg(s)">
             <span class="geo-navn">{{ s.navn }}</span>

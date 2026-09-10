@@ -19,61 +19,95 @@
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* ---- The dark chrome ------------------------------------------------------
-   This design is a hybrid and is committed to on purpose: a light page, with
-   the chrome on a dark ground — the header, the filter rail, and the note under
-   each page heading. Both accents carry across: orange for actions and active
-   state, blue for informational values.
+/* ---- The hybrid theme -----------------------------------------------------
+   A light page with four distinct materials, each on its own scale rather than
+   one shared dark:
 
-   The `prefers-color-scheme: dark` block that used to sit here is deliberately
-   gone. It flipped the whole palette, which is why the app read as fully dark
-   on a dark-mode desktop. Honouring it now would invert the page *behind*
-   panels that stay dark either way, and the contrast this design depends on
-   would be destroyed rather than preserved.
+     header      midnight orange  #2e1c10   near-black, warm
+     lede        mid brown        #5c3d28   running text, must stay readable
+     filter rail light grey       #ebebe8   a dozen form controls, kept neutral
+     footer      dark grey        #3a3a38   a source credit, not page furniture
 
-   Implemented by redefining the tokens on the containers rather than by writing
-   a second set of rules. Every control inside already paints itself from
-   var(--surface) / var(--border) / var(--text), so scoping the values here is
-   enough — inputs, fieldsets and legends in the rail follow automatically, and
-   there is no parallel ".dark input" ruleset to keep in sync. */
+   Orange means one thing throughout: something you act on — a button, a field
+   you type into, the active nav item. It is deliberately not used as a panel
+   fill, which is why the rail is grey.
+
+   The `prefers-color-scheme: dark` block that used to sit here is gone on
+   purpose. It flipped the whole palette, which is why the app read as fully
+   dark on a dark-mode desktop. Honouring it now would invert the page *behind*
+   panels that stay dark either way, destroying the contrast this design depends
+   on rather than preserving it.
+
+   The header block below redefines tokens rather than duplicating rules, so
+   controls inside it follow automatically with no parallel ruleset to keep in
+   sync. */
+/* Midnight orange: the header and the note under each page heading. Nearly
+   black, but warm rather than neutral, so it belongs to the same family as the
+   orange accent instead of sitting beside it as a separate grey. */
 .chrome-mork,
-header.top,
-.filter-sidebar,
-.lede, .sidebeskrivelse {
-  /* A warm charcoal, not a near-black. Against a #fbfbfa page the original
-     #232322 was close to maximum contrast, which made every panel edge read as
-     a hard cut across the screen. Lifting the panels to a mid tone keeps the
-     light/dark separation legible while letting the two grounds sit together. */
-  --surface: #44423d;
-  --surface-2: #4f4d47;
-  --border: #5a574f;
-  --text: #f4f3f0;
-  --text-dim: #c9c7bf;
-  /* The light-ground orange (#b4541f) fails badly on a dark panel; these are
-     the lifted variants, and they keep the same two-accent identity. Both are
-     re-lifted for the paler ground — #e8834a lost separation against #44423d. */
-  --accent: #f0975f;
-  --accent-soft: #55483c;
+header.top {
+  --surface: #2e1c10;
+  --surface-2: #3d2718;
+  --border: #4d3220;
+  --text: #f7efe8;
+  --text-dim: #cdb4a1;
+  /* The light-ground orange fails on this panel; lifted for it, and lifted
+     enough to stay clear of the brown ground it now sits on. */
+  --accent: #f5a56f;
+  --accent-soft: #4a2e19;
   --ok: #8fd0a6;
   --warn: #e2bd6b;
-  --info: #93c5ef;
-  --info-soft: #33414d;
+  --info: #9dc9f0;
+  --info-soft: #2a3846;
   color: var(--text);
 }
 
-/* Number and select controls are not covered by the base textarea/text rule,
-   so they would keep a white browser default inside a dark rail. */
+/* Dark grey, deliberately NOT the midnight orange above: the footer is the
+   source credit NLOD requires, not part of the page's own furniture, and a
+   different material says so without needing a rule about it.
+
+   Full-bleed band, with .kilde-inner holding the text to the same column as
+   the header — which is why the <footer> lives outside .shell in app.vue. */
+footer.kilde {
+  --text: #eeedea;
+  --text-dim: #b9b8b2;
+  --accent: #f0975f;
+  background: #3a3a38;
+  color: var(--text-dim);
+  margin-top: 64px; padding: 44px 20px; border-top: 0;
+  font-size: 13px; line-height: 1.8;
+}
+.kilde-inner { max-width: 1180px; margin: 0 auto; }
+
+/* The rail's own colours are set at the BOTTOM of this file, not here — the
+   original .filter-sidebar rules live further down, and at equal specificity
+   the later rule wins. Overriding them from up here silently did nothing. */
+
+/* Every text-entry control looks the same, wherever it sits: a near-white
+   ground with a light orange border. The border is what marks a field as
+   something you type into — it carries the accent without the fill competing
+   with the text — and the pale ground lifts each field off the grey rail. */
+.sokefelt input,
+.sokeboks input,
+.filter-sidebar input[type="text"],
+.filter-sidebar input[type="number"],
+.filter-sidebar select,
+.composer textarea,
+.composer input[type="text"] {
+  background: #fffdfb;
+  border: 1px solid #e8b98c;
+}
 .filter-sidebar input[type="number"],
 .filter-sidebar select {
   font: inherit; color: var(--text);
-  background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 7px; padding: 6px 8px;
 }
-
-/* Inputs need to lift off the panel they sit on; on the light ground the
-   surface/panel distinction did that work, and here both are dark. */
-.filter-sidebar textarea,
-.filter-sidebar input[type="text"] { background: var(--surface-2); }
+.sokefelt input:focus,
+.sokeboks input:focus,
+.filter-sidebar input:focus,
+.filter-sidebar select:focus {
+  outline: 2px solid #b95d28; outline-offset: -1px; border-color: transparent;
+}
 
 * { box-sizing: border-box; }
 
@@ -90,7 +124,10 @@ a { color: var(--accent); }
 /* Wide enough for a filter rail plus a results column. Prose inside stays
    narrow on its own (.lede, .thread, .composer) — a 1180px line of text is
    unreadable, but a 1180px table is not. */
-.shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 80px; min-height: 600px; }
+/* The 80px of bottom padding here used to hold the footer clear of the content.
+   The footer is its own full-width band now and brings its own spacing, so this
+   would just be a gap above a gap. */
+.shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 24px; min-height: 600px; }
 
 /* ---- Header --------------------------------------------------------------- */
 header.top {
@@ -129,15 +166,20 @@ h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
 /* The description under every page heading. Its own ground, inset from the
    content on both sides, square corners — it reads as a note about the page
    rather than as the first paragraph of it. */
+/* Lighter than the header, and on its own scale. The lede is a paragraph of
+   running text, not chrome — at the header's near-black it read as a heavy slab
+   and was tiring to actually read. This is the same warm family, several steps
+   up, with the text near-white rather than the muted tan: #f7ede4 on #5c3d28
+   is about 8:1, so it reads as comfortably as body text on the white page. */
 .lede, .sidebeskrivelse {
-  color: var(--text-dim); max-width: none;
-  margin: 0 10% 22px; padding: 12px 20px;
-  /* --surface, not --surface-2: the same tone as the header and the filter
-     rail. One dark tone across all the chrome reads as a single material; two
-     near-but-unequal darks read as a mistake. */
-  background: var(--surface); border-radius: 0;
-  line-height: 1.6;
+  max-width: none;
+  margin: 0 10% 22px; padding: 16px 22px;
+  background: #5c3d28;
+  color: #f7ede4;
+  border-radius: 0;
+  line-height: 1.65;
 }
+.lede a, .sidebeskrivelse a { color: #f7bf92; }
 code {
   font: 13px/1.4 var(--mono);
   background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
@@ -162,11 +204,18 @@ textarea, input[type="text"] {
 textarea:focus, input[type="text"]:focus {
   outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent;
 }
+/* An explicit colour rather than var(--accent), because --accent is redefined
+   inside the dark chrome — a button placed there would inherit the lifted
+   orange and end up near-white text on near-white orange.
+   #b95d28 is as light as this can go while white text still clears AA (4.5:1).
+   Anything lighter needs dark text instead of white; see the note in the
+   commit if you want that variant. */
 button {
   font: 500 14px/1 inherit; cursor: pointer;
-  background: var(--accent); color: #fff; border: 0;
+  background: #b95d28; color: #fff; border: 0;
   border-radius: var(--radius); padding: 12px 18px;
 }
+button:hover:not(:disabled) { background: #a85023; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 button.ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
 button.ghost:hover:not(:disabled) { color: var(--text); }
@@ -292,10 +341,9 @@ table.regnskap td.neg { color: #c0392b; }
   margin: 14px 0; font-size: 13.5px; line-height: 1.55;
 }
 
-footer.kilde {
-  border-top: 1px solid var(--border); margin-top: 56px; padding: 18px 0 0;
-  font-size: 12.5px; color: var(--text-dim);
-}
+/* footer.kilde is styled at the top of this file, with the other chrome. The
+   rule that used to sit here came later in the cascade and silently won on
+   padding, margin and font-size, which is why the band stayed thin. */
 
 /* Wide content scrolls inside its own box, never the page. The accounting table
    is 27 columns for an old company; without this the whole layout scrolls
@@ -513,7 +561,7 @@ table.regnskap td.negativ { text-decoration: underline; text-decoration-color: #
    1fr)` rather than `1fr` so a long company name cannot push the grid wider
    than its container. */
 .soke-layout {
-  display: grid; grid-template-columns: 465px minmax(0, 1fr);
+  display: grid; grid-template-columns: 415px minmax(0, 1fr);
   gap: 20px; align-items: start; margin-top: 14px;
 }
 @media (max-width: 760px) { .soke-layout { grid-template-columns: 1fr; } }
@@ -701,3 +749,145 @@ nav.tabs a.bileddgang:hover { opacity: 1; }
   background: var(--surface-2); border: 1px solid var(--border);
 }
 .framdrift > i { display: block; height: 100%; background: var(--accent); transition: width .3s ease; }
+
+/* ---- Hybrid theme: follow-up pass ----------------------------------------- */
+
+/* Page headings take the lede's brown rather than near-black, so the heading
+   and the note directly under it read as one unit instead of two unrelated
+   blocks. */
+h1, h2, h3 { color: #5c3d28; }
+
+/* Checkboxes and radios: one line, and the browser paints its own control in
+   the accent. Far better than the usual approach of hiding the real input and
+   rebuilding it out of divs, which loses keyboard behaviour and focus rings. */
+input[type="checkbox"], input[type="radio"] { accent-color: #b95d28; width: 15px; height: 15px; }
+
+/* The nav items are buttons in all but name, so they get the same orange
+   outline the inputs do — visible against the midnight header without filling
+   them in and competing with the active tab. */
+nav.tabs a {
+  border: 1px solid #8a5a35;
+}
+nav.tabs a.router-link-active {
+  border-color: var(--accent);
+  background: var(--accent-soft); color: var(--accent);
+}
+
+/* The company-name box sits inside .sokeboks, which adds right padding for the
+   clear button. Everything else about it must match a plain text input — it had
+   kept its own radius, so it read as a different control from the fields under
+   it. */
+/* The border has to be re-stated HERE, not only in the block near the top.
+   `input[type="text"]` is specificity (0,1,1) — an attribute selector weighs the
+   same as a class — and so is `.sokefelt input`. Equal specificity means the
+   later rule wins, and the generic input rule sits after that block, quietly
+   repainting the border grey. The sidebar fields escaped it only because
+   `.filter-sidebar input[type="text"]` is (0,2,1), which is why those went
+   orange while this one did not. */
+.sokeboks input, .sokefelt input {
+  border: 1px solid #e8b98c;
+  background: #fffdfb;
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  font: inherit;
+  color: var(--text);
+}
+.sokeboks input { padding-right: 34px; }
+
+/* "Fjern alle" leads the row rather than trailing it: it is the one control
+   that acts on all the chips, so it belongs before them, not lost at the end of
+   a wrapped list. A real button, not a link. */
+.merkelapper .lenkeknapp {
+  order: -1;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #e8b98c; color: #b95d28;
+  padding: 4px 11px 4px 9px; border-radius: 14px;
+  font-size: 12.5px; text-decoration: none;
+}
+.merkelapper .lenkeknapp::before { content: "✕"; font-size: 11px; line-height: 1; }
+.merkelapper .lenkeknapp:hover { background: #fdf2e8; border-color: #b95d28; }
+
+/* Result rows: name left, place right, identifiers underneath. minmax(0,auto)
+   on the first column is what lets a long name shrink instead of shoving the
+   right-hand column off the row. */
+.treffrad-topp {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 14px; min-width: 0;
+}
+.treffrad-topp .treffrad-navn { min-width: 0; flex: 1; }
+.treffrad-sted {
+  flex: none; font-size: 12.5px; color: var(--text-dim);
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.treffrad-sted .pill.nokkel {
+  background: #ece7e1; color: #5c3d28; border: 0;
+  padding: 2px 7px; border-radius: 4px;
+  font: 600 13px/1.5 var(--mono);
+}
+@media (max-width: 620px) {
+  .treffrad-topp { flex-direction: column; gap: 4px; }
+  .treffrad-sted { white-space: normal; }
+}
+
+/* ---- Filter rail: greyscale -----------------------------------------------
+   These must come after the .filter-sidebar block above, not before it. At
+   equal specificity the last rule wins, and an earlier override is simply
+   ignored — which is exactly what happened on the first attempt. */
+.filter-sidebar {
+  background: #ebebe8;
+  border: 1px solid #d2d2cc;
+}
+.filter-sidebar fieldset {
+  background: #f4f4f2;
+  border: 1px solid #d8d8d2;
+}
+.filter-sidebar legend { color: #5c5c56; }
+.filter-sidebar .feltnavn,
+.filter-sidebar label,
+.filter-sidebar .hint { color: #4f4f4a; }
+
+/* ---- Result rows: spacing and the identifier badge ------------------------ */
+
+/* Postcode and place are separate elements so the gap is real spacing rather
+   than a space character that can collapse. */
+.treffrad-sted { gap: 8px; }
+.treffrad-adresse { font-variant-numeric: tabular-nums; }
+
+/* The organisation number is the row's identifier — the thing you copy, and the
+   thing you scan a column of. A darker badge than the generic <code> style
+   separates it from the prose that follows it on the same line. */
+.treffrad-meta code {
+  background: #e0dcd6;
+  color: #3f3a33;
+  border: 1px solid #cdc7bf;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* "Søk" ahead of the main field. Sized and spaced to sit on the same baseline
+   as the input rather than above it, so the row stays one line. */
+.sokefelt-etikett {
+  align-self: center;
+  font: 600 12px/1 var(--mono);
+  text-transform: uppercase; letter-spacing: .08em;
+  color: #5c3d28;
+  padding-right: 2px;
+}
+
+/* Page numbers and the per-page / sort selects carry the accent like every
+   other control you act on. Appended here rather than edited in place because
+   the originals sit earlier in the file and would win the cascade. */
+.paginator-tall {
+  color: #b95d28;
+  border-color: #e8b98c;
+}
+.paginator-tall:hover { color: #8f461e; border-color: #b95d28; background: #fdf2e8; }
+.paginator-tall.aktiv { background: #b95d28; border-color: #b95d28; color: #fff; }
+
+.velger {
+  color: #b95d28;
+  border: 1px solid #e8b98c;
+  background: #fffdfb;
+}
+.velger:focus { outline: 2px solid #b95d28; outline-offset: -1px; }

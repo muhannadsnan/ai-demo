@@ -33,15 +33,21 @@ useHead({
 
     <main class="shell">
       <NuxtPage />
+    </main>
 
-      <!-- NLOD requires attribution. This is the licence condition for using
-           Brønnøysundregistrenes data, not a courtesy. -->
-      <footer class="kilde">
+    <!-- Outside .shell so the band runs the full width of the window, with its
+         own inner wrapper holding the text to the same 1180px column as the
+         header. Same structure as header.top / .top-inner.
+
+         NLOD requires attribution. This is the licence condition for using
+         Brønnøysundregistrenes data, not a courtesy. -->
+    <footer class="kilde">
+      <div class="kilde-inner">
         Kilde: Enhetsregisteret og Regnskapsregisteret / Brønnøysundregistrene,
         gjengitt under <a href="https://data.norge.no/nlod/no/2.0" rel="noopener">NLOD 2.0</a>.
         Aksjonærdata fra Skatteetatens Aksjonærregister; personopplysninger vises ikke.
         Demoprosjekt — ikke tilknyttet noen kommersiell leverandør.
-      </footer>
-    </main>
+      </div>
+    </footer>
   </div>
 </template>

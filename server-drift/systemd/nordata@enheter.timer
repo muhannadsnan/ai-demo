@@ -1,10 +1,22 @@
-# Weekly full company reload
+# Monthly full company reconciliation
 [Unit]
-Description=Weekly full company reload
+Description=Monthly full company reconciliation
 
 [Timer]
 Unit=nordata@enheter.service
-OnCalendar=Sun *-*-* 02:00:00
+# Monthly, not weekly.
+#
+# The daily change feed does the updating, and it handles deletions on its own —
+# both announced ones and companies that answer 404. So this job is not an
+# update, it is a RECONCILIATION: the only thing that can answer "is our copy
+# still the same as theirs", which a feed cannot, because a feed only tells you
+# about changes it knows about. If an event were ever dropped or the cursor
+# mishandled, nothing else would notice.
+#
+# The evidence for the cadence: the last full run read 1,173,013 rows and
+# changed 26. Not nothing, but not weekly-nothing either. Monthly keeps the
+# safety net at 35 seconds a month.
+OnCalendar=*-*-01 02:00:00
 
 # If the machine was off when this was due, run it at next boot instead of
 # skipping the day silently.

@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 const route = useRoute()
 const { data, status, error } = await useFetch(() => `/api/topplister/${route.params.type}`, { lazy: true })
 const laster = computed(() => status.value === 'pending')
 
 useHead(() => ({ title: data.value ? `${data.value.tittel} — topplister` : 'Toppliste' }))
 
-const nb = (n: number, d = 0) => n.toLocaleString('nb-NO', { maximumFractionDigits: d, minimumFractionDigits: d })
 
 /**
  * Money is stored in kroner. A list of the largest companies in Norway is a list

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { kort, belopKort } from "~/utils/tall"
+import { belopKort, kort, nb } from "~/utils/tall"
 const route = useRoute()
 const router = useRouter()
 
@@ -236,9 +236,9 @@ const { data: eksakt } = await useFetch('/api/foretak/antall', {
 const treffTekst = computed(() => {
   if (!data.value) return ''
   // Semantic search ranks by distance and has no fixed membership to count.
-  if (data.value.semantisk) return `${data.value.treff.toLocaleString('nb-NO')} nærmeste`
-  if (eksakt.value) return `${eksakt.value.antall.toLocaleString('nb-NO')} treff`
-  return `${data.value.treff.toLocaleString('nb-NO')}${data.value.flere ? '+' : ''} treff`
+  if (data.value.semantisk) return `${nb(data.value.treff)} nærmeste`
+  if (eksakt.value) return `${nb(eksakt.value.antall)} treff`
+  return `${nb(data.value.treff)}${data.value.flere ? '+' : ''} treff`
 })
 
 function oppdaterUrl() { router.replace({ query: params.value }) }
@@ -619,7 +619,7 @@ function merke(f: any): { klasse: string, tittel: string } | null {
               <template v-if="f.naeringskode1_beskrivelse"> · {{ avkort(f.naeringskode1_beskrivelse) }}</template>
             </span>
             <span v-if="data.semantisk && f.utdrag" class="treffrad-utdrag">
-              <span class="likhet">{{ Number(f.likhet).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+              <span class="likhet">{{ nb(Number(f.likhet), 2) }}</span>
               {{ f.utdrag }}
             </span>
             <span v-if="data.medRegnskap && f.sum_driftsinntekter != null" class="treffrad-tall">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 useHead({ title: 'Topplister — norske foretak' })
 
 const { data, status } = await useFetch('/api/topplister', { lazy: true })

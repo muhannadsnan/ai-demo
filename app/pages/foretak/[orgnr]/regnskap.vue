@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 const route = useRoute()
 const orgnr = route.params.orgnr as string
 const { data: hode } = await useFetch(`/api/foretak/${orgnr}`)
 const { data } = await useFetch(`/api/foretak/${orgnr}/regnskap`)
 
-const t = (v: any) => v == null ? '—' : Math.round(Number(v) / 1000).toLocaleString('nb-NO')
+const t = (v: any) => v == null ? '—' : Math.round(Number(v) / nb(1000))
 
 /**
  * Direction of travel against the previous year.

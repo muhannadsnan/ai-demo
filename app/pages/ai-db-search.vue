@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 useHead({ title: 'Spør om foretak — naturlig språk' })
 
 /**
@@ -43,10 +44,10 @@ const OP_TEKST: Record<string, string> = {
 }
 const visVerdi = (v: unknown) =>
   typeof v === 'boolean' ? (v ? 'ja' : 'nei')
-  : typeof v === 'number' ? v.toLocaleString('nb-NO')
+  : typeof v === 'number' ? nb(v)
   : String(v)
-const tall = (v: any) => v == null ? '—' : Number(v).toLocaleString('nb-NO')
-const nok = (v: any) => v == null ? '—' : Math.round(Number(v) / 1000).toLocaleString('nb-NO')
+const tall = (v: any) => v == null ? '—' : nb(Number(v))
+const nok = (v: any) => v == null ? '—' : Math.round(Number(v) / nb(1000))
 </script>
 
 <template>

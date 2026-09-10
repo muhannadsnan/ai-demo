@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 import { beskrivTabell, beskrivJobb } from "~/utils/datasett"
 
 const { data } = await useFetch('/api/status')
+
+// Jobs whose source is worth naming. Everything else comes from
+// Enhetsregisteret, which the title already implies.
+const VIS_KILDE = new Set(['embedding', 'referansedata', 'enheter', 'fornavn'])
 
 const alder = (sek: number | null) => {
   if (sek == null) return 'aldri'
@@ -12,7 +17,7 @@ const alder = (sek: number | null) => {
 }
 const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—'
 const varighet = (ms: number | null) => ms == null ? '—' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`
-const tall = (n: number) => n.toLocaleString('nb-NO')
+const tall = (n: number) => nb(n)
 const pst = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1).replace('.', ',')} %` : '—'
 const storrelse = (b: number) =>
   b >= 1e9 ? `${(b / 1e9).toFixed(1).replace('.', ',')} GB`
@@ -72,9 +77,9 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <tr v-for="i in data.importer" :key="i.kilde">
             <td>
               <span class="jobbnavn">{{ beskrivJobb(i.kilde).tittel }}</span>
-              <span class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
-              <span class="jobbhva">{{ beskrivJobb(i.kilde).hva }}</span>
-              <code class="jobbkode">{{ i.kilde }}</code>
+              <!-- Only where the source is not obvious from the title. For the
+                   rest the register is implied and the badge is just noise. -->
+              <span v-if="VIS_KILDE.has(i.kilde)" class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
             </td>
             <td>
               <span :class="fersk(i.alder_sek) ? 'fersk' : 'gammel'">{{ alder(i.alder_sek) }}</span>
@@ -103,15 +108,11 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
     <div class="tablewrap">
       <table class="meta">
         <thead>
-          <tr><th>Datasett</th><th>Hva det er</th><th>Kilde</th><th style="text-align:right">Rader</th></tr>
+          <tr><th>Datasett</th><th>Kilde</th><th style="text-align:right">Rader</th></tr>
         </thead>
         <tbody>
           <tr v-for="t in data.tabeller" :key="t.tabell">
-            <td>
-              <span class="jobbnavn">{{ beskrivTabell(t.tabell).tittel }}</span>
-              <code class="jobbkode">{{ t.tabell }}</code>
-            </td>
-            <td class="hva">{{ beskrivTabell(t.tabell).hva }}</td>
+            <td><span class="jobbnavn">{{ beskrivTabell(t.tabell).tittel }}</span></td>
             <td class="muted" style="white-space:nowrap">{{ beskrivTabell(t.tabell).kilde }}</td>
             <td style="text-align:right; white-space:nowrap">{{ tall(t.rader) }}</td>
           </tr>
@@ -211,7 +212,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <span v-if="data.embedding.sist" class="sistoppdatert">({{ tid(data.embedding.sist) }})</span>
         </strong>
         <span class="pill" :class="data.embedding.ferdig ? 'ok' : 'warn'">
-          {{ data.embedding.andel.toLocaleString('nb-NO') }} %
+          {{ nb(data.embedding.andel) }} %
         </span>
       </div>
       <div class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></div>
@@ -227,7 +228,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
         </template>
         <template v-else>
           Første gjennomkjøring pågår. Søk på mening virker allerede, men leter
-          bare i de {{ data.embedding.andel.toLocaleString('nb-NO') }} prosentene
+          bare i de {{ nb(data.embedding.andel) }} prosentene
           som er lest inn — foretak lenger ned i organisasjonsnummer-rekkefølgen
           finnes ennå ikke. Kjøres med
           <code>./run-import.sh embedding</code>, og kan stoppes og startes igjen
@@ -243,23 +244,18 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       som skal være raskt — kommentarene i <code>server-drift/migrations/</code>
       sier hvorfor hver enkelt finnes.
     </p>
-    <div class="card">
-      <details v-for="g in indeksGrupper" :key="g.tabell" class="indeksgruppe">
-        <summary>
-          <span class="jobbnavn">{{ beskrivTabell(g.tabell).tittel }}</span>
-          <code class="jobbkode">{{ g.tabell }}</code>
-          <span class="muted">{{ g.indekser.length }} indekser · {{ storrelse(g.bytes) }}</span>
-        </summary>
-        <table class="meta indekstabell">
-          <tbody>
-            <tr v-for="i in g.indekser" :key="i.navn">
-              <td><code>{{ i.navn }}</code></td>
-              <td class="muted kolonner">{{ kolonnerAv(i.definisjon) }}</td>
-              <td style="text-align:right; white-space:nowrap">{{ storrelse(i.bytes) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </details>
+    <div class="card indekstre">
+      <template v-for="g in indeksGrupper" :key="g.tabell">
+        <div class="indekstabell-rad">
+          <span class="indekstabell-navn">{{ beskrivTabell(g.tabell).tittel }}</span>
+          <span class="indekstabell-tall">{{ g.indekser.length }} · {{ storrelse(g.bytes) }}</span>
+        </div>
+        <div v-for="i in g.indekser" :key="i.navn" class="indeksrad">
+          <code class="indeksnavn">{{ i.navn }}</code>
+          <span class="indekskolonner">{{ kolonnerAv(i.definisjon) }}</span>
+          <span class="indeksbytes">{{ storrelse(i.bytes) }}</span>
+        </div>
+      </template>
     </div>
 
     <h2>Database</h2>

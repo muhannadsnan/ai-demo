@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 const route = useRoute()
 const orgnr = route.params.orgnr as string
 const { data: hode } = await useFetch(`/api/foretak/${orgnr}`)
 const { data } = await useFetch(`/api/foretak/${orgnr}/eierskap`)
-const pst = (v: any) => v == null ? '—' : Number(v).toLocaleString('nb-NO', { maximumFractionDigits: 2 }) + ' %'
-const tall = (v: any) => Number(v).toLocaleString('nb-NO')
+const pst = (v: any) => v == null ? '—' : nb(Number(v), 2) + ' %'
+const tall = (v: any) => nb(Number(v))
 
 /**
  * The ownership network loads after the page, like the subsidiaries do: it is
@@ -72,7 +73,7 @@ const nivaer = (noder: any[] | undefined) => {
               </td>
               <td style="text-align:right; width:34%">
                 <strong>{{ pst(e.andel_prosent) }}</strong>
-                <span class="muted"> · {{ Number(e.antall_aksjer).toLocaleString('nb-NO') }} aksjer</span>
+                <span class="muted"> · {{ nb(Number(e.antall_aksjer)) }} aksjer</span>
               </td>
             </tr>
           </tbody>

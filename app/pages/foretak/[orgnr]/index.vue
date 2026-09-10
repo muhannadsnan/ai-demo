@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nb } from "~/utils/tall"
 const route = useRoute()
 const { data, error } = await useFetch(`/api/foretak/${route.params.orgnr}`)
 
@@ -21,7 +22,7 @@ onMounted(() => {
   // useFetch on the page, which is a lot of work to load one list.
   if (Number(data.value?.antall?.datterselskap) > 0) hentDatter()
 })
-const nok = (v: any) => v == null ? '—' : (Number(v) / 1000).toLocaleString('nb-NO', { maximumFractionDigits: 0 })
+const nok = (v: any) => v == null ? '—' : (Number(v) / nb(1000), 0)
 const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO') : '—'
 </script>
 
@@ -67,7 +68,7 @@ const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO
           <tr><td>Stiftet</td><td>{{ dato(data.foretak.stiftelsesdato) }}</td></tr>
           <tr><td>Registrert i Foretaksregisteret</td><td>{{ data.foretak.registrert_i_foretaksregisteret ? 'Ja' : 'Nei' }}</td></tr>
           <tr><td>Registrert i MVA-registeret</td><td>{{ data.foretak.registrert_i_mva_registeret ? 'Ja' : 'Nei' }}</td></tr>
-          <tr v-if="data.foretak.kapital_belop"><td>Aksjekapital</td><td>{{ Number(data.foretak.kapital_belop).toLocaleString('nb-NO') }} {{ data.foretak.kapital_valuta }}</td></tr>
+          <tr v-if="data.foretak.kapital_belop"><td>Aksjekapital</td><td>{{ nb(Number(data.foretak.kapital_belop)) }} {{ data.foretak.kapital_valuta }}</td></tr>
           <tr v-if="data.foretak.maalform"><td>Målform</td><td>{{ data.foretak.maalform }}</td></tr>
         </tbody>
       </table>
@@ -110,7 +111,7 @@ const dato = (v: any) => v ? new Date(v + 'T00:00:00').toLocaleDateString('nb-NO
                 <ul v-else class="datterliste">
                   <li v-for="d in datter?.datterselskap ?? []" :key="d.organisasjonsnummer">
                     <NuxtLink :to="`/foretak/${d.organisasjonsnummer}`">{{ d.navn }}</NuxtLink>
-                    <span v-if="d.andel" class="andel">{{ Number(d.andel).toLocaleString('nb-NO', { maximumFractionDigits: 1 }) }} %</span>
+                    <span v-if="d.andel" class="andel">{{ nb(Number(d.andel), 1) }} %</span>
                     <span class="muted">
                       {{ d.organisasjonsform_kode }}<template v-if="d.forretningsadresse_poststed"> · {{ d.forretningsadresse_poststed }}</template><template v-if="d.har_registrert_antall_ansatte"> · {{ d.antall_ansatte }} ansatte</template>
                     </span>

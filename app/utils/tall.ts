@@ -1,4 +1,29 @@
 /**
+ * Number formatting for the whole site.
+ *
+ * `toLocaleString('nb-NO')` groups with a non-breaking space — 1 173 013 —
+ * which is what Språkrådet prescribes and what most Norwegian software does.
+ * This site uses a point instead: 1.173.013. It is the other convention in
+ * common Norwegian use, and it reads as one number rather than three at a
+ * glance in a dense table.
+ *
+ * Done in one place because the alternative is thirteen calls to
+ * toLocaleString across eight files, and the first one anybody forgets makes
+ * the page look broken.
+ */
+
+/** 1173013 -> "1.173.013". Decimals keep the Norwegian comma. */
+export function nb(n: number | string | null | undefined, desimaler = 0): string {
+  if (n === null || n === undefined || n === '') return '—'
+  const tall = Number(n)
+  if (!Number.isFinite(tall)) return '—'
+  return tall
+    .toLocaleString('nb-NO', { minimumFractionDigits: desimaler, maximumFractionDigits: desimaler })
+    // nb-NO groups with U+00A0; swap it for the point this site uses.
+    .replace(/\u00A0/g, '.')
+}
+
+/**
  * Compact number formatting: 5,2k · 1,5m · 1,2b
  *
  * For counts that are context, not figures — how many companies are in a

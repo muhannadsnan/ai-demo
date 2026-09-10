@@ -911,14 +911,8 @@ nav.tabs a.router-link-active {
 .treffrad-tall .skille { color: var(--text-dim); }
 
 /* ---- Status: dataset names in words ---- */
-.jobbnavn { display: block; font-weight: 600; font-size: 13.5px; }
+.jobbnavn { font-weight: 600; font-size: 13.5px; }
 .jobbkilde { display: block; font: 11px/1.5 var(--mono); color: var(--accent); }
-.jobbhva { display: block; font-size: 12px; color: var(--text-dim); line-height: 1.5; max-width: 46ch; margin-top: 2px; }
-/* The database name still shown, small — someone reading the code needs to
-   connect the two, and hiding it would just move the confusion. */
-.jobbkode { font: 10.5px/1 var(--mono); color: var(--text-dim); opacity: .7; }
-td.hva { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; max-width: 52ch; white-space: normal; }
-
 /* ---- Status: coverage, quality, indexes ---- */
 .avsnitt { margin: -4px 0 10px; font-size: 13px; }
 .andel { font: 11px/1 var(--mono); color: var(--text-dim); margin-left: 8px; }
@@ -928,17 +922,24 @@ td.hva { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; max-width:
   font: 12px/1.6 var(--mono); font-variant-numeric: tabular-nums;
 }
 
-.indeksgruppe { border-bottom: 1px solid var(--border); }
-.indeksgruppe:last-child { border-bottom: none; }
-.indeksgruppe > summary {
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  padding: 8px 2px; cursor: pointer; list-style: none;
+/* A dense tree: every index visible at once, one line each. Tight leading is
+   the point — 66 rows should be scannable without scrolling past prose. */
+.indekstre { padding: 8px 10px; }
+.indekstabell-rad {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 0 2px; margin-top: 4px; border-top: 1px solid var(--border);
 }
-.indeksgruppe > summary::-webkit-details-marker { display: none; }
-.indeksgruppe > summary::before { content: '▸'; color: var(--text-dim); font-size: 10px; }
-.indeksgruppe[open] > summary::before { content: '▾'; }
-.indeksgruppe > summary:hover { background: var(--surface-2); }
-.indeksgruppe > summary .muted { margin-left: auto; font: 11px/1 var(--mono); }
-.indekstabell { margin: 0 0 10px 18px; font-size: 12.5px; }
-.indekstabell td { padding: 3px 8px; }
-.indekstabell .kolonner { font: 11.5px/1.5 var(--mono); max-width: 60ch; white-space: normal; }
+.indekstre > .indekstabell-rad:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+.indekstabell-navn { font-weight: 650; font-size: 13px; }
+.indekstabell-tall { margin-left: auto; font: 11px/1 var(--mono); color: var(--text-dim); }
+.indeksrad {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 1px 0 1px 14px; line-height: 1.45; min-width: 0;
+}
+.indeksrad:hover { background: var(--surface-2); }
+.indeksnavn { font: 11.5px/1.45 var(--mono); color: var(--text-dim); flex: 0 0 auto; }
+.indekskolonner {
+  flex: 1; min-width: 0; font: 11.5px/1.45 var(--mono); color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.indeksbytes { flex: none; font: 11px/1.45 var(--mono); color: var(--text-dim); font-variant-numeric: tabular-nums; }

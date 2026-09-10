@@ -13,6 +13,31 @@ const alder = (sek: number | null) => {
 const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—'
 const varighet = (ms: number | null) => ms == null ? '—' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`
 const tall = (n: number) => n.toLocaleString('nb-NO')
+const pst = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1).replace('.', ',')} %` : '—'
+const storrelse = (b: number) =>
+  b >= 1e9 ? `${(b / 1e9).toFixed(1).replace('.', ',')} GB`
+  : b >= 1e6 ? `${Math.round(b / 1e6)} MB`
+  : `${Math.round(b / 1e3)} kB`
+
+/** Just the indexed columns out of the full CREATE INDEX statement. */
+function kolonnerAv(def: string) {
+  const m = def.match(/\((.*)\)(?:\s+WHERE\s+(.*))?$/)
+  if (!m) return ''
+  const hvor = def.match(/\sWHERE\s+(.+)$/)
+  return m[1].replace(/\s+/g, ' ') + (hvor ? ` — kun ${hvor[1]}` : '')
+}
+
+/** Indexes grouped by table, biggest table first. */
+const indeksGrupper = computed(() => {
+  const m = new Map<string, { tabell: string; indekser: any[]; bytes: number }>()
+  for (const i of data.value?.indekser ?? []) {
+    if (!m.has(i.tabell)) m.set(i.tabell, { tabell: i.tabell, indekser: [], bytes: 0 })
+    const g = m.get(i.tabell)!
+    g.indekser.push(i)
+    g.bytes += i.bytes
+  }
+  return [...m.values()].sort((a, b) => b.bytes - a.bytes)
+})
 
 // Anything not refreshed in over 48 hours is stale for a daily job.
 const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
@@ -26,7 +51,11 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       Importrutinene kjøres på server; denne siden viser hva de faktisk gjorde.
     </p>
 
-    <h2>Importer</h2>
+    <h2>Import-rutiner</h2>
+    <p class="muted avsnitt">
+      Jobbene som holder dataene oppdatert. De fleste kjører daglig; de tunge
+      fullfilene ukentlig. Hver kjøring logges, også når den feiler.
+    </p>
     <div class="tablewrap">
       <table class="meta">
         <thead>
@@ -90,6 +119,78 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       </table>
     </div>
 
+    <h2>Dekning</h2>
+    <p class="muted avsnitt">Hvor stor del av registeret hvert datasett faktisk når.</p>
+    <div class="card" v-if="data.dekningstall">
+      <table class="meta">
+        <tbody>
+          <tr><td>Foretak i registeret</td><td>{{ tall(data.dekningstall.foretak) }}</td></tr>
+          <tr>
+            <td>Har sendt inn regnskap</td>
+            <td>{{ tall(data.dekningstall.med_regnskap) }}
+              <span class="andel">{{ pst(data.dekningstall.med_regnskap, data.dekningstall.foretak) }}</span></td>
+          </tr>
+          <tr>
+            <td>Har skrevet en beskrivelse</td>
+            <td>{{ tall(data.dekningstall.med_beskrivelse) }}
+              <span class="andel">{{ pst(data.dekningstall.med_beskrivelse, data.dekningstall.foretak) }}</span></td>
+          </tr>
+          <tr>
+            <td>Arkiverte roller<br><span class="muted">roller som har opphørt</span></td>
+            <td>
+              {{ tall(data.dekningstall.arkiverte_roller) }}
+              <span class="muted" v-if="data.dekningstall.arkiv_siden">
+                — arkiverer siden {{ data.dekningstall.arkiv_siden }}<template v-if="data.dekningstall.arkiv_fra">, eldste {{ data.dekningstall.arkiv_fra }}</template>
+              </span>
+              <span class="muted" v-if="!data.dekningstall.arkiverte_roller">
+                (ingen roller har opphørt siden vi begynte å følge med)
+              </span>
+            </td>
+          </tr>
+          <tr><td>Slettet fra registeret</td><td>{{ tall(data.dekningstall.slettet) }}</td></tr>
+          <tr>
+            <td>Savnet i siste fullfil<br><span class="muted">venter på bekreftelse før de merkes slettet</span></td>
+            <td>{{ tall(data.dekningstall.savnet) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Datakvalitet</h2>
+    <p class="muted avsnitt">Det vi vet er feil eller utelatt, sagt høyt.</p>
+    <div class="card" v-if="data.dekningstall">
+      <table class="meta">
+        <tbody>
+          <tr>
+            <td>Regnskap med urimelig målestokk<br><span class="muted">utelatt fra rangeringer og filtre</span></td>
+            <td>{{ tall(data.dekningstall.urimelige) }}</td>
+          </tr>
+          <tr>
+            <td>Foretak Brreg svarer 500 på<br><span class="muted">finansforetak API-et ikke klarer å levere</span></td>
+            <td>{{ tall(data.dekningstall.hentefeil) }}</td>
+          </tr>
+          <tr>
+            <td>Valuta i regnskapstallene</td>
+            <td>
+              <span v-for="v in data.valutaer" :key="v.kilde + v.valuta" class="valutabit">
+                {{ v.valuta }} {{ tall(v.rader) }}
+                <span class="muted">{{ v.kilde === 'brreg-api' ? 'API' : 'historikk' }}</span>
+              </span>
+              <span class="muted hint" style="display:block; margin-top:6px">
+                Historikkfilen oppgir NOK for alt. API-et er uenig for rundt én
+                prosent, og de leses som ti ganger for store til de er hentet på nytt.
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Markør i endringsstrømmen<br><span class="muted">neste kjøring fortsetter herfra</span></td>
+            <td><code>{{ data.dekningstall.markor }}</code>
+              <span class="muted"> · {{ tid(data.dekningstall.markor_at) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <h2>Regnskapsdekning</h2>
     <div class="card">
       <table class="meta">
@@ -106,7 +207,8 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
     <div class="card" v-if="data?.embedding">
       <div class="row" style="justify-content:space-between; align-items:baseline">
         <strong>
-          {{ tall(data.embedding.gjort) }} av {{ tall(data.embedding.totalt) }} beskrivelser
+          {{ tall(data.embedding.totalt) }} beskrivelser
+          <span v-if="data.embedding.sist" class="sistoppdatert">({{ tid(data.embedding.sist) }})</span>
         </strong>
         <span class="pill" :class="data.embedding.ferdig ? 'ok' : 'warn'">
           {{ data.embedding.andel.toLocaleString('nb-NO') }} %
@@ -131,10 +233,33 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <code>./run-import.sh embedding</code>, og kan stoppes og startes igjen
           uten å miste arbeid.
         </template>
-        <template v-if="data.embedding.sist">
-          Sist oppdatert {{ tid(data.embedding.sist) }}.
-        </template>
+
       </p>
+    </div>
+
+    <h2>Indekser</h2>
+    <p class="muted avsnitt">
+      {{ data.indekser.length }} indekser. Hver av dem er en avgjørelse om hva
+      som skal være raskt — kommentarene i <code>server-drift/migrations/</code>
+      sier hvorfor hver enkelt finnes.
+    </p>
+    <div class="card">
+      <details v-for="g in indeksGrupper" :key="g.tabell" class="indeksgruppe">
+        <summary>
+          <span class="jobbnavn">{{ beskrivTabell(g.tabell).tittel }}</span>
+          <code class="jobbkode">{{ g.tabell }}</code>
+          <span class="muted">{{ g.indekser.length }} indekser · {{ storrelse(g.bytes) }}</span>
+        </summary>
+        <table class="meta indekstabell">
+          <tbody>
+            <tr v-for="i in g.indekser" :key="i.navn">
+              <td><code>{{ i.navn }}</code></td>
+              <td class="muted kolonner">{{ kolonnerAv(i.definisjon) }}</td>
+              <td style="text-align:right; white-space:nowrap">{{ storrelse(i.bytes) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
     </div>
 
     <h2>Database</h2>

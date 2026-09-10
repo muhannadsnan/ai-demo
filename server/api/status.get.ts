@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     return { ...(cache.data as object), fra_cache: true, cache_alder_sek: Math.round((Date.now() - cache.tid) / 1000) }
   }
 
-  const [tabeller, importer, dekning, embedding] = await Promise.all([
+  const [tabeller, importer, dekning, daekning2, valutaer, indekser, embedding] = await Promise.all([
     query(`
       SELECT 'enheter' AS tabell, count(*) AS rader FROM enheter
       UNION ALL SELECT 'roller', count(*) FROM roller
@@ -57,6 +57,49 @@ export default defineEventHandler(async (event) => {
                   count(*) FILTER (WHERE kilde = 'historikk')  AS fra_historikk
            FROM regnskap`),
 
+    /**
+     * Coverage, quality and position — the three questions a status page
+     * should answer beyond "did the job run".
+     *
+     * Coverage: how much of the register each dataset actually reaches.
+     * Quality: what we know is wrong or excluded, stated rather than hidden.
+     * Position: where the change feed cursor stands, which is what makes a gap
+     * in scheduling safe.
+     */
+    query(`SELECT
+             (SELECT count(*)::int FROM enheter WHERE slettet_dato IS NULL) AS foretak,
+             (SELECT count(*)::int FROM enheter WHERE slettet_dato IS NULL
+               AND siste_innsendte_aarsregnskap IS NOT NULL) AS med_regnskap,
+             (SELECT count(*)::int FROM enheter WHERE slettet_dato IS NULL
+               AND length(coalesce(aktivitet, vedtektsfestet_formaal)) >= 12) AS med_beskrivelse,
+             (SELECT count(*)::int FROM enheter WHERE slettet_dato IS NOT NULL) AS slettet,
+             (SELECT count(*)::int FROM enheter WHERE savnet_siden IS NOT NULL) AS savnet,
+             (SELECT count(*)::int FROM roller_historikk) AS arkiverte_roller,
+             (SELECT min(sist_sett)::date::text FROM roller_historikk) AS arkiv_fra,
+             -- When archiving began, so an empty table reads as "nothing has
+             -- ended yet" rather than "this is broken".
+             (SELECT applied_at::date::text FROM schema_migrations
+               WHERE filename LIKE '%roller_history%' ORDER BY filename LIMIT 1) AS arkiv_siden,
+             (SELECT siste_id::text FROM import_cursor WHERE kilde = 'enheter') AS markor,
+             (SELECT oppdatert_at FROM import_cursor WHERE kilde = 'enheter') AS markor_at,
+             (SELECT count(*)::int FROM regnskap_siste WHERE NOT rimelig) AS urimelige,
+             (SELECT count(*)::int FROM regnskap_hentelogg WHERE status = 'feil') AS hentefeil,
+             (SELECT count(*)::int FROM regnskap_hentelogg WHERE status = 'ingen_data') AS ingen_regnskap`),
+
+    // Currency mix. The bulk history records NOK for everything; the API
+    // disagrees for about one percent, and those companies read as ten times
+    // their true size until they are refetched. Worth showing, not hiding.
+    query(`SELECT kilde, coalesce(valuta, '—') AS valuta, count(*)::int AS rader
+           FROM regnskap GROUP BY 1, 2 ORDER BY 1, 3 DESC`),
+
+    // Every index, grouped by table on the page. An index is a design
+    // decision, and this is the cheapest way to show which ones exist.
+    query(`SELECT tablename AS tabell, indexname AS navn,
+                  pg_relation_size(indexname::regclass) AS bytes,
+                  indexdef AS definisjon
+           FROM pg_indexes WHERE schemaname = 'public'
+           ORDER BY tablename, indexname`),
+
     // Embedding coverage. The first pass over 1.1 million descriptions takes
     // about 100 minutes, and while it runs the semantic search silently covers
     // only part of the data — which looks like bad results rather than an
@@ -78,6 +121,9 @@ export default defineEventHandler(async (event) => {
     tabeller: tabeller.map(t => ({ ...t, rader: Number(t.rader) })),
     importer,
     regnskapsdekning: dekning[0],
+    dekningstall: daekning2[0],
+    valutaer,
+    indekser: indekser.map(i => ({ ...i, bytes: Number(i.bytes) })),
     embedding: (() => {
       const e = embedding[0] ?? {}
       const gjort = Number(e.gjort ?? 0), totalt = Number(e.totalt ?? 0)

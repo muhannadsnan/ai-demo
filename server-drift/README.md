@@ -792,6 +792,31 @@ Two things that switching costs, and neither is optional:
   with the provider for the same reason `relevanceFloor` does. A number carried
   across models does not error; the filter just stops filtering.
 
+### What the status page answers
+
+Four questions, in the order someone actually asks them.
+
+**Did the jobs run?** Every run of every import routine, with what it read,
+changed and deleted, how long it took, and its error if it failed.
+
+**How much of the register do we reach?** 1,173,073 companies; 449,606 have ever
+filed accounts; 1,113,918 wrote a description. Coverage is a fact about the
+source, not a defect — most Norwegian companies never file accounts — and
+showing it stops the gap looking like a bug.
+
+**What do we know is wrong?** Stated rather than hidden: the 1,125 filings with
+an implausible scale that rankings exclude, the 42 companies Brreg returns 500
+for, and the currency mix — which is where the bulk file's blanket NOK meets the
+API disagreeing about roughly one percent.
+
+**Where is the cursor?** The last change-feed event handled, and when. That one
+number is what makes an unscheduled gap safe, so it belongs on the page rather
+than only in the code.
+
+Plus every index in the database, collapsed per table with its columns and size,
+because an index is a design decision and this is the cheapest way to show which
+ones were made.
+
 ### The names, and what they actually mean
 
 The database uses Norwegian register vocabulary, which is precise and opaque to

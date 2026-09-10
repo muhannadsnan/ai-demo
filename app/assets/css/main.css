@@ -19,23 +19,61 @@
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1a1a19;
-    --surface: #232322;
-    --surface-2: #2c2c2a;
-    --border: #3a3a37;
-    --text: #ececea;
-    --text-dim: #a3a29d;
-    --accent: #e8834a;
-    --accent-soft: #2e211a;
-    --ok: #6cc08b;
-    --warn: #d8a94a;
-    --info: #6fb3ee;
-    --info-soft: #17293b;
-    --user-boble: #a8501c;
-  }
+/* ---- The dark chrome ------------------------------------------------------
+   This design is a hybrid and is committed to on purpose: a light page, with
+   the chrome on a dark ground — the header, the filter rail, and the note under
+   each page heading. Both accents carry across: orange for actions and active
+   state, blue for informational values.
+
+   The `prefers-color-scheme: dark` block that used to sit here is deliberately
+   gone. It flipped the whole palette, which is why the app read as fully dark
+   on a dark-mode desktop. Honouring it now would invert the page *behind*
+   panels that stay dark either way, and the contrast this design depends on
+   would be destroyed rather than preserved.
+
+   Implemented by redefining the tokens on the containers rather than by writing
+   a second set of rules. Every control inside already paints itself from
+   var(--surface) / var(--border) / var(--text), so scoping the values here is
+   enough — inputs, fieldsets and legends in the rail follow automatically, and
+   there is no parallel ".dark input" ruleset to keep in sync. */
+.chrome-mork,
+header.top,
+.filter-sidebar,
+.lede, .sidebeskrivelse {
+  /* A warm charcoal, not a near-black. Against a #fbfbfa page the original
+     #232322 was close to maximum contrast, which made every panel edge read as
+     a hard cut across the screen. Lifting the panels to a mid tone keeps the
+     light/dark separation legible while letting the two grounds sit together. */
+  --surface: #44423d;
+  --surface-2: #4f4d47;
+  --border: #5a574f;
+  --text: #f4f3f0;
+  --text-dim: #c9c7bf;
+  /* The light-ground orange (#b4541f) fails badly on a dark panel; these are
+     the lifted variants, and they keep the same two-accent identity. Both are
+     re-lifted for the paler ground — #e8834a lost separation against #44423d. */
+  --accent: #f0975f;
+  --accent-soft: #55483c;
+  --ok: #8fd0a6;
+  --warn: #e2bd6b;
+  --info: #93c5ef;
+  --info-soft: #33414d;
+  color: var(--text);
 }
+
+/* Number and select controls are not covered by the base textarea/text rule,
+   so they would keep a white browser default inside a dark rail. */
+.filter-sidebar input[type="number"],
+.filter-sidebar select {
+  font: inherit; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 6px 8px;
+}
+
+/* Inputs need to lift off the panel they sit on; on the light ground the
+   surface/panel distinction did that work, and here both are dark. */
+.filter-sidebar textarea,
+.filter-sidebar input[type="text"] { background: var(--surface-2); }
 
 * { box-sizing: border-box; }
 
@@ -94,7 +132,10 @@ h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
 .lede, .sidebeskrivelse {
   color: var(--text-dim); max-width: none;
   margin: 0 10% 22px; padding: 12px 20px;
-  background: var(--surface-2); border-radius: 0;
+  /* --surface, not --surface-2: the same tone as the header and the filter
+     rail. One dark tone across all the chrome reads as a single material; two
+     near-but-unequal darks read as a mistake. */
+  background: var(--surface); border-radius: 0;
   line-height: 1.6;
 }
 code {

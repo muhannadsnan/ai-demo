@@ -42,7 +42,7 @@ const SOKEMAATER = [
   }
 ]
 
-const FUNKSJONER = [
+const FUNKSJONER = computed(() => [
   {
     tittel: 'Filtrer på det som betyr noe',
     hva: 'Fylke og kommune, næring i fire nivåer, antall ansatte og fem regnskapsstørrelser. Filtrene kombineres, og hvert aktivt filter kan fjernes for seg.',
@@ -55,7 +55,7 @@ const FUNKSJONER = [
     // usually called text-to-SQL, and this deliberately is not that — the model
     // produces a filter over a fixed vocabulary and never writes a query — so
     // borrowing the label would advertise the exact thing the design avoids.
-    merke: 'naturlig språk → filter, ikke SQL',
+    merke: 'naturlig språk → filter',
     hva: 'En språkmodell oversetter spørsmålet til et filter over faste felter. Den ser aldri databasen og kan ikke navngi et felt som ikke finnes. Tolkningen vises over resultatene, så du ser hvilket spørsmål som faktisk ble besvart.',
     lenke: { path: '/ai-db-search' },
     eksempel: '«aktive byggefirmaer i Bergen med over 50 ansatte»'
@@ -70,7 +70,7 @@ const FUNKSJONER = [
     tittel: 'Topplister',
     hva: 'Rangeringer regnet ut av hele datasettet hver natt, ikke per besøk. Konkurser, regnskap, roller, eierskap og geografi.',
     lenke: { path: '/topplister' },
-    eksempel: `${data.value?.lister?.length ?? 21} lister, oppdatert i natt`
+    eksempel: `${data.value?.antallLister ?? 21} lister, oppdatert i natt`
   },
   {
     tittel: 'Assistent',
@@ -84,7 +84,7 @@ const FUNKSJONER = [
     lenke: { path: '/status' },
     eksempel: 'siste kjøring, dekning og datakvalitet'
   }
-]
+])
 </script>
 
 <template>
@@ -137,7 +137,7 @@ const FUNKSJONER = [
       </NuxtLink>
     </div>
 
-    <h2>Og videre</h2>
+    <h2>Resten av plattformen</h2>
     <div class="forsidekort">
       <NuxtLink v-for="f in FUNKSJONER" :key="f.tittel" class="inngang" :to="f.lenke">
         <h3>{{ f.tittel }}</h3>
@@ -190,10 +190,18 @@ const FUNKSJONER = [
 .maate.fremhevet { border-color: var(--accent); background: var(--accent-soft); }
 .maate-tittel { font-weight: 650; font-size: 14px; }
 .maate-hva { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
-.maate-eksempel {
-  margin-top: auto; padding-top: 8px;
-  font: 12px/1.4 var(--mono); color: var(--accent);
+/* The example is the clickable promise of the card, so it looks like one: its
+   own ground, in the info colour rather than the accent, so it reads as a
+   sample to try instead of competing with the card title. */
+.maate-eksempel, .inngang-eksempel {
+  align-self: flex-start; margin-top: auto;
+  padding: 4px 9px; border-radius: 5px;
+  background: var(--info-soft); color: var(--info);
+  font: 12px/1.5 var(--mono);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.maate { padding-bottom: 14px; }
+.maate-eksempel { margin-top: 10px; }
 
 .forsidekort {
   display: grid; gap: 12px;
@@ -212,10 +220,7 @@ const FUNKSJONER = [
   font: 11px/1.4 var(--mono); color: var(--text-dim);
 }
 .inngang p { font-size: 12.5px; color: var(--text-dim); margin: 0; line-height: 1.55; }
-.inngang-eksempel {
-  margin-top: auto; padding-top: 10px;
-  font: 12px/1.4 var(--mono); color: var(--text-dim);
-}
+.inngang-eksempel { margin-top: 12px; }
 .ferskhet p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; }
 .ferskhet p:last-child { margin-bottom: 0; }
 .kildenote { margin-top: 22px; }

@@ -83,7 +83,8 @@ export default defineEventHandler(async (event) => {
              e.antall_ansatte, e.har_registrert_antall_ansatte,
              e.konkurs, e.under_avvikling, e.under_tvangsavvikling,
              e.stiftelsesdato, e.registreringsdato_enhetsregisteret
-             ${trengerRegnskap ? ', r.sum_driftsinntekter, r.aarsresultat, r.aar' : ''}
+             ${trengerRegnskap ? `, r.sum_driftsinntekter, r.aarsresultat, r.aar,
+                r.driftsresultat, r.sum_egenkapital, r.sum_eiendeler` : ''}
              ${semantisk ? `, round((1 - (${semantiskLedd}))::numeric, 3) AS likhet, left(coalesce(e.aktivitet, e.vedtektsfestet_formaal), 160) AS utdrag` : ''}
       FROM enheter e ${join}
       WHERE ${where.join(' AND ')}

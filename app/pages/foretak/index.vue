@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { kort } from "~/utils/tall"
+import { kort, belopKort } from "~/utils/tall"
 const route = useRoute()
 const router = useRouter()
 
@@ -35,9 +35,27 @@ const BELOP = [
 ]
 // string | number: <input type="number"> hands back a Number via v-model.
 const belop = reactive<Record<string, string | number>>({})
+
+/**
+ * Read a range bound back OUT of the URL, which stores kroner.
+ *
+ * The fields are in thousands and `iKroner` multiplies by 1000 on the way into
+ * the query string. Reading the same parameter straight back into the field
+ * treated kroner as thousands, so every reload multiplied the bound by 1000:
+ * type 1000, get ?resultat_min=1000000, reload, and the field now says
+ * 1000000 — a filter a thousand times wider than the one you set, silently.
+ * The unit has to be undone on the way in exactly as it is applied on the way
+ * out.
+ */
+const fraKroner = (v: unknown) => {
+  const s = v === null || v === undefined ? '' : String(v).trim()
+  if (s === '' || !Number.isFinite(Number(s))) return ''
+  return String(Number(s) / 1000)
+}
+
 for (const b of BELOP) {
-  belop[`${b.navn}_min`]  = String(route.query[`${b.navn}_min`]  ?? '')
-  belop[`${b.navn}_maks`] = String(route.query[`${b.navn}_maks`] ?? '')
+  belop[`${b.navn}_min`]  = fraKroner(route.query[`${b.navn}_min`])
+  belop[`${b.navn}_maks`] = fraKroner(route.query[`${b.navn}_maks`])
 }
 /**
  * These fields are <input type="number">, and Vue casts a numeric v-model on
@@ -137,7 +155,8 @@ const merkelapper = computed(() => {
       const v = belop[`${b.navn}_${ende}`]
       if (somTekst(v).trim()) ut.push({
         nokkel: `${b.navn}_${ende}`,
-        tekst: `${b.tittel} ${ende === 'min' ? 'fra' : 'til'} ${Number(v).toLocaleString('nb-NO')}k`,
+        // v is in thousands; belopKort() takes kroner, so convert at this one point.
+        tekst: `${b.tittel} ${ende === 'min' ? 'fra' : 'til'} ${belopKort(Number(v) * 1000, true)}`,
         fjern: () => { belop[`${b.navn}_${ende}`] = ''; sok() }
       })
     }
@@ -224,6 +243,59 @@ const treffTekst = computed(() => {
 
 function oppdaterUrl() { router.replace({ query: params.value }) }
 function sok()          { side.value = 1; oppdaterUrl() }
+
+/**
+ * Read the whole filter state back OUT of the URL.
+ *
+ * Everything above flows one way — refs to `params` to `useFetch` — and
+ * `oppdaterUrl` writes that state into the query string. Nothing read it back,
+ * so following a link to /foretak?<other query> changed the address bar and
+ * nothing else: the route is the same, Vue Router reuses the component, the
+ * refs keep their old values and `params` never changes, so no refetch. That is
+ * what made a saved search look like it did nothing.
+ *
+ * Also fixes the browser Back button, which had the same defect for the same
+ * reason.
+ */
+function lesFraUrl() {
+  const s = (n: string) => String(route.query[n] ?? '')
+  q.value = s('q');  gjor.value = s('gjor');  semantisk.value = s('semantisk') === 'true'
+  fylke.value = s('fylke');  kommune.value = s('kommune')
+  ansatte.value = s('ansatte');  ansatteMaks.value = s('ansatte_maks')
+  konkurs.value = s('konkurs') === 'true'
+  avvikling.value = s('avvikling') === 'true'
+  nye.value = s('nye') === 'true'
+  aktive.value = s('aktive') !== 'false'
+  nace.value = s('nace').split(',').filter(Boolean)
+  sorter.value = s('sorter') || 'ansatte'
+  side.value = Number(route.query.side ?? 1)
+  per.value = Number(route.query.per ?? 10)
+  for (const b of BELOP) {
+    belop[`${b.navn}_min`]  = fraKroner(route.query[`${b.navn}_min`])
+    belop[`${b.navn}_maks`] = fraKroner(route.query[`${b.navn}_maks`])
+  }
+}
+
+/**
+ * Compare two query objects by value, ignoring key order and empty entries.
+ * Needed because `oppdaterUrl` writing the URL also fires the watcher below —
+ * without this, every search would immediately re-read its own write, and any
+ * value the URL rounds differently would oscillate.
+ */
+function somNokkel(o: Record<string, unknown>) {
+  return new URLSearchParams(
+    Object.entries(o)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => [k, String(v)] as [string, string])
+      .sort(([a], [b]) => a.localeCompare(b))
+  ).toString()
+}
+
+watch(() => route.query, () => {
+  // Our own write — the refs already hold this state.
+  if (somNokkel(route.query as Record<string, unknown>) === somNokkel(params.value)) return
+  lesFraUrl()
+})
 function gaaTil(n: number) {
   side.value = Math.min(Math.max(n, 1), data.value?.sider ?? 1)
   oppdaterUrl()
@@ -290,6 +362,44 @@ const TRE_MND_MS = 92 * 24 * 60 * 60 * 1000
 function sted(f: any): string {
   return [f.forretningsadresse_postnummer, f.forretningsadresse_kommune]
     .filter(Boolean).join(', ')
+}
+
+/**
+ * The accounting figures to show on a result row, and which of them the search
+ * was actually filtered on.
+ *
+ * Driftsinntekter and årsresultat always show — they are what "how big is this
+ * company" means. Any other field you filtered on is added, because a row
+ * matched on egenkapital while showing only revenue asks the reader to take the
+ * match on trust. The filtered ones are marked so the answer to "why is this
+ * here?" is visible on the row rather than inferred from the sidebar.
+ */
+const FELTKART: Record<string, { tittel: string; kolonne: string }> = {
+  omsetning:      { tittel: 'driftsinntekter', kolonne: 'sum_driftsinntekter' },
+  resultat:       { tittel: 'resultat',        kolonne: 'aarsresultat' },
+  driftsresultat: { tittel: 'driftsresultat',  kolonne: 'driftsresultat' },
+  egenkapital:    { tittel: 'egenkapital',     kolonne: 'sum_egenkapital' },
+  eiendeler:      { tittel: 'eiendeler',       kolonne: 'sum_eiendeler' }
+}
+
+/** Which range filters are currently set — drives both the display and the mark. */
+const filtrerteBelop = computed(() => new Set(
+  BELOP.filter(b => somTekst(belop[`${b.navn}_min`]).trim()
+                 || somTekst(belop[`${b.navn}_maks`]).trim())
+       .map(b => b.navn)))
+
+function belopsrad(f: any) {
+  const aktive = filtrerteBelop.value
+  const vis = ['omsetning', 'resultat', ...aktive].filter((n, i, a) => a.indexOf(n) === i)
+  return vis
+    .map(navn => {
+      const k = FELTKART[navn]
+      if (!k) return null
+      const verdi = f[k.kolonne]
+      if (verdi === null || verdi === undefined) return null
+      return { navn, tittel: k.tittel, verdi: Number(verdi), aktiv: aktive.has(navn) }
+    })
+    .filter(Boolean) as { navn: string; tittel: string; verdi: number; aktiv: boolean }[]
 }
 
 function avkort(tekst: string | null, tak = 100): string {
@@ -407,7 +517,14 @@ function merke(f: any): { klasse: string, tittel: string } | null {
             <span class="strek">–</span>
             <input v-model="belop[`${b.navn}_maks`]" type="number" placeholder="til" @keydown.enter="sok">
           </div>
-          <p class="muted hint">Beløp i tusen kroner, fra siste innsendte regnskap.</p>
+          <!-- The unit is the trap here: "1000000" in a field measured in
+               thousands is a billion kroner, not a million. The example makes
+               the scale concrete, and the chip above echoes the amount back in
+               kroner so a wrong one is visible before you read the results. -->
+          <p class="muted hint">
+            Beløp i <strong>tusen</strong> kroner — 1 000 = 1m kr, 1 000 000 = 1b kr.
+            Fra siste innsendte regnskap.
+          </p>
         </fieldset>
 
         <fieldset>
@@ -474,7 +591,11 @@ function merke(f: any): { klasse: string, tittel: string } | null {
               <span class="treffrad-navn">
                 <i v-if="merke(f)" class="merke" :class="merke(f)!.klasse" :title="merke(f)!.tittel" />
                 {{ avkort(f.navn) }}
+                <!-- One badge per row: a company cannot be both newly founded
+                     and closed in a way worth showing twice, and bankruptcy is
+                     the more important fact — the same precedence merke() uses. -->
                 <span v-if="inaktiv(f)" class="pill bad">{{ status_tekst(f) }}</span>
+                <span v-else-if="merke(f)?.klasse === 'ny'" class="pill ok">Nyetablert</span>
               </span>
               <span class="treffrad-sted">
                 <span class="pill nokkel">{{ f.organisasjonsform_kode }}</span>
@@ -495,11 +616,16 @@ function merke(f: any): { klasse: string, tittel: string } | null {
               {{ f.utdrag }}
             </span>
             <span v-if="data.medRegnskap && f.sum_driftsinntekter != null" class="treffrad-tall">
-              {{ Math.round(Number(f.sum_driftsinntekter) / 1000).toLocaleString('nb-NO') }} i driftsinntekter
-              <template v-if="f.aarsresultat != null">
-                · <span :class="{ neg: Number(f.aarsresultat) < 0 }">{{ Math.round(Number(f.aarsresultat) / 1000).toLocaleString('nb-NO') }}</span> i resultat
+              <template v-for="(t, i) in belopsrad(f)" :key="t.navn">
+                <span v-if="i" class="skille"> · </span>
+                <!-- .traff marks the field this row was filtered on, so "why is
+                     this in my results?" is answered on the row itself. -->
+                <span :class="{ traff: t.aktiv }">
+                  <span :class="{ neg: t.verdi < 0 }">{{ belopKort(t.verdi) }}</span>
+                  i {{ t.tittel }}
+                </span>
               </template>
-              <span class="muted">({{ f.aar }}, tusen kr)</span>
+              <span class="muted">({{ f.aar }})</span>
             </span>
           </NuxtLink>
 

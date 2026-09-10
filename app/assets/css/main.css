@@ -380,7 +380,7 @@ table.meta td { padding-right: 10px; }
 .treffrad {
   display: block; text-decoration: none; color: inherit;
   padding: 11px 12px; margin: 0 -12px;
-  border-bottom: 1px solid var(--border); border-radius: 6px;
+  border-bottom: 1px solid var(--border); border-radius: 0;
 }
 .treffrad:hover { background: var(--surface-2); }
 .treffrad-navn { font-weight: 600; font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -389,8 +389,11 @@ table.meta td { padding-right: 10px; }
 
 /* Inactive companies are tinted rather than merely labelled, so a page of
    results shows at a glance which ones are dead. */
-.treffrad.inaktiv { background: #c0392b0f; border-left: 3px solid #c0392b88; padding-left: 9px; }
-.treffrad.inaktiv:hover { background: #c0392b1c; }
+/* Status is carried by the badge on the name, not by tinting the whole row.
+   The tint and left rule that used to be here coloured a third of the results
+   red on any search that included bankrupt companies, which made the page read
+   as an error state rather than as a list containing some closed businesses.
+   The badge says the same thing in the one place the eye is already looking. */
 
 .paginator { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin: 22px 0 0; }
 .paginator-tall {
@@ -891,3 +894,18 @@ nav.tabs a.router-link-active {
   background: #fffdfb;
 }
 .velger:focus { outline: 2px solid #b95d28; outline-offset: -1px; }
+
+/* The figure a search was filtered on, marked on each result row. Orange means
+   "you acted on this" everywhere else on the page, and a range filter is an
+   action, so it means the same thing here. Tinted ground rather than coloured
+   text: the number itself still has to read as a number, and negative values
+   keep their red. */
+.treffrad-tall .traff {
+  background: #fdeee0;
+  border-bottom: 1px solid #e8b98c;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #7a3d15;
+}
+.treffrad-tall .traff .neg { color: #a5301f; }
+.treffrad-tall .skille { color: var(--text-dim); }

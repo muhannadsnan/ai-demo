@@ -10,8 +10,8 @@
  * is nb-NO formatted and a Norwegian reader takes "1.2b" as one thousand two
  * hundred b. The k/m/b letters are kept as-is.
  *
- * NOT for money. Accounting figures are shown in full, in thousands, because
- * the exact number is the entire point of an accounts table.
+ * NOT for money in an accounts table — see belop() below for the money case and
+ * the line that separates them.
  */
 export function kort(n: number | null | undefined): string {
   if (n == null) return '—'
@@ -25,4 +25,26 @@ export function kort(n: number | null | undefined): string {
     ? v.toFixed(1).replace('.', ',').replace(',0', '')
     : v.toFixed(0)
   return tekst + suffiks
+}
+
+/**
+ * Money, compactly, from an amount in KRONER: 1b kr · 35,5b · 396m · −236m
+ *
+ * The accounts table still shows figures in full — the exact number is the
+ * entire point there, and that rule has not changed. This is for the places
+ * where an amount is a *magnitude* rather than a figure: a search result line
+ * and a filter chip. In those, "35 471 086" forces you to count digits to learn
+ * that it means thirty-five billion, and counting digits is the one thing the
+ * reader should never have to do.
+ *
+ * It also makes a wrong filter visible. Typing 1000000 into a field labelled
+ * "tusen kroner" means one billion kroner, not one million — a chip reading
+ * "1 000 000k" hides that, and one reading "1b kr" gives it away immediately.
+ *
+ * Takes kroner, not thousands, so every caller converts at one boundary.
+ */
+export function belopKort(kroner: number | null | undefined, medEnhet = false): string {
+  if (kroner == null) return '—'
+  const tekst = kort(kroner)
+  return medEnhet ? `${tekst} kr` : tekst
 }

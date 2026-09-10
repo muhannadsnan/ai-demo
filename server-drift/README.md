@@ -701,6 +701,42 @@ the question. The corpus is Norwegian compound nouns — *undervannssveising*,
 *hundepensjonat*, *regnskapsførervirksomhet* — which is exactly where an
 English-centric embedder degrades.
 
+### The two searches are complementary, and the corpus proves it
+
+Semantic search is not a better keyword search. On this corpus they fail in
+opposite directions, and the reason is Norwegian compounding.
+
+| query | keyword | semantic |
+|---|---|---|
+| `undervannssveising` | 2 exact hits, 0.065 ms | nothing within the cutoff |
+| `dykking og undervannsarbeid` | 0 — nobody wrote that phrase | Hatletveit Arbeidsdykk, Skaar Dykking, Råen Dykk (0.234) |
+| `folk som passer hunder` | 0 | Bergen Hjemmekennel, Hund og Pass (0.397) |
+
+A single rare compound noun embedded on its own lands nowhere useful — measured,
+`undervannssveising` alone sits at 0.496 from a set of *eierseksjonssameier*,
+while the actual diving companies are further away at 0.497-0.613. Spread the
+same meaning across a phrase and it snaps into place at 0.234.
+
+So the cutoff is set to fail rather than fill: at 0.50 that query returns
+sixteen property co-ownerships, at 0.45 it returns nothing and the page says the
+meaning search wants a sentence and offers the keyword search, which finds those
+companies exactly because they wrote the word.
+
+Keeping both modes is the point. Keyword answers "who wrote this word", semantic
+answers "who does this kind of thing", and neither is a replacement for the
+other.
+
+#### The count is skipped for semantic searches
+
+HNSW is an ORDERING index: it answers "what is nearest", not "what is within a
+distance". So `WHERE distance < x` cannot use it, and counting the matches
+degrades to computing the distance for every row until the cap is reached —
+measured at **2,640 ms of a 2,800 ms request**.
+
+It was also answering a question that does not apply. A semantic result set is
+"the N nearest", not a membership with a size. Dropping the count took the same
+search to **0.2-0.4 s**.
+
 ### Running the embeddings somewhere other than this machine
 
 The embedding pass is the only part of this project that wants a GPU, and it is

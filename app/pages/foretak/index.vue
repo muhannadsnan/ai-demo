@@ -577,7 +577,14 @@ function merke(f: any): { klasse: string, tittel: string } | null {
 
         <template v-else-if="data">
           <div v-if="!data.foretak.length" class="card muted">
-            Ingen treff. Fjern et filter over, eller prøv et kortere navn.
+            <template v-if="data.semantisk">
+              Ingen beskrivelser ligger nær nok spørsmålet. Meningssøket er best
+              på hele setninger — «dykking og undervannsarbeid» treffer der
+              «undervannssveising» alene ikke gjør det. Prøv å beskrive
+              virksomheten, eller slå av «forstå meningen» og søk på ordet
+              direkte.
+            </template>
+            <template v-else>Ingen treff. Fjern et filter over, eller prøv et kortere navn.</template>
           </div>
 
           <NuxtLink

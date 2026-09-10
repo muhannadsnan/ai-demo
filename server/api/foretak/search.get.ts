@@ -72,6 +72,13 @@ export default defineEventHandler(async (event) => {
   // Nobody pages to result 900,000. Counting up to a ceiling and reporting
   // "10 000+" beyond it answers the only question the number is asked for —
   // roughly how many, and how many pages — and stops after 10,001 rows.
+  //
+  // A semantic search skips the count entirely. HNSW is an ORDERING index —
+  // it answers "what is nearest", not "what is within a distance" — so a
+  // `WHERE distance < x` count cannot use it and degrades to computing the
+  // distance for every row until it has counted enough. Measured: 2,640 ms of
+  // a 2,800 ms request, to produce a number that means nothing anyway. The
+  // semantic result set is "the N nearest", not a membership with a size.
   const TAK = 10000
   const [rows, antall] = await Promise.all([
     query(`
@@ -91,13 +98,15 @@ export default defineEventHandler(async (event) => {
       ORDER BY ${sortering}
       LIMIT ${bind(perPage)} OFFSET ${bind((page - 1) * perPage)}`, params),
 
-    query(`SELECT count(*)::int AS n FROM (
-             SELECT 1 FROM enheter e ${join} WHERE ${where.join(' AND ')} LIMIT ${TAK + 1}
-           ) x`, params.slice(0, params.length - 2))
+    semantisk
+      ? Promise.resolve([{ n: 0 }])
+      : query(`SELECT count(*)::int AS n FROM (
+                 SELECT 1 FROM enheter e ${join} WHERE ${where.join(' AND ')} LIMIT ${TAK + 1}
+               ) x`, params.slice(0, params.length - 2))
   ])
 
   const raatt = antall[0]?.n ?? 0
-  const total = Math.min(raatt, TAK)
+  const total = semantisk ? rows.length : Math.min(raatt, TAK)
   const flere = raatt > TAK
 
   return {

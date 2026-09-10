@@ -75,10 +75,39 @@ export function createOpenAiProvider(config: OpenAiConfig): AiProvider {
      * too HIGH is silent, because the only symptom is an answer you never see.
      */
     relevanceFloor: 0.22,
-    // PROVISIONAL until measured against text-embedding-3-small on this
-    // corpus. Do not copy nomic's 0.62 — the models put "related" at
-    // different distances, and a borrowed cutoff silently stops filtering.
-    distanseTak: 0.62,
+    /**
+     * Measured against text-embedding-3-small on the full 1.11M corpus, not
+     * carried over. nomic's 0.62 was doing almost nothing here:
+     *
+     *   query                          <0.45   <0.50    <0.55     <0.62
+     *   undervannssveising                 0      16      525    29 461
+     *   kunstig intelligens              115     645    6 075    65 073
+     *   regnskapsfører for små bedrifter 1311   6 915   43 550   248 673
+     *
+     * 0.62 returns a quarter of a million companies for "regnskapsfører",
+     * which is not a filter. 0.45 is too tight in the other direction — it
+     * returns nothing for underwater welding, whose genuine matches start
+     * above it.
+     *
+     * 0.45 rather than 0.50, because of how the model handles a single rare
+     * compound noun. Norwegian builds words like "undervannssveising", and
+     * embedded alone, with no sentence around it, that lands nowhere near the
+     * diving companies:
+     *
+     *   "undervannssveising"                    0.496  Eierseksjonssameie (!)
+     *   "sveising under vann"                   0.398  Fiskå Undervannsservice
+     *   "dykking og undervannsarbeid"           0.234  Hatletveit Arbeidsdykk
+     *
+     * At 0.50 the first of those returns sixteen property co-ownerships. At
+     * 0.45 it returns nothing, and the page says so and offers the keyword
+     * search — which finds those companies exactly, because they wrote the
+     * word. Failing visibly beats answering a question nobody asked.
+     *
+     * It costs little on queries that work: the dog-sitting query keeps ranks
+     * 1-25 (0.397-0.445), where relevance is exact, and drops the tail that was
+     * drifting off-topic by rank 400 (0.498).
+     */
+    distanseTak: 0.45,
 
     async *streamChat(messages: ChatMessage[], opts: ChatOptions = {}) {
       const res = await fetch(`${config.baseUrl}/chat/completions`, {

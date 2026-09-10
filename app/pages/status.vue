@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { beskrivTabell, beskrivJobb } from "~/utils/datasett"
+
 const { data } = await useFetch('/api/status')
 
 const alder = (sek: number | null) => {
@@ -29,7 +31,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       <table class="meta">
         <thead>
           <tr>
-            <th>Kilde</th><th>Sist kjørt</th><th>Status</th>
+            <th>Jobb</th><th>Sist kjørt</th><th>Status</th>
             <th style="text-align:right">Lest</th>
             <th style="text-align:right">Nye</th>
             <th style="text-align:right">Endret</th>
@@ -39,7 +41,12 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
         </thead>
         <tbody>
           <tr v-for="i in data.importer" :key="i.kilde">
-            <td><code>{{ i.kilde }}</code></td>
+            <td>
+              <span class="jobbnavn">{{ beskrivJobb(i.kilde).tittel }}</span>
+              <span class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
+              <span class="jobbhva">{{ beskrivJobb(i.kilde).hva }}</span>
+              <code class="jobbkode">{{ i.kilde }}</code>
+            </td>
             <td>
               <span :class="fersk(i.alder_sek) ? 'fersk' : 'gammel'">{{ alder(i.alder_sek) }}</span>
               <span class="muted"> · {{ tid(i.ferdig_at ?? i.startet_at) }}</span>
@@ -60,15 +67,27 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       </table>
     </div>
     <p v-for="i in data.importer.filter(x => x.feilmelding)" :key="i.kilde" class="error-box">
-      <strong>{{ i.kilde }}</strong>: {{ i.feilmelding }}
+      <strong>{{ beskrivJobb(i.kilde).tittel }}</strong>: {{ i.feilmelding }}
     </p>
 
     <h2>Innhold</h2>
-    <div class="kort-rad">
-      <div class="kort" v-for="t in data.tabeller" :key="t.tabell">
-        <span class="kort-etikett">{{ t.tabell }}</span>
-        <span class="kort-tall" style="font-size:19px">{{ tall(t.rader) }}</span>
-      </div>
+    <div class="tablewrap">
+      <table class="meta">
+        <thead>
+          <tr><th>Datasett</th><th>Hva det er</th><th>Kilde</th><th style="text-align:right">Rader</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="t in data.tabeller" :key="t.tabell">
+            <td>
+              <span class="jobbnavn">{{ beskrivTabell(t.tabell).tittel }}</span>
+              <code class="jobbkode">{{ t.tabell }}</code>
+            </td>
+            <td class="hva">{{ beskrivTabell(t.tabell).hva }}</td>
+            <td class="muted" style="white-space:nowrap">{{ beskrivTabell(t.tabell).kilde }}</td>
+            <td style="text-align:right; white-space:nowrap">{{ tall(t.rader) }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <h2>Regnskapsdekning</h2>

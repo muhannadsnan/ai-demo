@@ -1,10 +1,13 @@
-# Monthly accounts refresh
+# Daily accounts fetch for companies that have filed something new
 [Unit]
-Description=Monthly accounts refresh
+Description=Daily accounts fetch for newly filed annual accounts
 
 [Timer]
 Unit=nordata@regnskap.service
-OnCalendar=*-*-01 06:00:00
+# 04:15, after the change feed at 04:00 has refreshed
+# enheter.siste_innsendte_aarsregnskap — which is the signal this job reads.
+# Running it before would ask yesterday's question.
+OnCalendar=*-*-* 04:15:00
 
 # If the machine was off when this was due, run it at next boot instead of
 # skipping the day silently.

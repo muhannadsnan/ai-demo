@@ -318,6 +318,7 @@ sudo systemctl start nordata@oppdateringer     # run one now
 | `roller` | Sunday 03:00 | Full roles reload, archiving ended roles |
 | `referansedata` | Monday 05:00 | Counties, municipalities, NACE, postcodes |
 | `regnskap` | 1st of month 06:00 | Refreshes accounts older than 90 days |
+| `regnskap` | daily 04:15 | Fetches accounts for companies that filed a year we lack |
 | `topplister` | daily 04:30 | Refreshes `regnskap_siste` and `eierskap_kant`, then recomputes the toplists |
 | `embedding` | daily 05:15 | Embeds descriptions that are new or rewritten |
 
@@ -790,6 +791,33 @@ Two things that switching costs, and neither is optional:
 - **The distance cutoff must be re-measured.** `AiProvider.distanseTak` travels
   with the provider for the same reason `relevanceFloor` does. A number carried
   across models does not error; the filter just stops filtering.
+
+### The names, and what they actually mean
+
+The database uses Norwegian register vocabulary, which is precise and opaque to
+anyone meeting the platform for the first time. Two of them look like the same
+thing, and the confusion is real enough that it needed writing down:
+**`enheter` is the weekly full file and `oppdateringer` is the daily change
+feed, and both write to the same table.** The feed is not a dataset — it is a
+list of which companies to go and re-fetch.
+
+`app/utils/datasett.ts` is the one place that maps each name to a plain
+description and the register it comes from; the status page reads it and shows
+both, keeping the database name in small type so someone reading the code can
+still connect the two.
+
+| Name | What it is | Source |
+|---|---|---|
+| `enheter` | Foretak — every registered company | Enhetsregisteret, full file |
+| `oppdateringer` | The daily change feed — which companies moved | Enhetsregisteret, change stream |
+| `roller` | Board members, CEOs, auditors, accountants | Enhetsregisteret |
+| `roller_historikk` | Roles that have ended, kept rather than deleted | Enhetsregisteret |
+| `regnskap` | Annual accounts per year | Regnskapsregisteret |
+| `aksjonar` | Who owns shares in what | Skatteetatens aksjonærregister |
+| `naeringskoder` | The five-level industry tree | SSB (NACE) |
+| `fornavn` | First-name statistics, for the gender estimate | SSB table 10501 |
+| `topplister` | Rankings computed from our own data | derived |
+| `embedding` | Descriptions turned into comparable numbers | OpenAI |
 
 ### Refreshing accounts: measure the constraint before designing around it
 

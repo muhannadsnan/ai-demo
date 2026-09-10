@@ -26,8 +26,22 @@ case "${1:-}" in
   # Weekly. Small lookup tables.
   referansedata) exec node ingest/import-reference.mjs ;;
 
-  # Monthly. Refreshes accounts older than 90 days for companies already known.
-  regnskap)      exec node ingest/fetch-regnskap.mjs --stale 90 --limit 2000 --throttle 1000 ;;
+  # Daily. Fetches accounts for companies the register says have filed a year
+  # we do not hold — enheter.siste_innsendte_aarsregnskap, kept current by the
+  # oppdateringer job above. Quiet most of the year, busy April to July when
+  # filings are due. Measured at 87 companies/sec: the initial backlog of 4,850
+  # took 59 seconds.
+  regnskap)      exec node ingest/fetch-regnskap.mjs --nye ;;
+
+  # One-off, and again if the data is ever suspect. Refetches every company
+  # that has ever filed, ~1.4 hours at the default concurrency. This is about
+  # correctness rather than freshness: the bulk history calls every row NOK,
+  # and the API says otherwise for about one percent of them.
+  regnskap-alle) exec node ingest/fetch-regnskap.mjs --alle ;;
+
+  # Monthly backstop for what the filing signal cannot see — a company
+  # restating a year we already hold does not change the year number.
+  regnskap-gamle) exec node ingest/fetch-regnskap.mjs --stale 180 --limit 20000 ;;
 
   # Daily, after the incremental update has landed. Refreshes the two
   # materialised views and recomputes the toplists, so the pages read small
@@ -63,6 +77,6 @@ case "${1:-}" in
     ;;
 
   *) echo "ukjent jobb: ${1:-<ingen>}" >&2
-     echo "gyldige: oppdateringer enheter roller referansedata regnskap topplister embedding alt" >&2
+     echo "gyldige: oppdateringer enheter roller referansedata regnskap regnskap-alle regnskap-gamle topplister embedding alt" >&2
      exit 64 ;;
 esac

@@ -909,3 +909,12 @@ nav.tabs a.router-link-active {
 }
 .treffrad-tall .traff .neg { color: #a5301f; }
 .treffrad-tall .skille { color: var(--text-dim); }
+
+/* ---- Status: dataset names in words ---- */
+.jobbnavn { display: block; font-weight: 600; font-size: 13.5px; }
+.jobbkilde { display: block; font: 11px/1.5 var(--mono); color: var(--accent); }
+.jobbhva { display: block; font-size: 12px; color: var(--text-dim); line-height: 1.5; max-width: 46ch; margin-top: 2px; }
+/* The database name still shown, small — someone reading the code needs to
+   connect the two, and hiding it would just move the confusion. */
+.jobbkode { font: 10.5px/1 var(--mono); color: var(--text-dim); opacity: .7; }
+td.hva { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; max-width: 52ch; white-space: normal; }

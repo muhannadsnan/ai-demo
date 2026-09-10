@@ -679,6 +679,28 @@ subsidiaries controlled, other board seats), so no single one runs away with the
 list. Ranking on raw seat count put one woman who chairs 259 kindergartens in
 twelve of the top twelve rows.
 
+### What the OpenAI switch actually changed
+
+The local pass reached 382,707 of 1.11M before it was stopped, wedging the GPU
+twice at 36-48 texts/sec. Rebuilt against `text-embedding-3-small` it runs at
+**220 texts/sec with the GPU idle**, finishing in about 80 minutes, and the
+measured cost of the corpus is 115.9M characters — roughly 29-39M tokens,
+**6-8 kroner**.
+
+The quality difference showed up before the run was 3% done. Searching *folk som
+passer hunder*:
+
+| | top results |
+|---|---|
+| nomic | Hundeskole, **FOLK I HUSAN AS (eiendomsutvikling)**, hundepass, hundeklubb |
+| text-embedding-3-small | Hundekjørerlag, hundeadopsjon, husky tours, veterinær, **"pass og stell av hunder og katter mens deres eiere…"** |
+
+nomic ranked a property developer second because the word *folk* appeared. The
+multilingual model did not, and found a kennel that used none of the words in
+the question. The corpus is Norwegian compound nouns — *undervannssveising*,
+*hundepensjonat*, *regnskapsførervirksomhet* — which is exactly where an
+English-centric embedder degrades.
+
 ### Running the embeddings somewhere other than this machine
 
 The embedding pass is the only part of this project that wants a GPU, and it is
@@ -732,6 +754,61 @@ Two things that switching costs, and neither is optional:
 - **The distance cutoff must be re-measured.** `AiProvider.distanseTak` travels
   with the provider for the same reason `relevanceFloor` does. A number carried
   across models does not error; the filter just stops filtering.
+
+### Refreshing accounts: measure the constraint before designing around it
+
+The bulk dump seeded 4,959,964 accounting rows across 448,600 companies. The
+API gives exact kroner where the dump is rounded to the nearest thousand — and,
+more importantly, gives the real currency. The dump records NOK for everything;
+of the first 975 companies refetched from the API, **9 were USD**. About one
+percent of companies therefore hold figures read as kroner that are dollars,
+which lands them straight at the top of every "largest" ranking at roughly ten
+times their true size.
+
+That is a correctness problem, not a freshness one, and it is the reason to
+refresh everything rather than a slice.
+
+**The "it takes too long" constraint was self-inflicted.** `fetch-regnskap` ran
+one request at a time with a one-second throttle, which is 16.8 hours for the
+register. Measured against the live API:
+
+| concurrency | rate | full register |
+|---|---|---|
+| 1 | 7.4/s | 16.8 hours |
+| 5 | 37/s | 3.4 hours |
+| 10 | 72/s | 1.7 hours |
+| 20 | 137/s | 0.9 hours |
+
+One call returns every year for a company, so 448,600 calls replace all 4.99M
+rows. At a concurrency that stays polite to a public register the whole thing is
+an evening's work, and the "only refresh the most important companies"
+compromise solves a problem that does not exist.
+
+#### Don't poll on a timer — the register already says who filed
+
+The obvious follow-up design is `--stale N`: refetch anything last fetched more
+than N days ago. It is the wrong shape here, and the arithmetic shows why.
+Annual accounts are filed **once a year**. Refetching on a 7-day cycle is
+448,600 / 7 = 64,000 requests a day to discover that almost nothing changed.
+
+`enheter.siste_innsendte_aarsregnskap` is the year of the company's most recent
+filing, it is populated for 449,606 companies, and the daily `oppdateringer`
+import already keeps it current. So the question "who has something we do not
+have" is answerable without asking the accounts API at all:
+
+```sql
+WHERE e.siste_innsendte_aarsregnskap::int > (the newest year we hold for it)
+```
+
+Right now that returns **5,013 companies** — about ninety seconds of fetching,
+against 64,000 requests a day for the same answer. During filing season
+(Norwegian companies must file by 31 July) it will return thousands a day, which
+is exactly when the work should happen, and near zero the rest of the year.
+
+Same shape as the cursor in `import-oppdateringer`: let the source tell you what
+changed instead of asking it about everything. `--stale` stays as a backstop for
+what the signal cannot catch — a company restating a year we already hold does
+not change the year number — but as a long interval, not a short one.
 
 ### Chat and embeddings are configured separately
 

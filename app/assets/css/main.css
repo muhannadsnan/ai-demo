@@ -950,3 +950,8 @@ nav.tabs a.router-link-active {
 
 /* A count or size that belongs to the heading it follows, not to the prose. */
 .hodetall { font: 400 12px/1 var(--mono); color: var(--text-dim); }
+
+/* Import routine rows: the name column is a label, not a paragraph — capped so
+   the numbers to its right stay aligned and reachable. */
+.jobbkol { max-width: 21ch; }
+.jobbtype { font: 11px/1.5 var(--mono); color: var(--text-dim); margin-left: 5px; }

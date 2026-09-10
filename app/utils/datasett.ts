@@ -16,6 +16,12 @@ export interface Datasett {
   tittel: string
   hva: string
   kilde: string
+  /**
+   * HOW the data arrives. This is the thing that actually differs between
+   * these jobs, and the reason two of them look alike: a downloaded file and a
+   * change stream are opposite strategies against the same register.
+   */
+  type?: string
 }
 
 /** Tables, as they appear in the content listing. */
@@ -126,42 +132,50 @@ export const JOBBER: Record<string, Datasett> = {
   oppdateringer: {
     tittel: 'Daglige endringer i foretak',
     hva: 'Leser Brønnøysunds endringsstrøm — en logg over hvilke foretak som er endret — og henter bare de foretakene. Skriver til samme tabell som den ukentlige fullfilen, men henter noen tusen i stedet for 1,2 millioner.',
-    kilde: 'Enhetsregisteret · endringsstrøm'
+    kilde: 'Enhetsregisteret',
+    type: 'endringsstrøm'
   },
   enheter: {
     tittel: 'Full foretaksfil',
     hva: 'Hele registeret som én fil. Fanger opp alt endringsstrømmen måtte ha gått glipp av, og avgjør hvilke foretak som er slettet.',
-    kilde: 'Enhetsregisteret · nedlastbar fil'
+    kilde: 'Enhetsregisteret',
+    type: 'nedlastbar fil'
   },
   roller: {
     tittel: 'Full rollefil',
     hva: 'Alle roller på nytt. Roller som er borte siden sist arkiveres i stedet for å slettes.',
-    kilde: 'Enhetsregisteret · nedlastbar fil'
+    kilde: 'Enhetsregisteret',
+    type: 'nedlastbar fil'
   },
   regnskap: {
     tittel: 'Nye årsregnskap',
     hva: 'Henter regnskap for foretak som ifølge registeret har sendt inn et år vi ikke har. Rolig mesteparten av året, travelt fra april til juli når fristen nærmer seg.',
-    kilde: 'Regnskapsregisteret · API'
+    kilde: 'Regnskapsregisteret',
+    type: 'API per foretak'
   },
   referansedata: {
     tittel: 'Oppslagsdata',
     hva: 'Kommuner, fylker, næringskoder og postnummer.',
-    kilde: 'SSB og Bring'
+    kilde: 'SSB og Bring',
+    type: 'API og fil'
   },
   fornavn: {
     tittel: 'Fornavn og kjønn',
     hva: 'SSBs navnestatistikk, brukt til å anslå kjønnsfordeling blant daglige ledere. Et anslag utledet av fornavn, ikke en registrert opplysning.',
-    kilde: 'SSB tabell 10501'
+    kilde: 'SSB tabell 10501',
+    type: 'nedlastbar fil'
   },
   topplister: {
     tittel: 'Topplister',
     hva: 'Regner ut rangeringene på /topplister av hele datasettet, så sidene leser ferdige tall i stedet for å aggregere per besøk.',
-    kilde: 'Utledet av våre egne data'
+    kilde: 'Våre egne data',
+    type: 'utledet lokalt'
   },
   embedding: {
     tittel: 'Meningssøk',
     hva: 'Gjør foretakenes egne beskrivelser om til tall som kan sammenlignes på mening, slik at søket finner virksomheter som aldri skrev ordene du søkte på.',
-    kilde: 'OpenAI text-embedding-3-small'
+    kilde: 'OpenAI',
+    type: 'API i bolker'
   }
 }
 

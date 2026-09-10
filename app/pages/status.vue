@@ -69,7 +69,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       <table class="meta">
         <thead>
           <tr>
-            <th>Jobb</th><th>Sist kjørt</th><th>Status</th>
+            <th class="jobbkol">Jobb</th><th>Status</th><th>Sist kjørt</th>
             <th style="text-align:right">Lest</th>
             <th style="text-align:right">Nye</th>
             <th style="text-align:right">Endret</th>
@@ -79,20 +79,22 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
         </thead>
         <tbody>
           <tr v-for="i in data.importer" :key="i.kilde">
-            <td>
+            <td class="jobbkol">
               <span class="jobbnavn">{{ beskrivJobb(i.kilde).tittel }}</span>
-              <!-- Only where the source is not obvious from the title. For the
-                   rest the register is implied and the badge is just noise. -->
+              <!-- How the data arrives, which is what actually distinguishes
+                   these jobs — the full file and the change stream hit the same
+                   register and the same table by opposite routes. -->
+              <span v-if="beskrivJobb(i.kilde).type" class="jobbtype">({{ beskrivJobb(i.kilde).type }})</span>
               <span v-if="VIS_KILDE.has(i.kilde)" class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
-            </td>
-            <td>
-              <span :class="fersk(i.alder_sek) ? 'fersk' : 'gammel'">{{ alder(i.alder_sek) }}</span>
-              <span class="muted"> · {{ tid(i.ferdig_at ?? i.startet_at) }}</span>
             </td>
             <td>
               <span class="pill" :class="i.status === 'ok' ? 'ok' : i.status === 'feilet' ? 'bad' : 'warn'">
                 {{ i.status }}
               </span>
+            </td>
+            <td>
+              <span :class="fersk(i.alder_sek) ? 'fersk' : 'gammel'">{{ alder(i.alder_sek) }}</span>
+              <span class="muted"> · {{ tid(i.ferdig_at ?? i.startet_at) }}</span>
             </td>
             <td style="text-align:right">{{ i.rader_lest ? tall(Number(i.rader_lest)) : '—' }}</td>
             <td style="text-align:right">{{ i.rader_nye != null ? tall(Number(i.rader_nye)) : '—' }}</td>

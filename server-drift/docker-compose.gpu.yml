@@ -1,0 +1,30 @@
+# GPU acceleration for the model container. An OVERLAY, not a standalone file.
+#
+#   docker compose -f docker-compose.local.yml -f docker-compose.gpu.yml \
+#                  --profile ai up -d ollama
+#
+# Separate from docker-compose.local.yml on purpose. A `devices` reservation is
+# not a hint — Compose refuses to start the service when the driver is missing,
+# so putting it in the base file would break every CPU-only host, which is most
+# servers and every cheap VPS. Keeping it here means the portable file stays
+# portable and the GPU is opt-in on the machines that have one.
+#
+# Requires the NVIDIA Container Toolkit on Linux. Docker Desktop on Windows
+# passes the GPU through WSL2 with no extra setup. Verify with:
+#   docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
+#
+# VRAM is the constraint worth knowing before choosing a model:
+#   nomic-embed-text   ~275 MB   fits anywhere
+#   qwen2.5:7b (Q4)    ~4.7 GB   needs ~6 GB; on 4 GB it spills to CPU and slows
+# Ollama does not fail when a model exceeds VRAM — it silently offloads layers
+# to the CPU, so "it works, but slowly" is the failure mode to expect.
+
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

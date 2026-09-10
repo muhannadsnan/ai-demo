@@ -32,6 +32,19 @@ services:
     image: nordata-postgres:16-pgvector
     build: ./docker/postgres
     restart: unless-stopped
+    # Docker gives a container 64 MB of /dev/shm. Postgres puts the shared
+    # memory for PARALLEL workers there, and building the HNSW index over a
+    # million vectors asks for about a gigabyte of it. The failure is
+    # "could not resize shared memory segment ... No space left on device",
+    # which names shared memory but reads like a full disk, and it lands after
+    # the embeddings are already written — so the vectors survive and only the
+    # index is missing. Nothing else in this stack needs more than the default.
+    # Measured: the parallel HNSW build asked for 1.02 GB with only 5,000
+    # vectors present, so 1 GB was already marginal. 4 GB on a 28 GB host is
+    # cheap insurance against losing a six-hour embedding pass at the index
+    # step. Lower it if the host is small; the rest of the stack needs nothing
+    # beyond Docker's 64 MB default.
+    shm_size: 4gb
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nordata}
       POSTGRES_USER: ${POSTGRES_USER:-app}
@@ -64,8 +77,39 @@ services:
         condition: service_healthy
     networks: [local]
 
+  # The language model, self-hosted.
+  #
+  # Behind a profile because it is optional: the stack runs without it, on the
+  # `mock` provider, with retrieval and ranking fully real. Start it with
+  #   docker compose -f docker-compose.local.yml --profile ai up -d ollama
+  #
+  # CPU by default, deliberately. A GPU reservation here would make this file
+  # fail outright on any host without an NVIDIA card, which is most servers.
+  # Add docker-compose.gpu.yml on top when a GPU is present.
+  ollama:
+    image: ollama/ollama:0.5.7
+    profiles: [ai]
+    restart: unless-stopped
+    volumes:
+      # Model weights, ~275 MB to ~5 GB. In a named volume rather than baked
+      # into an image: the weights are not ours to redistribute, and a 5 GB
+      # image layer would have to move on every deploy that changes nothing.
+      - ollama_models:/root/.ollama
+    ports:
+      # Published so the host-side ingest jobs (embed-foretak.mjs) can reach it
+      # without going through the app container.
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [local]
+
 volumes:
   db_data:
+  ollama_models:
 
 networks:
   local:

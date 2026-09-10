@@ -162,7 +162,13 @@ nav.tabs a.router-link-active { background: var(--accent-soft); color: var(--acc
 
 /* ---- Typography ----------------------------------------------------------- */
 h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 6px; }
+/* Section headings carry the same accent bullet as the index tree, so a long
+   page reads as a list of sections rather than a wall. */
 h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
+h2::before { content: '● '; color: var(--accent); font-size: 11px; vertical-align: 2px; }
+/* Not inside a card or a model's own output — there the heading is the whole
+   element, and a marker in front of it reads as a bullet list of one. */
+.inngang h2::before, .md h2::before, .nett-side h3::before { content: none; }
 /* The description under every page heading. Its own ground, inset from the
    content on both sides, square corners — it reads as a note about the page
    rather than as the first paragraph of it. */
@@ -941,7 +947,7 @@ nav.tabs a.router-link-active {
   padding: 1px 0 1px 14px; line-height: 1.45; min-width: 0;
 }
 .indeksrad:hover { background: var(--surface-2); }
-.indeksnavn { font: 11.5px/1.45 var(--mono); color: var(--text-dim); flex: 0 0 auto; }
+.indeksnavn { font: 11.5px/1.45 var(--mono); color: var(--accent); flex: 0 0 auto; }
 .indekskolonner {
   flex: 1; min-width: 0; font: 11.5px/1.45 var(--mono); color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

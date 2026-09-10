@@ -10,6 +10,10 @@
   --text-dim: #6b6a66;
   --accent: #b4541f;
   --accent-soft: #fdf1ea;
+  /* The section marker. Darker than --accent on purpose: at bullet size the
+     link orange reads washed out, and this is a marker rather than something
+     to click. */
+  --punkt: #8f3f13;
   --ok: #2f7d4f;
   --warn: #9a6b12;
   --info: #2563a8;
@@ -54,6 +58,9 @@ header.top {
   /* The light-ground orange fails on this panel; lifted for it, and lifted
      enough to stay clear of the brown ground it now sits on. */
   --accent: #f5a56f;
+  /* Same reason: the section marker is a DARKER orange than the accent on the
+     light page, which is exactly the wrong direction against this ground. */
+  --punkt: #e08a4a;
   --accent-soft: #4a2e19;
   --ok: #8fd0a6;
   --warn: #e2bd6b;
@@ -165,7 +172,10 @@ h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 6px; }
 /* Section headings carry the same accent bullet as the index tree, so a long
    page reads as a list of sections rather than a wall. */
 h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
-h2::before { content: '● '; color: var(--accent); font-size: 11px; vertical-align: 2px; }
+h2::before {
+  content: '●'; color: var(--punkt); font-size: 15px;
+  vertical-align: 2px; margin-right: 11px;
+}
 /* Not inside a card or a model's own output — there the heading is the whole
    element, and a marker in front of it reads as a bullet list of one. */
 .inngang h2::before, .md h2::before, .nett-side h3::before { content: none; }
@@ -939,7 +949,10 @@ nav.tabs a.router-link-active {
 /* A marker on the group rows: 66 index lines run together without something
    to catch the eye at each table boundary. */
 .indekstabell-navn { font-weight: 650; font-size: 13px; }
-.indekstabell-navn::before { content: '● '; color: var(--accent); font-size: 10px; }
+.indekstabell-navn::before {
+  content: '●'; color: var(--punkt); font-size: 12px;
+  vertical-align: 1px; margin-right: 8px;
+}
 .indekstabell-antall { font: 11px/1 var(--mono); color: var(--text-dim); }
 .indekstabell-tall { margin-left: auto; font: 11px/1 var(--mono); color: var(--text-dim); }
 .indeksrad {

@@ -51,14 +51,19 @@ const FUNKSJONER = [
   },
   {
     tittel: 'Spør med en setning',
-    hva: 'En språkmodell oversetter spørsmålet til et filter — ikke til SQL. Tolkningen vises over resultatene, så du ser hvilket spørsmål som faktisk ble besvart.',
+    // Named for what it does rather than for the technique. The category is
+    // usually called text-to-SQL, and this deliberately is not that — the model
+    // produces a filter over a fixed vocabulary and never writes a query — so
+    // borrowing the label would advertise the exact thing the design avoids.
+    merke: 'naturlig språk → filter, ikke SQL',
+    hva: 'En språkmodell oversetter spørsmålet til et filter over faste felter. Den ser aldri databasen og kan ikke navngi et felt som ikke finnes. Tolkningen vises over resultatene, så du ser hvilket spørsmål som faktisk ble besvart.',
     lenke: { path: '/ai-db-search' },
     eksempel: '«aktive byggefirmaer i Bergen med over 50 ansatte»'
   },
   {
-    tittel: 'Hele foretaket på én side',
-    hva: 'Regnskap år for år med endring fra i fjor, styre og ledelse, aksjonærer, datterselskap — og hvor foretaket sitter i eierskapsnettverket, oppover og nedover.',
-    lenke: { path: '/foretak/923609016/eierskap' },
+    tittel: 'Foretaksprofil',
+    hva: 'Alt om ett foretak, fordelt på faner: nøkkeltall, regnskap år for år med endring fra i fjor, styre og ledelse, aksjonærer og datterselskap — og hvor foretaket sitter i eierskapsnettverket, oppover og nedover.',
+    lenke: { path: '/foretak/923609016' },
     eksempel: 'Equinor: 32 datterselskap, 4.658 eiere'
   },
   {
@@ -136,6 +141,7 @@ const FUNKSJONER = [
     <div class="forsidekort">
       <NuxtLink v-for="f in FUNKSJONER" :key="f.tittel" class="inngang" :to="f.lenke">
         <h3>{{ f.tittel }}</h3>
+        <span v-if="f.merke" class="inngang-merke">{{ f.merke }}</span>
         <p>{{ f.hva }}</p>
         <span class="inngang-eksempel">{{ f.eksempel }} →</span>
       </NuxtLink>
@@ -200,7 +206,11 @@ const FUNKSJONER = [
   border-radius: var(--radius); transition: border-color .12s ease;
 }
 .inngang:hover { border-color: var(--accent); }
-.inngang h3 { font-size: 15px; margin: 0 0 6px; color: var(--accent); }
+.inngang h3 { font-size: 15px; margin: 0 0 2px; color: var(--accent); }
+.inngang-merke {
+  display: block; margin-bottom: 6px;
+  font: 11px/1.4 var(--mono); color: var(--text-dim);
+}
 .inngang p { font-size: 12.5px; color: var(--text-dim); margin: 0; line-height: 1.55; }
 .inngang-eksempel {
   margin-top: auto; padding-top: 10px;

@@ -162,7 +162,8 @@ export function createMockProvider(): AiProvider {
     embeddingModel: `offline-tfidf-${EMBEDDING_DIM}d`,
     billable: false,
     // Measured: off-topic questions top out at 0.064 on this corpus.
-    relevanceFloor: 0.07,
+    distanseTak: 1.0,  // no company vectors exist offline; never filters
+  relevanceFloor: 0.07,
 
     async *streamChat(messages: ChatMessage[], opts: ChatOptions = {}) {
       const question = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''

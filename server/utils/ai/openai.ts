@@ -58,9 +58,27 @@ export function createOpenAiProvider(config: OpenAiConfig): AiProvider {
     chatModel: config.chatModel,
     embeddingModel: config.embeddingModel,
     billable: true,
-    // NOT MEASURED — no API key was available. text-embedding-3-small usually
-    // sits lower than nomic. Run `npm run eval` and use the printed noise floor.
-    relevanceFloor: 0.35,
+    /**
+     * Measured with `npm run eval` against text-embedding-3-small, 33 chunks:
+     *
+     *   noise floor (unanswerable questions)  0.067 – 0.139
+     *   genuine matches                       0.310 – 0.640
+     *
+     * 0.22 sits clear of both: well above the loudest noise, well below the
+     * quietest real answer.
+     *
+     * The placeholder here was 0.35, guessed before a key existed — and it was
+     * ABOVE two genuine matches (0.310 and 0.317). Those questions retrieved the
+     * correct passage and would then have been refused as irrelevant: a wrong
+     * answer produced by a filter doing its job on a wrong number. This is the
+     * failure docs/03 describes, in the direction nobody looks for — a floor set
+     * too HIGH is silent, because the only symptom is an answer you never see.
+     */
+    relevanceFloor: 0.22,
+    // PROVISIONAL until measured against text-embedding-3-small on this
+    // corpus. Do not copy nomic's 0.62 — the models put "related" at
+    // different distances, and a borrowed cutoff silently stops filtering.
+    distanseTak: 0.62,
 
     async *streamChat(messages: ChatMessage[], opts: ChatOptions = {}) {
       const res = await fetch(`${config.baseUrl}/chat/completions`, {

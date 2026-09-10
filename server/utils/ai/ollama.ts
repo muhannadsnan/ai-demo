@@ -40,6 +40,9 @@ export function createOllamaProvider(config: OllamaConfig): AiProvider {
     billable: false,
     // Measured with nomic-embed-text: noise 0.444, genuine matches 0.54-0.81.
     relevanceFloor: 0.50,
+    // Measured on this corpus: genuine matches sit below 0.62, unrelated
+    // companies above it.
+    distanseTak: 0.62,
 
     async *streamChat(messages: ChatMessage[], opts: ChatOptions = {}) {
       let res: Response

@@ -701,35 +701,66 @@ The job is resumable either way: each row stores a hash of the text it was built
 from, so it can be stopped and restarted at any point and picks up where it
 left off.
 
-**Why Ollama and not a hosted model.** Nothing in the design requires Ollama —
-`AiProvider` has an `embed` method and OpenAI implements it. Local wins here for
-three reasons: 1.1 million embedding calls to a paid API is a real bill for a
-portfolio project; the descriptions are public register data but sending a
-million of them to a third party is a decision that should be deliberate; and
-the run is bounded work on hardware that is already sitting there. Swapping to a
-hosted embedder is a config change, not a rewrite — but the dimension count
-would differ, so the column and every stored vector would have to be rebuilt.
+**Why this ran on Ollama first, and why it no longer does.** The original
+argument had three parts, and the first one was wrong: that 1.1 million
+embedding calls to a paid API would be "a real bill for a portfolio project".
+Priced rather than assumed, the corpus is 92 million characters — about 31M
+tokens — which at $0.02 per million is **roughly 6 kroner** for the entire
+1.11M. That is not a bill, and cost was never the real argument.
+
+The two honest reasons were: the descriptions are public register data, but
+sending a million of them to a third party is a decision that should be
+deliberate; and the run is bounded work on hardware already sitting there.
+
+What settled it in practice was operations. On a 4 GB laptop GPU the local pass
+ran at 36–48 texts/sec, wedged the driver twice — the second time badly enough
+that stopping the container did not release it — and died once on a single
+failed `fetch` after 486,912 rows. The same corpus through
+`text-embedding-3-small` runs at ~230/sec: about 80 minutes rather than five
+hours, on any machine, with no GPU at all.
+
+So the default is now `EMBED_PROVIDER=openai`, and Ollama remains as the other
+implementation for anyone who would rather the text never left the network.
+Both are behind the same two functions in `ingest/embed-foretak.mjs`.
+
+Two things that switching costs, and neither is optional:
+
+- **Every vector must be rebuilt.** nomic returns 768 numbers,
+  text-embedding-3-small returns 1536, and even at equal width the two models
+  place meaning in unrelated coordinate spaces — a mixed index is not degraded,
+  it is meaningless. Migration 031 truncates rather than converts.
+- **The distance cutoff must be re-measured.** `AiProvider.distanseTak` travels
+  with the provider for the same reason `relevanceFloor` does. A number carried
+  across models does not error; the filter just stops filtering.
 
 ### Semantic search, and the indexes behind the filters
 
 Keyword search (migration 027) finds a company only if it wrote the word you
-typed. Migration 028 adds the other half: every description is embedded with
-nomic-embed-text into 768 numbers positioned so that texts meaning similar
-things land near each other, so "folk som passer hunder" can find a
-hundepensjonat that wrote none of those words.
+typed. Migration 028 adds the other half: every description is embedded into a
+list of numbers positioned so that texts meaning similar things land near each
+other, so "folk som passer hunder" can find a hundepensjonat that wrote none of
+those words. Migration 031 moved that from nomic-embed-text (768 numbers, local)
+to text-embedding-3-small (1536, hosted) — see above for why.
 
 Three things were measured rather than assumed.
 
-**Batch size.** 230 texts/sec at batch 16, 265 at 64, 285 at 256. Past that the
-GPU is saturated and a bigger batch only makes a failure more expensive to
-retry. 1.1 million descriptions take about 100 minutes.
+**Batch size.** Under Ollama on a 3060: 230 texts/sec at batch 16, 265 at 64,
+285 at 256, and past that the GPU is saturated while a bigger batch only makes a
+failure more expensive to retry. Under OpenAI the constraint is the token budget
+per request rather than a saturation point, and 512 descriptions is ~15k tokens
+— measured at ~230/sec end to end, so about 80 minutes for the full 1.11M.
 
 **halfvec, not vector.** pgvector stores `vector` as 4-byte floats — 2.9 GB
 before the index. halfvec is 2 bytes, and the precision lost sits far below the
 noise in "are these two business descriptions similar".
 
-**Task prefixes.** nomic-embed-text is trained with `search_document:` on what
-is indexed and `search_query:` on what is asked. Without them the right company
+**Task prefixes — and that they are model-specific.** nomic-embed-text is
+trained with `search_document:` on what is indexed and `search_query:` on what
+is asked. text-embedding-3-small has no such convention, so the prefixes are
+applied only under Ollama; adding them there would embed the literal words
+"search query" into every question. The indexing side and the query side test
+the same condition, because if one prefixes and the other does not the ranking
+goes quietly wrong rather than failing. Without them the right company
 still won, but by 0.011 over the wrong one; with them, by 0.029. Three times the
 separation, which is the difference between a usable relevance cutoff and one
 that admits an eiendomsutvikler into a search for dog sitters. This was caught

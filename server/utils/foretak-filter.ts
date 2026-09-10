@@ -77,16 +77,28 @@ export async function byggFilter(q: Record<string, any>, medSemantikk = true): P
    */
   let semantiskLedd = ''
   if (semantisk) {
-    // 'search_query: ' must match the 'search_document: ' the descriptions were
-    // embedded with — see server-drift/ingest/embed-foretak.mjs. nomic-embed-text
-    // is trained with these task prefixes and separates matches from noise about
-    // three times as well with them as without.
-    const [vektor] = await requireAiProvider().embed([`search_query: ${gjor}`])
+    const leverandor = requireAiProvider()
+
+    // Task prefixes are a nomic-embed-text feature: it is trained with
+    // 'search_query: ' on the question and 'search_document: ' on what is
+    // indexed, and separates matches from noise about three times as well with
+    // them. text-embedding-3-small has no such convention, so a prefix there
+    // would embed the literal words "search query" into every question.
+    // The condition MUST match the one in server-drift/ingest/embed-foretak.mjs
+    // — if one side prefixes and the other does not, questions land in a
+    // different part of the space than the descriptions and the ranking is
+    // quietly wrong rather than broken.
+    const prefiks = leverandor.id === 'ollama' ? 'search_query: ' : ''
+    const [vektor] = await leverandor.embed([`${prefiks}${gjor}`])
     if (!vektor) throw createError({ statusCode: 503, statusMessage: 'Kunne ikke tolke søket' })
+
     const v = bind(`[${vektor.join(',')}]`)
-    semantiskLedd = `em.embedding <=> ${v}::halfvec(768)`
-    // 0.62 measured: genuine matches sit below it, unrelated companies above.
-    where.push(`${semantiskLedd} < 0.62`)
+    // Dimension taken from the vector itself rather than written as a literal.
+    // It was hardcoded to 768 for nomic, so switching the embedder made every
+    // semantic search fail with a bare 503 from pgvector — the cast said 768
+    // while the model returned 1536. Derived, it cannot drift again.
+    semantiskLedd = `em.embedding <=> ${v}::halfvec(${vektor.length})`
+    where.push(`${semantiskLedd} < ${leverandor.distanseTak}`)
   } else if (gjor) {
     where.push(`e.fritekst @@ websearch_to_tsquery('norwegian', ${bind(gjor)})`)
   }

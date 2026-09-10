@@ -76,6 +76,23 @@ export interface AiProvider {
   readonly relevanceFloor: number
 
   /**
+   * Cosine DISTANCE above which a company is not a real match, for the
+   * semantic search over `enheter_embedding`.
+   *
+   * The sibling of relevanceFloor and it travels with the provider for the same
+   * reason: it is a property of the embedding model, not of the query. Note it
+   * runs the other way — pgvector's `<=>` returns distance, so smaller is
+   * closer and this is a ceiling, where relevanceFloor is a floor on
+   * similarity. Getting the direction wrong inverts the filter and returns
+   * precisely the companies that do not match.
+   *
+   * Measured per model against real queries. A number carried over from another
+   * embedder is the failure docs/03 describes: nothing errors, the filter just
+   * stops filtering.
+   */
+  readonly distanseTak: number
+
+  /**
    * Streams the assistant reply back as text fragments ("deltas").
    * An async generator is used so the caller can `for await (...)` over it and
    * forward each fragment to the browser immediately.

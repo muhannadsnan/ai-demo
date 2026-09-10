@@ -5,8 +5,12 @@
  *   node ingest/embed-foretak.mjs               # everything not yet embedded
  *   node ingest/embed-foretak.mjs --limit 5000  # a slice, for trying it out
  *
- * Reads `navn`, `aktivitet` and `vedtektsfestet_formaal`, sends them to Ollama
- * in batches, and stores one 768-dimension halfvec per company.
+ * Reads `navn`, `aktivitet` and `vedtektsfestet_formaal`, sends them to the
+ * configured embedder in batches, and stores one halfvec per company — 1536 numbers from
+ * text-embedding-3-small, or 768 from nomic-embed-text. The width is taken from
+ * whatever the model returns rather than written down, because it was written
+ * down in three places and every one of them had to be found by hand when the
+ * embedder changed.
  *
  * Resumable by design. Each row stores a hash of the exact text that was
  * embedded, so a re-run skips every company whose description has not changed —
@@ -20,29 +24,52 @@ import { startLogg, ferdigLogg, feiletLogg } from './logg.mjs'
 const COMPOSE_FILE = process.env.COMPOSE_FILE || 'docker-compose.local.yml'
 const DB_USER  = process.env.POSTGRES_USER || 'app'
 const DB_NAME  = process.env.POSTGRES_DB   || 'nordata'
+/**
+ * Which embedder produces the vectors. Two implementations, one interface —
+ * the same shape as server/utils/ai/, because the batch job has exactly the
+ * same reason to keep the vendor behind a boundary as the app does.
+ *
+ *   openai  (default)  no GPU, ~6 kr for the full 1.11M, runs anywhere
+ *   ollama             free and local, but needs a GPU and stays on one machine
+ *
+ * Whichever is used, EVERY row must come from it. `modell` is stored per row
+ * and HENT_SQL re-queues anything embedded by a different model, so switching
+ * is a full rebuild that announces itself rather than a silent mixture.
+ */
+const LEVERANDOR = (process.env.EMBED_PROVIDER || 'openai').toLowerCase()
 const OLLAMA   = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
-const MODELL   = process.env.EMBED_MODEL || 'nomic-embed-text'
+const OPENAI   = process.env.NUXT_OPENAI_BASE_URL || 'https://api.openai.com/v1'
+const API_KEY  = process.env.NUXT_OPENAI_API_KEY || ''
+const MODELL   = process.env.EMBED_MODEL
+  || (LEVERANDOR === 'ollama' ? 'nomic-embed-text' : 'text-embedding-3-small')
 
 /**
- * nomic-embed-text is trained with task prefixes, and it wants the stored text
- * and the question marked differently: `search_document:` on what is indexed,
- * `search_query:` on what is asked. Both are the same model, but the prefix
- * tells it which side of the retrieval it is looking at.
+ * Task prefix — nomic only.
  *
- * Measured on six descriptions and three questions: without the prefixes the
- * right company still won, but by 0.011 over the wrong one; with them, by
- * 0.029. Roughly three times the separation, which is the difference between a
- * usable relevance cutoff and one that admits an eiendomsutvikler into a search
- * for dog sitters.
+ * nomic-embed-text is trained with the stored text and the question marked
+ * differently: `search_document:` on what is indexed, `search_query:` on what
+ * is asked. Measured on six descriptions and three questions, the right company
+ * won by 0.011 without the prefixes and by 0.029 with them — roughly three
+ * times the separation, and the difference between a usable cutoff and one that
+ * admits an eiendomsutvikler into a search for dog sitters.
  *
- * The API side must use the SAME constant — see server/api/foretak/search.get.ts.
+ * text-embedding-3-small has no such convention, so a prefix there would just
+ * embed the literal words "search document" into every vector. Empty for it.
+ *
+ * server/utils/foretak-filter.ts applies the query-side prefix under the SAME
+ * condition. If one side prefixes and the other does not, questions land in a
+ * different part of the space than the descriptions — the ranking goes quietly
+ * wrong rather than failing.
  */
-const DOK_PREFIKS = 'search_document: '
+const DOK_PREFIKS = LEVERANDOR === 'ollama' ? 'search_document: ' : ''
 
-// 256 measured fastest on a 3060: 285 texts/sec against 230 at batch 16.
-// Bigger batches stop helping once the GPU is saturated and only make a failure
-// more expensive to retry.
-const BOLK = Number(process.env.EMBED_BATCH || 256)
+// Ollama: 256 measured fastest on a 3060 — 285 texts/sec against 230 at batch
+// 16 — and bigger batches only make a failure more expensive to retry.
+// OpenAI: the limit is 2048 inputs per request, but the useful ceiling is the
+// token budget, not the row count. At ~28 tokens a description, 512 rows is
+// ~15k tokens — comfortably inside the per-request limit, and few enough that
+// one retried batch costs a second rather than a minute.
+const BOLK = Number(process.env.EMBED_BATCH || (LEVERANDOR === 'ollama' ? 256 : 512))
 
 const arg = (navn, standard) => {
   const i = process.argv.indexOf(navn)
@@ -83,7 +110,7 @@ const HENT_SQL = `
               e.navn || '. ' || coalesce(e.aktivitet, e.vedtektsfestet_formaal), 'UTF8')), 'hex')
          OR em.modell <> '${MODELL}')`
 
-async function embed(tekster) {
+async function embedOllama(tekster) {
   const svar = await fetch(`${OLLAMA}/api/embed`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -95,6 +122,54 @@ async function embed(tekster) {
     throw new Error(`ollama returnerte ${d.embeddings?.length} vektorer for ${tekster.length} tekster`)
   }
   return d.embeddings
+}
+
+async function embedOpenai(tekster) {
+  const svar = await fetch(`${OPENAI}/embeddings`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${API_KEY}` },
+    body: JSON.stringify({ model: MODELL, input: tekster })
+  })
+  if (!svar.ok) {
+    const feil = new Error(`openai ${svar.status}: ${(await svar.text()).slice(0, 200)}`)
+    feil.status = svar.status
+    throw feil
+  }
+  const d = await svar.json()
+  if (!Array.isArray(d.data) || d.data.length !== tekster.length) {
+    throw new Error(`openai returnerte ${d.data?.length} vektorer for ${tekster.length} tekster`)
+  }
+  // The response does not promise input order, and a vector attached to the
+  // wrong company is the one failure here that produces no error at all — it
+  // just makes the search quietly wrong. Sort by the index the API returns.
+  return d.data.slice().sort((a, b) => a.index - b.index).map(r => r.embedding)
+}
+
+const enBolk = LEVERANDOR === 'ollama' ? embedOllama : embedOpenai
+
+/**
+ * Retry with exponential backoff and jitter.
+ *
+ * The previous run died after 486,912 rows because a single fetch failed and
+ * nothing caught it — five hours of work ended on one bad response. Over a
+ * million rows a transient failure is not exceptional, it is expected: rate
+ * limits, a dropped connection, a model that stalls. docs/05 lists this as an
+ * unticked box; this ticks it.
+ *
+ * 4xx other than 429 is not retried. A malformed request fails the same way
+ * every time, and retrying it just spends the budget more slowly.
+ */
+async function embed(tekster, forsok = 0) {
+  try {
+    return await enBolk(tekster)
+  } catch (e) {
+    const permanent = e.status && e.status !== 429 && e.status < 500
+    if (permanent || forsok >= 5) throw e
+    const ventMs = Math.round(1000 * 2 ** forsok * (0.5 + Math.random()))
+    process.stdout.write(`\n  ${e.message.slice(0, 90)} — nytt forsøk om ${(ventMs / 1000).toFixed(1)}s\n`)
+    await new Promise(r => setTimeout(r, ventMs))
+    return embed(tekster, forsok + 1)
+  }
 }
 
 const igjen = Number(await psql(['-tAc', `SELECT count(*) FROM (${HENT_SQL}) s`]))
@@ -138,7 +213,7 @@ try {
     ].join('\t')).join('\n')
 
     await psql([], `
-      CREATE TEMP TABLE ny (organisasjonsnummer char(9), tekst_hash char(64), modell text, embedding halfvec(768));
+      CREATE TEMP TABLE ny (organisasjonsnummer char(9), tekst_hash char(64), modell text, embedding halfvec(${vektorer[0].length}));
       COPY ny FROM STDIN;
 ${tsv}
 \\.

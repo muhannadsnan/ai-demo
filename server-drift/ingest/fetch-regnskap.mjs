@@ -150,6 +150,14 @@ async function fetchOne(orgnr) {
       brreg_id, journalnr, raw, hentet_at)
     VALUES ${values}
     ON CONFLICT (organisasjonsnummer, regnskapstype, periode_til) DO UPDATE SET
+      -- kilde MUST move with the figures. The bulk history already covers the
+      -- current period for most companies, so the common case here is updating
+      -- a historikk row in place with exact API values and a real currency.
+      -- Without this line the row keeps saying historikk -- which the schema
+      -- defines as "rounded to the nearest 1000, currency NULL" -- while
+      -- holding API data, and 9 of the first 975 refetched were USD. Anything
+      -- trusting kilde to describe precision or currency then reads them wrong.
+      kilde = 'brreg-api',
       periode_fra = EXCLUDED.periode_fra, valuta = EXCLUDED.valuta,
       sum_driftsinntekter = EXCLUDED.sum_driftsinntekter,
       sum_driftskostnad = EXCLUDED.sum_driftskostnad,

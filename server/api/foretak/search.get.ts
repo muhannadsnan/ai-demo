@@ -96,7 +96,10 @@ export default defineEventHandler(async (event) => {
       FROM enheter e ${join}
       WHERE ${where.join(' AND ')}
       ORDER BY ${sortering}
-      LIMIT ${bind(perPage)} OFFSET ${bind((page - 1) * perPage)}`, params),
+      -- One row past the page. A semantic search has no countable total, so
+      -- this is how it knows whether a next page exists: ask for one more than
+      -- fits, and the extra row is the answer.
+      LIMIT ${bind(perPage + 1)} OFFSET ${bind((page - 1) * perPage)}`, params),
 
     semantisk
       ? Promise.resolve([{ n: 0 }])
@@ -105,16 +108,25 @@ export default defineEventHandler(async (event) => {
                ) x`, params.slice(0, params.length - 2))
   ])
 
+  // Trim the probe row back off before anything sees it.
+  const merEnnSiden = rows.length > perPage
+  if (merEnnSiden) rows.length = perPage
+
   const raatt = antall[0]?.n ?? 0
   const total = semantisk ? rows.length : Math.min(raatt, TAK)
   const flere = raatt > TAK
 
   return {
     treff: total,
-    flere,                                   // true when the real count exceeds the cap
+    flere: semantisk ? merEnnSiden : flere,                                   // true when the real count exceeds the cap
     side: page,
     per: perPage,
-    sider: Math.max(1, Math.ceil(total / perPage)),
+    // Semantic ranking has no total to divide, so "how many pages" becomes
+    // "is there another one" — the paginator gets the current page plus one
+    // while more rows keep arriving.
+    sider: semantisk
+      ? (merEnnSiden ? page + 1 : page)
+      : Math.max(1, Math.ceil(total / perPage)),
     medRegnskap: trengerRegnskap,
     semantisk,
     sorter: semantisk ? 'relevans' : sorterEtter,

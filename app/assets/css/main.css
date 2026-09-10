@@ -178,7 +178,7 @@ h2::before {
 }
 /* Not inside a card or a model's own output — there the heading is the whole
    element, and a marker in front of it reads as a bullet list of one. */
-.inngang h2::before, .md h2::before, .nett-side h3::before { content: none; }
+.inngang h2::before, .inngang h3::before, .md h2::before, .nett-side h3::before { content: none; }
 /* The description under every page heading. Its own ground, inset from the
    content on both sides, square corners — it reads as a note about the page
    rather than as the first paragraph of it. */

@@ -25,15 +25,37 @@ import { spawn } from 'node:child_process'
 import { Readable } from 'node:stream'
 import { basename } from 'node:path'
 import { streamJsonArrayObjects } from './json-array-stream.mjs'
+import { hentHvisNyere } from './last-ned.mjs'
 import { startLogg, ferdigLogg, feiletLogg } from './logg.mjs'
 
+const NEDLASTING   = 'https://data.brreg.no/enhetsregisteret/api/roller/totalbestand'
+/**
+ * A path given on the command line is used as-is; otherwise the file is
+ * downloaded if Brreg's copy is newer than ours. See ingest/last-ned.mjs for
+ * why this is conditional rather than scheduled around.
+ */
 const FILE         = process.argv[2] || '../data/raw/roller.json.gz'
+const OPPGITT      = Boolean(process.argv[2])
 const COMPOSE_FILE = process.env.COMPOSE_FILE || 'docker-compose.local.yml'
 const DB_USER      = process.env.POSTGRES_USER || 'app'
 const DB_NAME      = process.env.POSTGRES_DB   || 'nordata'
 
 const t0    = Date.now()
 const since = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
+// Refresh the source file before touching the database. A path given on the
+// command line is trusted as-is, so a one-off import from a specific file still
+// works.
+if (!OPPGITT) {
+  try {
+    await hentHvisNyere(NEDLASTING, FILE)
+  } catch (err) {
+    console.error(`nedlasting feilet: ${err.message}`)
+    // Importing a stale file is not a safe fallback here: the reconciliation
+    // would read every company registered since as missing.
+    process.exit(1)
+  }
+}
 
 const logg = await startLogg('roller')
 process.on('uncaughtException', async e => { await feiletLogg(logg, e); process.exit(1) })

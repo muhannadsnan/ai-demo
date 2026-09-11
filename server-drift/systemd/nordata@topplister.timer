@@ -6,7 +6,8 @@ Description=Daily toplist regeneration
 Unit=nordata@topplister.service
 # 04:30, half an hour after the incremental company update at 04:00, so the
 # lists are computed from the day's data rather than yesterday's.
-OnCalendar=*-*-* 04:30:00
+# SIST: den regner ut av alt det andre har skrevet
+OnCalendar=*-*-* 05:00:00
 
 # If the machine was off when this was due, run it at next boot instead of
 # skipping the day silently.

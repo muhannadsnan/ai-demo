@@ -16,8 +16,26 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
+User=msn
+Group=msn
 WorkingDirectory=/opt/nordata/server-drift
 ExecStart=/opt/nordata/server-drift/run-import.sh %i
+
+# The embedding job calls OpenAI and needs the key. Without this it runs, gets a
+# 401 and records a failure — which is exactly what happened the first time
+# these jobs were chained by hand. The leading dash means a missing file is not
+# a startup error, so the jobs that need no key still run.
+EnvironmentFile=-/opt/nordata/.env
+
+# Which compose file `docker compose exec db` should use. The scripts default to
+# the production one, which needs DOMAIN set and fails without it.
+Environment=COMPOSE_FILE=docker-compose.local.yml
+
+# systemd starts with a minimal PATH that does not include nvm's per-version
+# directory, so `exec node` failed with "node: not found" — the script works by
+# hand and not as a unit. Set to the interpreter this project actually runs on;
+# on a server with a packaged Node the default PATH would already do.
+Environment=PATH=/home/msn/.nvm/versions/node/v20.19.6/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # An import that hangs must not still be running when tomorrow's fires.
 TimeoutStartSec=7200
@@ -29,5 +47,7 @@ RestartSec=15min
 
 # The job writes only to the project directory and Docker's socket.
 NoNewPrivileges=true
-ProtectHome=read-only
 ProtectSystem=full
+# ProtectHome is deliberately NOT read-only here: on a development machine the
+# project lives under /home, and the importers read their source files and the
+# .env from inside it.

@@ -7,7 +7,8 @@ Unit=nordata@embedding.service
 # 05:15, after the toplists. The first run embeds 1.1 million descriptions and
 # takes about 100 minutes; every run after that only sees what changed, because
 # each row stores a hash of the text it was built from.
-OnCalendar=*-*-* 05:15:00
+# etter at nye foretak og beskrivelser har landet
+OnCalendar=*-*-* 04:40:00
 
 # If the machine was off when this was due, run it at next boot instead of
 # skipping the day silently.

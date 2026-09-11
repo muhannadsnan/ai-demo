@@ -4,19 +4,9 @@ Description=Monthly full company reconciliation
 
 [Timer]
 Unit=nordata@enheter.service
-# Monthly, not weekly.
-#
-# The daily change feed does the updating, and it handles deletions on its own —
-# both announced ones and companies that answer 404. So this job is not an
-# update, it is a RECONCILIATION: the only thing that can answer "is our copy
-# still the same as theirs", which a feed cannot, because a feed only tells you
-# about changes it knows about. If an event were ever dropped or the cursor
-# mishandled, nothing else would notice.
-#
-# The evidence for the cadence: the last full run read 1,173,013 rows and
-# changed 26. Not nothing, but not weekly-nothing either. Monthly keeps the
-# safety net at 35 seconds a month.
-OnCalendar=*-*-01 02:00:00
+# Brreg genererer fila rundt 04:24. Kjører etter, men If-Modified-Since
+# gjør timingen ufarlig uansett: treffer vi feil, henter neste kjøring den nye.
+OnCalendar=*-*-01 06:00:00
 
 # If the machine was off when this was due, run it at next boot instead of
 # skipping the day silently.

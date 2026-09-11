@@ -4,7 +4,8 @@ Description=Weekly roles reload
 
 [Timer]
 Unit=nordata@roller.service
-OnCalendar=Sun *-*-* 03:00:00
+# Rollefila genereres rundt 04:00. Samme resonnement som enheter.
+OnCalendar=Sun *-*-* 06:30:00
 
 # If the machine was off when this was due, run it at next boot instead of
 # skipping the day silently.

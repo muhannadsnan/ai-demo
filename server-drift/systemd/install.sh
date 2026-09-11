@@ -18,12 +18,21 @@ cd "$(dirname "$0")"
 
 # The service template hardcodes a path; rewrite it to wherever the project is.
 sed "s|/opt/nordata|$ROT|g" nordata@.service > /etc/systemd/system/nordata@.service
-cp nordata@*.timer /etc/systemd/system/
+# Every timer, daily and periodic. The full-file jobs are safe to schedule now
+# that they download their own source conditionally. Before that they read a
+# file somebody had fetched by hand, and running them against a stale snapshot
+# would have marked every company registered since as missing and retired it
+# once the grace period passed.
+TIMERE="${TIMERE:-oppdateringer regnskap embedding topplister enheter roller referansedata}"
+
+for navn in $TIMERE; do
+  cp "nordata@$navn.timer" /etc/systemd/system/
+done
 
 systemctl daemon-reload
-for t in nordata@*.timer; do
-  systemctl enable --now "$t"
-  echo "  aktivert $t"
+for navn in $TIMERE; do
+  systemctl enable --now "nordata@$navn.timer"
+  echo "  aktivert nordata@$navn.timer"
 done
 
 echo

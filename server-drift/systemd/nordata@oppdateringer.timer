@@ -4,6 +4,7 @@ Description=Daily incremental company update
 
 [Timer]
 Unit=nordata@oppdateringer.service
+# endringsstrømmen først — alt annet leser det den skriver
 OnCalendar=*-*-* 04:00:00
 
 # If the machine was off when this was due, run it at next boot instead of

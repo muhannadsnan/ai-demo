@@ -170,15 +170,18 @@ const FUNKSJONER = computed(() => [
 
     <h2>Tre måter å søke på</h2>
     <p class="muted avsnitt">
-      Hver av dem finner noe de andre ikke finner. Eksemplene er ekte søk — trykk
-      på dem.
+      Forskjellige nivåer av spørring og filtrering som gir bedre treff og
+      datadekning. Ekte eksempler følger med.
     </p>
     <div class="maater">
       <NuxtLink v-for="m in SOKEMAATER" :key="m.tittel" :to="m.lenke"
                 class="maate" :class="{ fremhevet: m.fremhevet }">
         <span class="maate-tittel">{{ m.tittel }}</span>
         <span class="maate-hva">{{ m.hva }}</span>
-        <span class="maate-eksempel">{{ m.eksempel }} →</span>
+        <span class="eksempelblokk">
+          <span class="eksempeletikett">Eks.:</span>
+          <span class="maate-eksempel">«{{ m.eksempel }}»</span>
+        </span>
       </NuxtLink>
     </div>
 
@@ -257,10 +260,18 @@ const FUNKSJONER = computed(() => [
 /* The example is the clickable promise of the card. Blue text, no chip — the
    filled badge was reading as a button on a card that is already one link. */
 .maate-eksempel, .inngang-eksempel {
-  align-self: flex-start; margin-top: auto;
   color: var(--info); font: 12px/1.5 var(--mono);
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* Quoted and labelled, so the example reads as something you could type rather
+   than as a caption describing the card. */
+.eksempelblokk { margin-top: auto; padding-top: 8px; }
+.eksempeletikett {
+  display: block; font: 500 10.5px/1.4 var(--mono);
+  text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim);
+}
+.maate-eksempel { display: block; font-weight: 650; }
+.inngang-eksempel { align-self: flex-start; margin-top: auto; }
 .maate { padding-bottom: 14px; }
 .maate-eksempel { margin-top: 10px; }
 

@@ -138,8 +138,13 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       <strong>{{ beskrivJobb(i.kilde).tittel }}</strong>: {{ i.feilmelding }}
     </p>
 
-    <h2>Innhold</h2>
-    <div class="tablewrap">
+    <h2>Tilstand</h2>
+    <div class="statusrutenett">
+
+      <section class="statuskort bred">
+        <h3>Innhold</h3>
+        <p class="kortnote">Hva plattformen faktisk inneholder.</p>
+        <div class="tablewrap">
       <table class="meta smaltabell">
         <thead>
           <tr><th>Datasett</th><th>Kilde</th><th>Rader</th></tr>
@@ -153,14 +158,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
         </tbody>
       </table>
     </div>
-
-    <!--
-      Five short tables that each took a full-width row and a heading of their
-      own. As a grid they sit three across, so the whole lower half of the page
-      is two rows instead of five screens of scrolling.
-    -->
-    <h2>Tilstand</h2>
-    <div class="statusrutenett">
+      </section>
 
       <section class="statuskort" v-if="data.dekningstall">
         <h3>Dekning</h3>
@@ -233,7 +231,11 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <dd>{{ nb(data.embedding.totalt) }}
             <span class="sistoppdatert">{{ tid(data.embedding.sist) }}</span></dd>
           <dt>Lest inn</dt>
-          <dd>{{ nb(data.embedding.andel) }} %
+          <dd>
+            <span class="medstolpe">
+              <span>{{ nb(data.embedding.andel) }} %</span>
+              <span class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></span>
+            </span>
             <span class="kortnote">
               <template v-if="data.embedding.ferdig && data.embedding.har_indeks">
                 alt innlest, HNSW-indeksen er bygget
@@ -251,7 +253,6 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
             </span>
           </dd>
         </dl>
-        <div class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></div>
       </section>
 
       <section class="statuskort">

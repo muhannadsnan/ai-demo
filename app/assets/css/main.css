@@ -977,7 +977,9 @@ nav.tabs a.router-link-active {
    Line one is the job and how the data arrives; line two is the register it
    comes from. `.jobbnavn` stays inline for that — set to block it pushed the
    type onto its own line and made every row three deep. */
-.jobbtabell td:first-child { width: 30%; }
+/* Qualified with table.meta, because `table.meta td:first-child` outranks a
+   bare class and silently kept this at 25%. Same trap as the 42% before it. */
+table.meta.jobbtabell td:first-child { width: 30%; }
 .jobbtype { font: 11px/1.5 var(--mono); color: var(--text-dim); margin-left: 5px; }
 
 /* Alignment is per column and applies to the header and the cells together —
@@ -1003,6 +1005,8 @@ nav.tabs a.router-link-active {
 
 /* Three across at full width, so five cards land on two rows instead of five
    full-width sections stacked down the page. */
+.statuskort.bred { grid-column: span 2; }
+@media (max-width: 760px) { .statuskort.bred { grid-column: span 1; } }
 .statusrutenett {
   display: grid; gap: 12px; align-items: start;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -1019,7 +1023,7 @@ nav.tabs a.router-link-active {
 .statuskort dl { margin: 10px 0 0; }
 .statuskort dt {
   font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .04em;
-  margin-top: 9px;
+  margin-top: 9px; color: var(--accent);
 }
 .statuskort dt:first-of-type { margin-top: 0; }
 .statuskort dd {
@@ -1027,11 +1031,14 @@ nav.tabs a.router-link-active {
   overflow-wrap: anywhere;
 }
 .statuskort dd .andel { margin-left: 6px; }
-.statuskort .framdrift { margin-top: 12px; }
+/* Beside the percentage, not below the list — the bar says the same thing the
+   number does, so they belong on one line. */
+.statuskort .framdrift { flex: 1; min-width: 80px; margin: 0; height: 6px; }
+.medstolpe { display: flex; align-items: center; gap: 10px; }
 .statuskort .valutabit { margin: 0 9px 2px 0; font-size: 12.5px; }
 
 /* No grey on this page. Every figure and every note is something worth reading,
    and the size difference already separates them. */
 .statuskort, .statuskort .kortnote, .statuskort .andel,
-.statuskort dt, .jobbtabell td, .smaltabell td,
+.jobbtabell td, .smaltabell td,
 .jobbtabell .muted, .smaltabell .muted { color: var(--text); }

@@ -216,6 +216,12 @@ const FUNKSJONER = computed(() => [
         <p>{{ t.hva }}</p>
       </li>
     </ol>
+    <!-- The claims above are checkable, and this is where you check them. The
+         prose section that used to carry this link was folded into the list;
+         the link was the one part of it with nowhere else to go. -->
+    <p class="teknikk-fot">
+      Alt dette logges. <NuxtLink to="/status">Se siste kjøring, dekning og kjente feil →</NuxtLink>
+    </p>
 
     <p class="muted kildenote">
       Kildene er offentlige og gjengis under NLOD. Personopplysninger fra

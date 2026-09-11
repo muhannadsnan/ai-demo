@@ -1222,19 +1222,39 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
   display: block; font: 11px/1.45 var(--mono); color: var(--accent); margin-top: 3px;
 }
 
+/* A numbered list, not a grid of cards. The section is reference material and
+   the counter says so — a number in front of a heading reads as "item 3 of 6",
+   which a box never does. */
 .teknikk {
-  display: grid; gap: 12px; margin-top: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  list-style: none; counter-reset: teknikknr;
+  margin: 16px 0 0; padding: 0;
+  border-top: 1px solid var(--border);
 }
-.teknikkort {
-  display: flex; flex-direction: column;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 16px;
+.teknikk > li {
+  counter-increment: teknikknr;
+  display: grid; grid-template-columns: 2.4rem 1fr; column-gap: 4px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
 }
-.teknikkort h3 { font-size: 15px; margin: 0 0 6px; }
-.teknikkort p { font-size: 12.5px; line-height: 1.6; margin: 0; color: var(--text-dim); }
+.teknikk > li::before {
+  content: counter(teknikknr, decimal-leading-zero);
+  grid-row: 1 / span 2;
+  font: 500 13px/1.5 var(--mono); color: var(--accent);
+}
+/* Title left, measurement right, on one line — the figure is the point of each
+   entry and belongs beside its claim rather than under the paragraph. */
+.teknikk-topp {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+.teknikk h3 { font-size: 15px; margin: 0; }
 .teknikktall {
-  margin-top: 10px; font: 500 11.5px/1.4 var(--mono); color: var(--info);
+  margin-left: auto; font: 500 11.5px/1.4 var(--mono); color: var(--info);
+  white-space: nowrap;
+}
+.teknikk p { font-size: 13px; line-height: 1.6; margin: 0; color: var(--text-dim); max-width: 88ch; }
+@media (max-width: 560px) {
+  .teknikk > li { grid-template-columns: 1.8rem 1fr; }
+  .teknikktall { margin-left: 0; }
 }
 
 /* Front page figures are centred in their box: the label carries a dot on its

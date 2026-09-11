@@ -204,13 +204,18 @@ const FUNKSJONER = computed(() => [
       oppe: hvor dataene kommer fra, hva som skjer når en kilde svarer feil, og
       hvordan systemet tar igjen etter å ha stått stille.
     </p>
-    <div class="teknikk">
-      <div v-for="t in TEKNIKK" :key="t.tittel" class="teknikkort">
-        <h3>{{ t.tittel }}</h3>
+    <!-- Deliberately not cards. Everything above this point is a link, and a
+         bordered box on a page full of bordered boxes that navigate somewhere
+         promises a click this section cannot deliver. -->
+    <ol class="teknikk">
+      <li v-for="t in TEKNIKK" :key="t.tittel">
+        <div class="teknikk-topp">
+          <h3>{{ t.tittel }}</h3>
+          <span v-if="t.tall" class="teknikktall">{{ t.tall }}</span>
+        </div>
         <p>{{ t.hva }}</p>
-        <span v-if="t.tall" class="teknikktall">{{ t.tall }}</span>
-      </div>
-    </div>
+      </li>
+    </ol>
 
     <h2>Hvordan dataene holdes ferske</h2>
     <div class="card ferskhet">

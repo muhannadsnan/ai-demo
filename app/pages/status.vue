@@ -297,18 +297,18 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       <code>server-drift/migrations/</code> sier hvorfor hver enkelt finnes.
     </p>
     <div class="card indekstre">
-      <template v-for="g in indeksGrupper" :key="g.tabell">
-        <div class="indekstabell-rad">
+      <details v-for="g in indeksGrupper" :key="g.tabell" class="indeksgruppe">
+        <summary class="indekstabell-rad">
           <span class="indekstabell-navn">{{ beskrivTabell(g.tabell).tittel }}</span>
           <span class="indekstabell-antall">({{ g.indekser.length }})</span>
           <span class="indekstabell-tall">{{ storrelse(g.bytes) }}</span>
-        </div>
+        </summary>
         <div v-for="i in g.indekser" :key="i.navn" class="indeksrad">
           <span class="indeksbytes">{{ storrelse(i.bytes) }}</span>
           <span class="indeksnavn">{{ i.navn }}</span>
           <span class="indekskolonner">{{ kolonnerAv(i.definisjon) }}</span>
         </div>
-      </template>
+      </details>
     </div>
 
   </div>

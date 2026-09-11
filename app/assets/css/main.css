@@ -1190,3 +1190,18 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
 .levende.henter .puls { background: var(--accent); animation-duration: .7s; }
 @keyframes pust { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .puls { animation: none; } }
+
+/* ---- Index tree: collapsed by default ----
+   Eighteen tables with sixty-six indexes between them is a reference, not
+   something to read top to bottom. The table names are the index of the index;
+   open the one you want. */
+.indeksgruppe > summary { cursor: pointer; list-style: none; }
+.indeksgruppe > summary::-webkit-details-marker { display: none; }
+.indeksgruppe > summary:hover { background: var(--surface-2); }
+/* The number already marks the row, so the disclosure arrow goes after the size
+   rather than competing with it at the start of the line. */
+.indeksgruppe > summary::after {
+  content: '▸'; color: var(--text-dim); font-size: 10px; margin-left: 8px;
+}
+.indeksgruppe[open] > summary::after { content: '▾'; }
+.indeksgruppe[open] > summary { color: var(--accent); }

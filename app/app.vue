@@ -23,9 +23,6 @@ useHead({
           <NuxtLink to="/ai-db-search">AI-søk</NuxtLink>
           <NuxtLink to="/chat">Assistent</NuxtLink>
           <NuxtLink to="/status">Status</NuxtLink>
-          <!-- The retrieval demo is how the semantic search on /foretak was
-               built up, kept as a worked example rather than a product page. -->
-          <NuxtLink to="/search" class="bileddgang">RAG-demo</NuxtLink>
         </nav>
         <ProviderBadge />
       </div>

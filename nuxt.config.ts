@@ -26,11 +26,11 @@ export default defineNuxtConfig({
     openaiChatModel: 'gpt-4o-mini',
     openaiEmbeddingModel: 'text-embedding-3-small',
     ollamaBaseUrl: 'http://localhost:11434',
-    // qwen2.5:7b, not llama3.2:3b. Measured on ten natural-language queries
-    // against this database: 10/10 correct versus 7/10, for ~2.6x the latency.
-    // The 3B model got operators backwards — reading "mer enn 10 millioner" as
-    // "at most", which returns 431,845 companies instead of 7,121 and looks
-    // entirely plausible. Fits in 6 GB VRAM at 4.7 GB.
+    // Kept so `NUXT_AI_PROVIDER=ollama` still works for anyone who wants to run
+    // this without an API key — the point of the provider abstraction is that
+    // the choice stays open. Not what this deployment uses: qwen2.5:7b answered
+    // in rough Norwegian and took 6.1 s to interpret a query where gpt-4o-mini
+    // takes 1.8, which matters on a page someone is watching.
     ollamaChatModel: 'qwen2.5:7b',
     ollamaEmbeddingModel: 'nomic-embed-text',
 

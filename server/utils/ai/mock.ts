@@ -1,6 +1,6 @@
 import type { AiProvider, ChatMessage, ChatOptions } from './types'
-import { hashString, l2Normalize } from '../rag/vector'
-import { tokenize, tokenizeWithBigrams, splitSentences } from '../rag/text'
+import { hashString, l2Normalize } from './vektor'
+import { tokenize, tokenizeWithBigrams, splitSentences } from './tekst'
 
 /**
  * The offline provider. No key, no network, no cost, fully deterministic.

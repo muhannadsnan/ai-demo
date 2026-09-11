@@ -1,7 +1,6 @@
 /**
- * Plain text helpers shared by the offline embedder and the extractive
- * mock answerer. Tokenisation is where a surprising amount of retrieval
- * quality quietly lives, so it is worth having in one place.
+ * Tokenisation for the offline mock provider. Used only by it — the real
+ * pipeline sends text to an embedding API and never splits a word.
  */
 
 /** Very common words carry no signal for retrieval, so we drop them. */

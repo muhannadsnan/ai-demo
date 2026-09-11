@@ -932,12 +932,32 @@ changed instead of asking it about everything. `--stale` stays as a backstop for
 what the signal cannot catch — a company restating a year we already hold does
 not change the year number — but as a long interval, not a short one.
 
+### The RAG demo is gone
+
+`/search` retrieved from five invented documents about a fictional company, and
+it was removed rather than kept as a worked example. Three reasons, in order of
+weight: it was the only fabricated data on a site whose whole argument is that
+its data is real; semantic search over 1.11 million genuine company
+descriptions demonstrates retrieval far better than five files could; and an
+interviewer seeing both would reasonably ask why the toy version was still
+there.
+
+What it taught is in this file — the relevance floor, the cutoff that has to be
+measured per model, why retrieval and generation are worth separating. The
+mechanics are visible on /foretak, which shows the similarity score on every
+semantic hit.
+
+Two files survived it. `server/utils/ai/vektor.ts` and `tekst.ts` are the
+arithmetic behind the offline mock provider, which is what lets someone clone
+this repository and run it with no API key at all.
+
 ### Chat and embeddings are configured separately
 
 `NUXT_AI_PROVIDER` picks the chat model; `NUXT_EMBEDDING_PROVIDER` picks the
 embedder, defaulting to the same one.
 
-They are separate because they can be swapped on completely different terms. A
+Both are OpenAI in this deployment. They stay separately configurable because
+they can be swapped on completely different terms. A
 chat model can be changed whenever you like — a different model just answers
 differently. An embedder cannot: every stored vector was produced by one
 specific model, and the question must be embedded by that same model or the

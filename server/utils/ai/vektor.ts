@@ -1,6 +1,10 @@
 /**
- * Vector maths. This is the entire "hard part" of semantic search, and it is
- * about fifteen lines of arithmetic. Everything else is plumbing.
+ * Vector maths for the offline mock provider.
+ *
+ * Real semantic search runs in PostgreSQL now — pgvector does the distance and
+ * HNSW does the lookup. This is what is left: enough arithmetic for the mock
+ * embedder to produce stable, plausible vectors with no API key and no model,
+ * so the app runs for someone who has just cloned it.
  */
 
 /**

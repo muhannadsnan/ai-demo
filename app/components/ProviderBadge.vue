@@ -2,9 +2,10 @@
 /**
  * Which backends are answering, chat and embeddings separately.
  *
- * They were one badge until the semantic index moved to OpenAI while chat
- * stayed on the local model — at which point "ollama · qwen2.5:7b" was true and
- * incomplete, and the half it left out is the half that costs money.
+ * Reported separately because they can be different vendors. They were one
+ * badge until the semantic index moved to OpenAI while chat was still local —
+ * at which point the badge was true and incomplete, and the half it left out
+ * was the half that cost money.
  */
 const { data: health } = await useFetch('/api/health')
 

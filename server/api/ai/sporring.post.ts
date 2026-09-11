@@ -71,7 +71,9 @@ export default defineEventHandler(async (event) => {
   // Optional per-request model, so the same endpoint can be compared across
   // models. Restricted to a known list — a model name reaches the provider's
   // HTTP call, so it is not a free-text field.
-  const TILLATTE = ['llama3.2', 'qwen2.5:7b']
+  // Allow-list, not free text: the model name reaches an HTTP call, so it is
+  // not something a request gets to choose freely.
+  const TILLATTE = ['gpt-4o-mini', 'gpt-4o']
   const modell = TILLATTE.includes(String(body?.modell)) ? String(body?.modell) : undefined
 
   const provider = requireAiProvider()

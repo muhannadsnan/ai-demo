@@ -162,8 +162,14 @@ nav.tabs a.router-link-active { background: var(--accent-soft); color: var(--acc
   padding: 6px 10px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
 }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); }
-.dot.live { background: var(--ok); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); flex: none; }
+/* Light green and breathing: the nav badge says what is answering right now,
+   and a static dot reads as decoration. */
+.dot.live {
+  background: #7fd99a;
+  animation: pust 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
 .dot.mock { background: var(--warn); }
 .dot.error { background: #c0392b; }
 
@@ -1183,7 +1189,7 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
   font: 500 12px/1 var(--mono); color: var(--text); cursor: pointer;
 }
 .levende:hover { border-color: var(--accent); }
-.puls { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.puls { width: 9px; height: 9px; border-radius: 50%; background: #7fd99a; flex: none; }
 /* The dot breathes so the badge reads as live rather than as a timestamp that
    happens to be recent. */
 .puls { animation: pust 2.4s ease-in-out infinite; }
@@ -1211,8 +1217,8 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
 /* A slow pulse on each figure. The data behind these updates nightly and the
    page has no other way to say so. */
 .ferskprikk {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--ok); margin-right: 6px; vertical-align: 1px;
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  background: #7fd99a; margin-right: 7px; vertical-align: 0;
   animation: fersk 2.6s ease-in-out infinite;
 }
 @keyframes fersk { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }

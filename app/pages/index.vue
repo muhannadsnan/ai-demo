@@ -66,12 +66,12 @@ const SOKEMAATER = [
 const TEKNIKK = [
   {
     tittel: 'Kildene, ikke en kopi av dem',
-    hva: 'Ti importrutiner mot fire offentlige registre. Fullfilene lastes ned på nytt bare når kilden har en nyere versjon. Regnskap hentes for foretak registeret sier har sendt inn et år vi ikke har, i stedet for å spørre om alle på nytt. Topplister og meningssøk regnes ut på nytt hver natt.',
+    hva: 'Ti rutiner mot fire offentlige registre. Fullfiler lastes ned bare når kilden har en nyere versjon, regnskap bare for foretak som ifølge registeret har sendt inn noe nytt. Topplister og meningssøk regnes ut hver natt.',
     tall: '10 rutiner · 4 registre · 7 timere'
   },
   {
     tittel: 'En markør gjør avbrudd ufarlige',
-    hva: 'Den daglige importen leser Brønnøysunds endringsstrøm og husker hvor den slapp, som en markør i strømmen. Står maskinen av i en måned, fortsetter neste kjøring fra samme punkt og henter alt som skjedde i mellomtiden — ingenting hoppes over, ingenting hentes to ganger. Samme kodevei som en vanlig natt, ikke en egen gjenopprettingsrutine.',
+    hva: 'Importen husker hvor i Brønnøysunds endringsstrøm den slapp. Står maskinen av i en måned, fortsetter neste kjøring derfra og tar igjen alt — ingenting hoppes over, ingenting hentes to ganger. Samme kodevei som en vanlig natt, ikke en egen gjenopprettingsrutine.',
     tall: 'én måned av = én kjøring ekstra'
   },
   {

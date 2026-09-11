@@ -2,7 +2,41 @@
 import { nb } from "~/utils/tall"
 import { beskrivTabell, beskrivJobb } from "~/utils/datasett"
 
-const { data } = await useFetch('/api/status')
+/**
+ * Polled, not reloaded.
+ *
+ * `refresh()` swaps the data in place and leaves the rendered page alone while
+ * the request is out, so a running job's row updates without the screen
+ * blanking. A plain reload would also re-fetch the page, and this endpoint can
+ * take a second and a half when its cache is cold.
+ */
+const { data, refresh, status: hentestatus } = await useFetch('/api/status')
+
+const POLL_MS = 30_000
+const sisteHenting = ref(Date.now())
+const sekunderSiden = ref(0)
+let poll: ReturnType<typeof setInterval> | null = null
+let klokke: ReturnType<typeof setInterval> | null = null
+
+async function oppdater() {
+  await refresh()
+  sisteHenting.value = Date.now()
+}
+
+onMounted(() => {
+  poll = setInterval(oppdater, POLL_MS)
+  // Separate, faster tick so "x sekunder siden" counts up rather than jumping
+  // by thirty each time.
+  klokke = setInterval(() => {
+    sekunderSiden.value = Math.round((Date.now() - sisteHenting.value) / 1000)
+  }, 1000)
+})
+// Both cleared on unmount: an interval left running after the user navigates
+// away keeps polling the server for a page nobody is looking at.
+onUnmounted(() => {
+  if (poll) clearInterval(poll)
+  if (klokke) clearInterval(klokke)
+})
 
 
 const alder = (sek: number | null) => {
@@ -82,7 +116,17 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
 
 <template>
   <div v-if="data" class="statusside">
-    <h1>Status</h1>
+    <div class="sidehode">
+      <h1>Status</h1>
+      <button class="levende" :class="{ henter: hentestatus === 'pending' }"
+              :title="`Oppdaterer automatisk hvert ${POLL_MS / 1000}. sekund. Trykk for å hente nå.`"
+              @click="oppdater">
+        <span class="puls" />
+        <span v-if="hentestatus === 'pending'">oppdaterer…</span>
+        <span v-else-if="sekunderSiden < 5">nettopp oppdatert</span>
+        <span v-else>oppdatert for {{ sekunderSiden }} s siden</span>
+      </button>
+    </div>
     <p class="lede">
       Hva plattformen inneholder, og når hver kilde sist ble oppdatert.
       Importrutinene kjøres på server; denne siden viser hva de faktisk gjorde.
@@ -182,7 +226,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <span class="kortnote">finansforetak API-et ikke klarer å levere</span></div>
         <div class="rad bred-rad"><dt>Valuta</dt>
           <dd class="valutaliste">
-            <span v-for="v in valutasum" :key="v.valuta" class="valutabit">{{ v.valuta }} {{ nb(v.rader) }}</span>
+            <span v-for="(v, i) in valutasum" :key="v.valuta" class="valutabit">{{ v.valuta }} {{ nb(v.rader) }}<template v-if="i < valutasum.length - 1">,</template></span>
           </dd>
           <span class="kortnote">
             Historikkfilen oppgir NOK for alt. API-et er uenig for rundt én

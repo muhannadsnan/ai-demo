@@ -15,7 +15,16 @@ import { query } from '../utils/db'
  * the new numbers within a minute — long enough to remove the load, short
  * enough that the page still feels live. `?fersk=1` forces a recount.
  */
-const CACHE_MS = 60_000
+/**
+ * 20 seconds, not 60. The page polls every 30, and a 60-second cache meant
+ * every second poll returned the same numbers as the last one — a live view
+ * that is half stale is worse than one that admits it is cached.
+ *
+ * The cache still matters: the exact count of companies with accounts is a
+ * count(DISTINCT) over 4.97 million rows, measured at 1.4 seconds, and without
+ * it every poll would pay that.
+ */
+const CACHE_MS = 20_000
 let cache: { data: unknown; tid: number } | null = null
 
 export default defineEventHandler(async (event) => {

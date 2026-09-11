@@ -1236,3 +1236,10 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
 .teknikktall {
   margin-top: 10px; font: 500 11.5px/1.4 var(--mono); color: var(--info);
 }
+
+/* Front page figures are centred in their box: the label carries a dot on its
+   left, so left-aligning everything to the same edge put the number and the
+   source under the dot rather than under the word. Scoped to the front page —
+   the company profile uses the same .kort as a left-aligned label/value pair. */
+.forsidetall .kort { align-items: center; text-align: center; }
+.forsidetall .kort-kilde { text-wrap: balance; }

@@ -160,7 +160,7 @@ const FUNKSJONER = computed(() => [
       <button @click="gaaTilSok">Søk</button>
     </div>
 
-    <div class="kort-rad">
+    <div class="kort-rad forsidetall">
       <div v-for="k in NOKKELTALL" :key="k.etikett" class="kort">
         <span class="kort-etikett"><i class="ferskprikk" /> {{ k.etikett }}</span>
         <span class="kort-tall">{{ kort(data?.tall[k.felt]) }}</span>

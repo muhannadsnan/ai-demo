@@ -47,6 +47,19 @@ function kolonnerAv(def: string) {
   return m[1].replace(/\s+/g, ' ') + (hvor ? ` — kun ${hvor[1]}` : '')
 }
 
+/**
+ * Currency totals across both sources.
+ *
+ * It used to list each source separately — "NOK 443.272 API, NOK 4.523.285
+ * historikk" — which put thirteen entries on the row and made the interesting
+ * part, that anything other than NOK exists at all, impossible to see.
+ */
+const valutasum = computed(() => {
+  const m = new Map<string, number>()
+  for (const v of data.value?.valutaer ?? []) m.set(v.valuta, (m.get(v.valuta) ?? 0) + v.rader)
+  return [...m.entries()].map(([valuta, rader]) => ({ valuta, rader })).sort((a, b) => b.rader - a.rader)
+})
+
 /** Every index added up, for the heading. */
 const indeksBytes = computed(() =>
   (data.value?.indekser ?? []).reduce((n: number, i: any) => n + i.bytes, 0))
@@ -141,122 +154,115 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       </table>
     </div>
 
-    <h2>Dekning</h2>
-    <p class="muted avsnitt">Hvor stor del av registeret hvert datasett faktisk når.</p>
-    <div class="card" v-if="data.dekningstall">
-      <table class="meta">
-        <tbody>
-          <tr><td>Foretak i registeret</td><td>{{ tall(data.dekningstall.foretak) }}</td></tr>
-          <tr>
-            <td>Har sendt inn regnskap</td>
-            <td>{{ tall(data.dekningstall.med_regnskap) }}
-              <span class="andel">{{ pst(data.dekningstall.med_regnskap, data.dekningstall.foretak) }}</span></td>
-          </tr>
-          <tr>
-            <td>Har skrevet en beskrivelse</td>
-            <td>{{ tall(data.dekningstall.med_beskrivelse) }}
-              <span class="andel">{{ pst(data.dekningstall.med_beskrivelse, data.dekningstall.foretak) }}</span></td>
-          </tr>
-          <tr>
-            <td>Arkiverte roller<br><span class="muted">roller som har opphørt</span></td>
-            <td>
-              {{ tall(data.dekningstall.arkiverte_roller) }}
-              <span class="muted" v-if="data.dekningstall.arkiv_siden">
-                — arkiverer siden {{ data.dekningstall.arkiv_siden }}<template v-if="data.dekningstall.arkiv_fra">, eldste {{ data.dekningstall.arkiv_fra }}</template>
-              </span>
-              <span class="muted" v-if="!data.dekningstall.arkiverte_roller">
-                (ingen roller har opphørt siden vi begynte å følge med)
-              </span>
-            </td>
-          </tr>
-          <tr><td>Slettet fra registeret</td><td>{{ tall(data.dekningstall.slettet) }}</td></tr>
-          <tr>
-            <td>Savnet i siste fullfil<br><span class="muted">venter på bekreftelse før de merkes slettet</span></td>
-            <td>{{ tall(data.dekningstall.savnet) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!--
+      Five short tables that each took a full-width row and a heading of their
+      own. As a grid they sit three across, so the whole lower half of the page
+      is two rows instead of five screens of scrolling.
+    -->
+    <h2>Tilstand</h2>
+    <div class="statusrutenett">
 
-    <h2>Datakvalitet</h2>
-    <p class="muted avsnitt">Det vi vet er feil eller utelatt, sagt høyt.</p>
-    <div class="card" v-if="data.dekningstall">
-      <table class="meta">
-        <tbody>
-          <tr>
-            <td>Regnskap med urimelig målestokk<br><span class="muted">utelatt fra rangeringer og filtre</span></td>
-            <td>{{ tall(data.dekningstall.urimelige) }}</td>
-          </tr>
-          <tr>
-            <td>Foretak Brreg svarer 500 på<br><span class="muted">finansforetak API-et ikke klarer å levere</span></td>
-            <td>{{ tall(data.dekningstall.hentefeil) }}</td>
-          </tr>
-          <tr>
-            <td>Valuta i regnskapstallene</td>
-            <td>
-              <span v-for="v in data.valutaer" :key="v.kilde + v.valuta" class="valutabit">
-                {{ v.valuta }} {{ tall(v.rader) }}
-                <span class="muted">{{ v.kilde === 'brreg-api' ? 'API' : 'historikk' }}</span>
-              </span>
-              <span class="muted hint" style="display:block; margin-top:6px">
-                Historikkfilen oppgir NOK for alt. API-et er uenig for rundt én
-                prosent, og de leses som ti ganger for store til de er hentet på nytt.
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td>Markør i endringsstrømmen<br><span class="muted">neste kjøring fortsetter herfra</span></td>
-            <td><code>{{ data.dekningstall.markor }}</code>
-              <span class="muted"> · {{ tid(data.dekningstall.markor_at) }}</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <section class="statuskort" v-if="data.dekningstall">
+        <h3>Dekning</h3>
+        <p class="kortnote">Hvor stor del av registeret hvert datasett når.</p>
+        <dl>
+          <dt>Foretak i registeret</dt><dd>{{ nb(data.dekningstall.foretak) }}</dd>
+          <dt>Har sendt inn regnskap</dt>
+          <dd>{{ nb(data.dekningstall.med_regnskap) }}
+            <span class="andel">{{ pst(data.dekningstall.med_regnskap, data.dekningstall.foretak) }}</span></dd>
+          <dt>Har skrevet en beskrivelse</dt>
+          <dd>{{ nb(data.dekningstall.med_beskrivelse) }}
+            <span class="andel">{{ pst(data.dekningstall.med_beskrivelse, data.dekningstall.foretak) }}</span></dd>
+          <dt>Arkiverte roller</dt>
+          <dd>
+            {{ nb(data.dekningstall.arkiverte_roller) }}
+            <template v-if="data.dekningstall.arkiv_siden">— siden {{ data.dekningstall.arkiv_siden }}</template>
+            <span v-if="!data.dekningstall.arkiverte_roller" class="kortnote">
+              ingen roller har opphørt siden vi begynte å følge med
+            </span>
+          </dd>
+          <dt>Slettet fra registeret</dt><dd>{{ nb(data.dekningstall.slettet) }}</dd>
+          <dt>Savnet i siste fullfil</dt>
+          <dd>{{ nb(data.dekningstall.savnet) }}
+            <span class="kortnote">venter på bekreftelse før de merkes slettet</span></dd>
+        </dl>
+      </section>
 
-    <h2>Regnskapsdekning</h2>
-    <div class="card">
-      <table class="meta">
-        <tbody>
-          <tr><td>Årsspenn</td><td>{{ data.regnskapsdekning.fra }}–{{ data.regnskapsdekning.til }}</td></tr>
-          <tr><td>Foretak med regnskap</td><td>{{ tall(Number(data.regnskapsdekning.foretak)) }}</td></tr>
-          <tr><td>Rader fra Brreg API</td><td>{{ tall(Number(data.regnskapsdekning.fra_api)) }} <span class="muted">— eksakte tall</span></td></tr>
-          <tr><td>Rader fra historikk</td><td>{{ tall(Number(data.regnskapsdekning.fra_historikk)) }} <span class="muted">— avrundet ved kilden</span></td></tr>
-        </tbody>
-      </table>
-    </div>
+      <section class="statuskort" v-if="data.dekningstall">
+        <h3>Datakvalitet</h3>
+        <p class="kortnote">Det vi vet er feil eller utelatt, sagt høyt.</p>
+        <dl>
+          <dt>Urimelig målestokk</dt>
+          <dd>{{ nb(data.dekningstall.urimelige) }}
+            <span class="kortnote">utelatt fra rangeringer og filtre</span></dd>
+          <dt>Brreg svarer 500</dt>
+          <dd>{{ nb(data.dekningstall.hentefeil) }}
+            <span class="kortnote">finansforetak API-et ikke klarer å levere</span></dd>
+          <dt>Valuta</dt>
+          <dd>
+            <span v-for="v in valutasum" :key="v.valuta" class="valutabit">{{ v.valuta }} {{ nb(v.rader) }}</span>
+            <span class="kortnote">
+              Historikkfilen oppgir NOK for alt. API-et er uenig for rundt én
+              prosent, og de leses som ti ganger for store til de hentes på nytt.
+            </span>
+          </dd>
+          <dt>Markør i endringsstrømmen</dt>
+          <dd><code>{{ data.dekningstall.markor }}</code>
+            <span class="kortnote">{{ tid(data.dekningstall.markor_at) }} — neste kjøring fortsetter herfra</span></dd>
+        </dl>
+      </section>
 
-    <h2>Semantisk søk</h2>
-    <div class="card" v-if="data?.embedding">
-      <div class="row" style="justify-content:space-between; align-items:baseline">
-        <strong>
-          {{ tall(data.embedding.totalt) }} beskrivelser
-          <span v-if="data.embedding.sist" class="sistoppdatert">({{ tid(data.embedding.sist) }})</span>
-        </strong>
-        <span class="pill" :class="data.embedding.ferdig ? 'ok' : 'warn'">
-          {{ nb(data.embedding.andel) }} %
-        </span>
-      </div>
-      <div class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></div>
-      <p class="muted" style="margin:10px 0 0">
-        <template v-if="data.embedding.ferdig && data.embedding.har_indeks">
-          Alle beskrivelser er innlest, og HNSW-indeksen er bygget. Søk på mening
-          treffer hele datasettet.
-        </template>
-        <template v-else-if="data.embedding.ferdig">
-          Alle beskrivelser er innlest. HNSW-indeksen er ikke bygget ennå, så søk
-          på mening sammenligner mot alle vektorene og er tregere enn det trenger
-          å være.
-        </template>
-        <template v-else>
-          Første gjennomkjøring pågår. Søk på mening virker allerede, men leter
-          bare i de {{ nb(data.embedding.andel) }} prosentene
-          som er lest inn — foretak lenger ned i organisasjonsnummer-rekkefølgen
-          finnes ennå ikke. Kjøres med
-          <code>./run-import.sh embedding</code>, og kan stoppes og startes igjen
-          uten å miste arbeid.
-        </template>
+      <section class="statuskort">
+        <h3>Regnskapsdekning</h3>
+        <dl>
+          <dt>Årsspenn</dt><dd>{{ data.regnskapsdekning.fra }}–{{ data.regnskapsdekning.til }}</dd>
+          <dt>Foretak med regnskap</dt><dd>{{ nb(Number(data.regnskapsdekning.foretak)) }}</dd>
+          <dt>Rader fra Brreg API</dt>
+          <dd>{{ nb(Number(data.regnskapsdekning.fra_api)) }}
+            <span class="kortnote">eksakte tall</span></dd>
+          <dt>Rader fra historikk</dt>
+          <dd>{{ nb(Number(data.regnskapsdekning.fra_historikk)) }}
+            <span class="kortnote">avrundet ved kilden</span></dd>
+        </dl>
+      </section>
 
-      </p>
+      <section class="statuskort" v-if="data.embedding">
+        <h3>Semantisk søk</h3>
+        <dl>
+          <dt>Beskrivelser</dt>
+          <dd>{{ nb(data.embedding.totalt) }}
+            <span class="sistoppdatert">{{ tid(data.embedding.sist) }}</span></dd>
+          <dt>Lest inn</dt>
+          <dd>{{ nb(data.embedding.andel) }} %
+            <span class="kortnote">
+              <template v-if="data.embedding.ferdig && data.embedding.har_indeks">
+                alt innlest, HNSW-indeksen er bygget
+              </template>
+              <template v-else-if="data.embedding.ferdig">
+                innlest, men indeksen er ikke bygget — søk på mening er tregere enn nødvendig
+              </template>
+              <template v-else-if="data.embedding.andel >= 99">
+                {{ nb(data.embedding.totalt - data.embedding.gjort) }} foretak er kommet
+                til siden forrige kjøring; den daglige jobben tar dem
+              </template>
+              <template v-else>
+                første gjennomkjøring pågår — søket virker, men bare i den ferdige delen
+              </template>
+            </span>
+          </dd>
+        </dl>
+        <div class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></div>
+      </section>
+
+      <section class="statuskort">
+        <h3>Database</h3>
+        <dl>
+          <dt>Størrelse</dt><dd>{{ data.database.storrelse }}</dd>
+          <dt>Siste migrasjon</dt>
+          <dd><code>{{ data.database.siste_migrasjon?.filename ?? '—' }}</code></dd>
+        </dl>
+      </section>
+
     </div>
 
     <h2>Indekser <span class="hodetall">({{ data.indekser.length }} · {{ storrelse(indeksBytes) }})</span></h2>
@@ -279,14 +285,5 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       </template>
     </div>
 
-    <h2>Database</h2>
-    <div class="card">
-      <table class="meta">
-        <tbody>
-          <tr><td>Størrelse</td><td>{{ data.database.storrelse }}</td></tr>
-          <tr><td>Siste migrasjon</td><td><code>{{ data.database.siste_migrasjon?.filename ?? '—' }}</code></td></tr>
-        </tbody>
-      </table>
-    </div>
   </div>
 </template>

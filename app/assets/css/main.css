@@ -998,3 +998,40 @@ nav.tabs a.router-link-active {
 .smaltabell { width: auto; min-width: min(100%, 620px); }
 .smaltabell td, .smaltabell th { padding-right: 32px; white-space: nowrap; }
 .smaltabell td:last-child, .smaltabell th:last-child { padding-right: 0; }
+
+/* ---- Status: the five short tables, as a grid ---- */
+
+/* Three across at full width, so five cards land on two rows instead of five
+   full-width sections stacked down the page. */
+.statusrutenett {
+  display: grid; gap: 12px; align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+}
+.statuskort {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px; min-width: 0;
+}
+.statuskort h3 { font-size: 14px; margin: 0 0 2px; }
+.statuskort .kortnote { display: block; font-size: 11.5px; line-height: 1.5; margin: 2px 0 0; }
+
+/* Label above value rather than beside it. Two columns in a 330px card leaves
+   no room for either, and the label is short enough to read as a heading. */
+.statuskort dl { margin: 10px 0 0; }
+.statuskort dt {
+  font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .04em;
+  margin-top: 9px;
+}
+.statuskort dt:first-of-type { margin-top: 0; }
+.statuskort dd {
+  margin: 1px 0 0; font-size: 14px; font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.statuskort dd .andel { margin-left: 6px; }
+.statuskort .framdrift { margin-top: 12px; }
+.statuskort .valutabit { margin: 0 9px 2px 0; font-size: 12.5px; }
+
+/* No grey on this page. Every figure and every note is something worth reading,
+   and the size difference already separates them. */
+.statuskort, .statuskort .kortnote, .statuskort .andel,
+.statuskort dt, .jobbtabell td, .smaltabell td,
+.jobbtabell .muted, .smaltabell .muted { color: var(--text); }

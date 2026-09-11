@@ -1141,3 +1141,14 @@ table.meta.jobbtabell td:first-child { width: 30%; }
    stopped short of the card edge. Fourth time this table has won on
    specificity. */
 table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
+
+/* ---- Import routine table: the same card as the Tilstand cards ---- */
+
+/* The table is the card's content, so it reaches the padding edge and its rows
+   band like every other list on the page. */
+.statuskort .tablewrap { margin: 10px -14px 0; border: none; border-radius: 0; overflow-x: auto; }
+.jobbtabell tbody tr:nth-child(even) td { background: var(--surface-2); }
+.jobbtabell th:first-child, .jobbtabell td:first-child { padding-left: 14px; }
+.jobbtabell th:last-child, .jobbtabell td:last-child { padding-right: 14px; }
+.statusside table.meta.jobbtabell tbody tr:last-child td { border-bottom: none; }
+.jobbtabell thead th { padding-top: 0; }

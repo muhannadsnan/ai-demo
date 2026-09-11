@@ -89,11 +89,12 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
     </p>
 
     <h2>Import-rutiner</h2>
-    <p class="muted avsnitt">
-      Jobbene som holder dataene oppdatert. De fleste kjører daglig; de tunge
-      fullfilene ukentlig. Hver kjøring logges, også når den feiler.
-    </p>
-    <div class="tablewrap">
+    <section class="statuskort">
+      <p class="kortnote">
+        Jobbene som holder dataene oppdatert. De fleste kjører daglig; de tunge
+        fullfilene ukentlig. Hver kjøring logges, også når den feiler.
+      </p>
+      <div class="tablewrap">
       <table class="meta jobbtabell">
         <thead>
           <tr>
@@ -133,7 +134,8 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <tr v-if="!data.importer.length"><td colspan="8" class="muted">Ingen importer registrert ennå.</td></tr>
         </tbody>
       </table>
-    </div>
+      </div>
+    </section>
     <p v-for="i in data.importer.filter(x => x.feilmelding)" :key="i.kilde" class="error-box">
       <strong>{{ beskrivJobb(i.kilde).tittel }}</strong>: {{ i.feilmelding }}
     </p>

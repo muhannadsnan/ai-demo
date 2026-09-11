@@ -1019,7 +1019,9 @@ table.meta.jobbtabell td:first-child { width: 30%; }
   border-radius: var(--radius); padding: 12px 14px 0; min-width: 0;
   overflow: hidden;   /* so a banded last row is clipped by the rounded corner */
 }
-.statuskort h3 { font-size: 14px; margin: 0 0 2px; }
+/* The card title carries the section now that the page has only three h2s —
+   at 14px it was the same size as the values underneath it. */
+.statuskort h3 { font-size: 17px; margin: 0 0 3px; letter-spacing: -0.01em; }
 .statuskort .kortnote { display: block; font-size: 11.5px; line-height: 1.5; margin: 2px 0 0; }
 
 /* Label above value rather than beside it. Two columns in a 330px card leaves

@@ -120,3 +120,43 @@ What this buys over cron:
 
 That last row matters for imports specifically: if last night's run is somehow
 still going, cron cheerfully starts a second one on top of it.
+
+## What is Linux-specific here, and what is not
+
+The `.timer` and `.service` files in `systemd/` only work on Linux. That is
+worth being precise about, because it is less of a lock-in than it looks.
+
+**The scheduler is the only part that is platform-specific.** Every job is
+`./run-import.sh <name>`, and that script is the contract. systemd contributes
+four things and nothing else: when to fire, the working directory, the
+environment, and a log.
+
+| | Linux | Windows | macOS | Container platform |
+|---|---|---|---|---|
+| Scheduler | systemd timers | Task Scheduler | launchd | the platform's cron |
+| Calls | `run-import.sh oppdateringer` | the same, via WSL or Git Bash | the same | the same |
+| Catch up after downtime | `Persistent=true` | "Run task as soon as possible after a scheduled start is missed" | none — needs handling | varies |
+| Logs | `journalctl -u nordata@<name>` | Task Scheduler history | `log show` | the platform's logs |
+
+On Windows the equivalent is one `schtasks` line per job:
+
+```
+schtasks /create /tn "nordata-oppdateringer" /sc daily /st 04:00 ^
+  /tr "wsl -d Ubuntu -- bash -lc 'cd /home/msn/ai-demo/server-drift && ./run-import.sh oppdateringer'"
+```
+
+Two things need care there. The environment: `wsl ... bash -lc` reads the login
+profile, so PATH works, but the OpenAI key still has to come from somewhere —
+the systemd unit solves this with `EnvironmentFile`, and on Windows the script
+would need to source `.env` itself. And catching up after downtime is a checkbox
+in the task's settings rather than a line in a file, so it is easy to forget.
+
+**The database is not affected at all.** It runs in Docker, and the importers
+reach it through `docker compose exec`, which behaves identically on all three.
+
+If this ever needs to be genuinely portable rather than merely portable in
+principle, the honest answer is not to rewrite the units — it is to put the
+scheduler in a container alongside the database, so the schedule ships with the
+application. That is a real trade: it costs a container running all day to hold
+a clock, which is the thing this document argues against at the top. Worth it
+only when the deployment target stops being "a Linux box we control".

@@ -40,7 +40,19 @@ const valueOf = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 
 // limit, and `run-import.sh alt` passes 0 to remove it.
 const MAKS_ARG  = Number(valueOf('--maks', 5000))
 const MAKS      = MAKS_ARG > 0 ? MAKS_ARG : Infinity
-const THROTTLE  = Number(valueOf('--throttle', 200))
+/**
+ * Requests in flight at once, and the pause between batches. The rate works out
+ * near 50/sec with the defaults, against 6/sec when this fetched one at a time.
+ * The throttle is now per BATCH rather than per request, which is why it is
+ * smaller than it looks.
+ */
+const SAMTIDIGE = Math.max(1, Math.min(Number(valueOf('--samtidige', 8)), 24))
+const THROTTLE  = Number(valueOf('--throttle', 50))
+/**
+ * --fra-dato YYYY-MM-DD resets the cursor to the first event of that day. Use
+ * the publication date of the full file that established the current state.
+ */
+const FRA_DATO  = valueOf('--fra-dato', null)
 const SIDE      = 10000
 
 function run(extra, { source = null } = {}) {
@@ -65,21 +77,39 @@ process.on('uncaughtException', async e => { await feiletLogg(logg, e); process.
 // ---- where did we get to? ---------------------------------------------------
 let cursor = Number(await query(`SELECT siste_id FROM import_cursor WHERE kilde='enheter';`) || 0)
 
-if (!cursor || args.includes('--start-naa')) {
-  // No cursor yet. Seed it to the newest event rather than replaying 16.4M
-  // historical ones — the full-file import has already established the state,
-  // so only what happens from here matters.
-  const siste = await fetch(`${FEED}?size=1&oppdateringsid=999999999`).then(r => r.json()).catch(() => null)
-  const nyeste = siste?._embedded?.oppdaterteEnheter?.[0]?.oppdateringsid
-  cursor = Number(nyeste ?? 0)
-  if (!cursor) {
-    // The API returns nothing past the end; walk back from a large page instead.
-    const p = await fetch(`${FEED}?size=1`).then(r => r.json())
-    cursor = Number(p?.page?.totalElements ?? 0)
+if (!cursor || args.includes('--start-naa') || FRA_DATO) {
+  /**
+   * Seed the cursor from a DATE, not from a count.
+   *
+   * The previous version fell back to `page.totalElements` when the feed
+   * returned nothing past the end — and totalElements is how many events exist,
+   * not the id of the newest one. The two are not the same number and never
+   * were: the count sat around 16.4 million while ids had already reached 25.2
+   * million, because ids have gaps.
+   *
+   * It failed silently, which is why it survived. 16,407,682 is a perfectly
+   * plausible-looking oppdateringsid, so the job started up, read real events,
+   * updated real companies and reported success — while quietly replaying the
+   * change feed from January 2023 with 7.8 million events still ahead of it.
+   *
+   * Asking the feed for the first event on a given date gives an id that means
+   * what it says. The date to use is the day the full file was published: the
+   * file establishes the state, and the cursor picks up every change since.
+   */
+  const dato = FRA_DATO || new Date(Date.now() - 7 * 86400e3).toISOString().slice(0, 10)
+  const svar = await fetch(`${FEED}?dato=${dato}T00:00:00.000Z&size=1`).then(r => r.json())
+  const forste = Number(svar?._embedded?.oppdaterteEnheter?.[0]?.oppdateringsid ?? 0)
+  if (!forste) {
+    console.error(`fant ingen hendelser fra ${dato} — markøren er ikke satt`)
+    await feiletLogg(logg, `ingen hendelser fra ${dato}`)
+    process.exit(1)
   }
+  // Minus one, because the loop reads everything AFTER the cursor and the first
+  // event of that day is a change we want.
+  cursor = forste - 1
   await sql(`INSERT INTO import_cursor (kilde, siste_id) VALUES ('enheter', ${cursor})
              ON CONFLICT (kilde) DO UPDATE SET siste_id = ${cursor}, oppdatert_at = now();`)
-  console.log(`markør satt til ${cursor.toLocaleString('nb-NO')} — ingen historikk spilles av`)
+  console.log(`markør satt til ${cursor.toLocaleString('nb-NO')} (første hendelse ${dato}) — ingen historikk spilles av`)
   await ferdigLogg(logg, { lest: 0, nye: 0, endret: 0, uendret: 0, slettet: 0 })
   process.exit(0)
 }
@@ -136,25 +166,71 @@ await sql(`DROP TABLE IF EXISTS staging_oppdatering;
            CREATE UNLOGGED TABLE staging_oppdatering (doc jsonb);`)
 
 let hentet = 0, feil = 0
+const forsvunnet = []
+
+/** One company. Returns the CSV line for COPY, or null if there is nothing to write. */
+async function hentEn(orgnr) {
+  try {
+    const res = await fetch(`${ENHET}/${orgnr}`, { headers: { Accept: 'application/json' } })
+    if (res.ok) {
+      const doc = await res.text()
+      hentet++
+      return '"' + doc.replace(/"/g, '""') + '"\n'
+    }
+    if (res.status === 404 || res.status === 410) {
+      // Gone from the register but not announced as a deletion. Collected and
+      // retired in one statement at the end rather than one round trip each.
+      forsvunnet.push(orgnr)
+      return null
+    }
+    feil++
+    return null
+  } catch {
+    feil++
+    return null
+  }
+}
+
+/**
+ * Feed the COPY stream, fetching SAMTIDIGE companies at a time.
+ *
+ * This was one request at a time, and a three-day gap took 42 minutes for
+ * 15,719 companies — during which the job used 47 seconds of CPU. Almost all of
+ * that wall clock was spent waiting for Brreg to answer, which is the same thing
+ * fetch-regnskap was doing before it got a worker pool.
+ *
+ * A batch barrier rather than a true pool: each round waits for its slowest
+ * member before starting the next. Slightly less efficient in theory, and the
+ * difference does not show here because the requests are uniform — while the
+ * code stays a generator feeding a stream, which is what keeps the whole
+ * response set from being held in memory at once.
+ */
 async function* linjer() {
-  for (const orgnr of aaHente) {
-    try {
-      const res = await fetch(`${ENHET}/${orgnr}`, { headers: { Accept: 'application/json' } })
-      if (res.ok) {
-        const doc = await res.text()
-        yield '"' + doc.replace(/"/g, '""') + '"\n'
-        hentet++
-      } else if (res.status === 404 || res.status === 410) {
-        // Gone from the register but not announced as a deletion.
-        await sql(`UPDATE enheter SET slettet_dato = current_date WHERE organisasjonsnummer='${orgnr}' AND slettet_dato IS NULL;`)
-      } else feil++
-    } catch { feil++ }
-    if (hentet % 200 === 0 && hentet) console.log(`  hentet ${hentet}/${aaHente.length}…`)
-    await sleep(THROTTLE)
+  for (let i = 0; i < aaHente.length; i += SAMTIDIGE) {
+    const bolk = aaHente.slice(i, i + SAMTIDIGE)
+    const svar = await Promise.all(bolk.map(hentEn))
+    for (const linje of svar) if (linje) yield linje
+
+    const gjort = Math.min(i + SAMTIDIGE, aaHente.length)
+    if (gjort % 500 < SAMTIDIGE || gjort === aaHente.length) {
+      console.log(`  hentet ${hentet}/${aaHente.length}…`)
+    }
+    if (THROTTLE) await sleep(THROTTLE)
   }
 }
 await run(['-c', `\\copy staging_oppdatering (doc) FROM STDIN WITH (FORMAT csv, QUOTE '"')`],
           { source: Readable.from(linjer()) })
+
+// Companies the API no longer serves. One statement instead of one round trip
+// each: `docker compose exec psql` costs more than the request that found them.
+if (forsvunnet.length) {
+  const liste = forsvunnet.map(o => `'${o}'`).join(',')
+  const n = Number(await query(`
+    WITH m AS (UPDATE enheter SET slettet_dato = current_date, updated_at = now()
+               WHERE organisasjonsnummer IN (${liste}) AND slettet_dato IS NULL RETURNING 1)
+    SELECT count(*) FROM m;`))
+  slettet += n
+}
 
 // The JSON field names mostly match the CSV headers, but not entirely:
 // `registrertIMvaregisteret` has a lowercase r, and `adresse` is an ARRAY of

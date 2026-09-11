@@ -16,7 +16,25 @@ const alder = (sek: number | null) => {
   return `${Math.max(1, Math.floor(sek / 60))} min siden`
 }
 const tid = (v: string | null) => v ? new Date(v).toLocaleString('nb-NO') : '—'
-const varighet = (ms: number | null) => ms == null ? '—' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`
+/**
+ * hh:mm:ss for anything over a minute, otherwise seconds or milliseconds.
+ *
+ * The full accounts pass took 4,812.8 s, which is a number nobody can read as
+ * "one hour twenty". Durations here span four orders of magnitude — 463 ms for
+ * the name statistics, over an hour for a full refresh — so the unit has to
+ * change with the size.
+ */
+function varighet(ms: number | null) {
+  if (ms == null) return '—'
+  if (ms < 1000) return `${ms} ms`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} s`
+  const sek = Math.floor(ms / 1000)
+  const t = Math.floor(sek / 3600)
+  const m = Math.floor((sek % 3600) / 60)
+  const s2 = sek % 60
+  const to = (n: number) => String(n).padStart(2, '0')
+  return t ? `${t}:${to(m)}:${to(s2)}` : `${m}:${to(s2)}`
+}
 const tall = (n: number) => nb(n)
 const pst = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1).replace('.', ',')} %` : '—'
 const storrelse = (b: number) =>

@@ -972,5 +972,9 @@ nav.tabs a.router-link-active {
 
 /* Import routine rows: the name column is a label, not a paragraph — capped so
    the numbers to its right stay aligned and reachable. */
-.jobbkol { max-width: 21ch; }
+/* The name column is a label, not a paragraph. Fixed rather than capped so the
+   numeric columns to its right line up down the table regardless of which job
+   has the longest title. */
+.jobbkol { width: 15ch; max-width: 15ch; }
+.jobbkol .jobbnavn { display: block; }
 .jobbtype { font: 11px/1.5 var(--mono); color: var(--text-dim); margin-left: 5px; }

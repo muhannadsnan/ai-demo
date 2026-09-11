@@ -844,6 +844,39 @@ still connect the two.
 | `topplister` | Rankings computed from our own data | derived |
 | `embedding` | Descriptions turned into comparable numbers | OpenAI |
 
+### A cursor that pointed four years into the past
+
+The daily change feed stores the last `oppdateringsid` it handled. When there is
+no cursor yet, it has to seed one — and the seeding used the wrong number:
+
+```js
+const p = await fetch(`${FEED}?size=1`).then(r => r.json())
+cursor = Number(p?.page?.totalElements ?? 0)   // a COUNT, not an id
+```
+
+`totalElements` is how many events exist. It is not the id of the newest one,
+and the two had drifted a long way apart: the count sat around 16.4 million
+while ids had reached 25.2 million, because ids have gaps.
+
+**It failed silently, which is why it survived.** 16,407,682 looks exactly like
+an oppdateringsid. The job started, read real events, updated real companies and
+reported success — while quietly replaying the change feed **from January 2023**
+with 7.8 million events still ahead of it. Every run consumed its 20,000-company
+cap and made real progress, so the logs looked healthy.
+
+What exposed it was arithmetic that would not close. A three-day gap should be
+about 3,000 companies a day; three runs had processed 67,586 events and the cap
+was still being hit. Asking the feed what date the cursor actually pointed at
+gave the answer in one line: `2023-01-11`.
+
+Seeding now asks for the first event on a **date** — the day the full file was
+published, since the file establishes the state and the cursor carries every
+change after it. `--fra-dato 2026-09-06` reset it to 25,167,917, and the
+catch-up read 11,131 events, exactly what the API reports for that period.
+
+The damage was waste rather than corruption: replaying an old event re-fetches
+that company's *current* state, so the data was right and the time was not.
+
 ### Refreshing accounts: measure the constraint before designing around it
 
 The bulk dump seeded 4,959,964 accounting rows across 448,600 companies. The

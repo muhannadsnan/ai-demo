@@ -144,20 +144,17 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       <section class="statuskort bred">
         <h3>Innhold</h3>
         <p class="kortnote">Hva plattformen faktisk inneholder.</p>
-        <div class="tablewrap">
-      <table class="meta smaltabell">
-        <thead>
-          <tr><th>Datasett</th><th>Kilde</th><th>Rader</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="t in data.tabeller" :key="t.tabell">
-            <td><span class="jobbnavn">{{ beskrivTabell(t.tabell).tittel }}</span></td>
-            <td class="muted">{{ beskrivTabell(t.tabell).kilde }}</td>
-            <td>{{ tall(t.rader) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <table class="meta innholdstabell">
+          <tbody>
+            <tr v-for="t in data.tabeller" :key="t.tabell">
+              <td>
+                <span class="jobbnavn">{{ beskrivTabell(t.tabell).tittel }}</span>
+                <span class="jobbkilde">{{ beskrivTabell(t.tabell).kilde }}</span>
+              </td>
+              <td>{{ nb(t.rader) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section class="statuskort" v-if="data.dekningstall">
@@ -224,12 +221,13 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
         </dl>
       </section>
 
+      <div class="kortstabel">
       <section class="statuskort" v-if="data.embedding">
         <h3>Semantisk søk</h3>
         <dl>
           <dt>Beskrivelser</dt>
           <dd>{{ nb(data.embedding.totalt) }}
-            <span class="sistoppdatert">{{ tid(data.embedding.sist) }}</span></dd>
+            <span class="sistoppdatert">sist oppd. {{ tid(data.embedding.sist) }}</span></dd>
           <dt>Lest inn</dt>
           <dd>
             <span class="medstolpe">
@@ -263,6 +261,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <dd><code>{{ data.database.siste_migrasjon?.filename ?? '—' }}</code></dd>
         </dl>
       </section>
+      </div>
 
     </div>
 

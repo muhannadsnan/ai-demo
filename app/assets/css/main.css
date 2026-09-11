@@ -1067,3 +1067,18 @@ table.meta.jobbtabell td:first-child { width: 30%; }
    `.statusside th` is (0,1,1) — it would have lost, the same way the column
    widths did twice. */
 .statusside table.meta thead th { color: var(--text); }
+
+/* ---- Status: content table and stacked cards ---- */
+
+/* Name and source in one cell, count in the other. Two columns instead of
+   three, and no rules between rows — at this density the lines were doing more
+   separating than the content needed. */
+.statusside table.meta.innholdstabell td { border-bottom: none; padding: 4px 0; }
+.statusside table.meta.innholdstabell td:first-child { width: auto; }
+.innholdstabell .jobbnavn { font-weight: 600; }
+.innholdstabell .jobbkilde { display: inline; margin-left: 8px; }
+.innholdstabell td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Two short cards sharing one grid column rather than each claiming a row.
+   The wrapper is the grid item; the cards stack inside it. */
+.kortstabel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

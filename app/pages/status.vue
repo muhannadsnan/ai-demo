@@ -117,9 +117,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
               <span class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
             </td>
             <td>
-              <span class="pill" :class="i.status === 'ok' ? 'ok' : i.status === 'feilet' ? 'bad' : 'warn'">
-                {{ i.status }}
-              </span>
+              <StatusIkon :status="i.status" />
             </td>
             <td>
               <span :class="fersk(i.alder_sek) ? 'fersk' : 'gammel'">{{ alder(i.alder_sek) }}</span>
@@ -145,7 +143,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
 
       <section class="statuskort halv">
         <h3>Innhold</h3>
-        <p class="kortnote">Hva plattformen faktisk inneholder.</p>
+        <p class="kortnote">Hva plattformen faktisk inneholder, med kilde og antall rader.</p>
         <table class="meta innholdstabell">
           <tbody>
             <tr v-for="t in data.tabeller" :key="t.tabell">

@@ -953,10 +953,15 @@ nav.tabs a.router-link-active {
 .indekstre > .indekstabell-rad:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 /* A marker on the group rows: 66 index lines run together without something
    to catch the eye at each table boundary. */
-.indekstabell-navn { font-weight: 650; font-size: 13px; }
+/* Numbered rather than bulleted: eighteen tables in size order is a ranking,
+   and a number says which place this one is in. Counter on the container so the
+   markup carries no numbers of its own. */
+.indekstre { counter-reset: tabellnr; }
+.indekstabell-navn { font-weight: 500; font-size: 13px; counter-increment: tabellnr; }
 .indekstabell-navn::before {
-  content: '●'; color: currentColor; font-size: 12px;
-  vertical-align: 1px; margin-right: 8px;
+  content: counter(tabellnr) '.';
+  color: var(--text-dim); font: 11px/1 var(--mono);
+  margin-right: 8px;
 }
 .indekstabell-antall { font: 11px/1 var(--mono); color: var(--text-dim); }
 .indekstabell-tall { font: 11px/1 var(--mono); color: var(--text-dim); }
@@ -1146,9 +1151,24 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
 
 /* The table is the card's content, so it reaches the padding edge and its rows
    band like every other list on the page. */
-.statuskort .tablewrap { margin: 10px -14px 0; border: none; border-radius: 0; overflow-x: auto; }
+/* max-width:100% on .tablewrap caps the width at the parent's content box while
+   the negative margin shifts the box left — so it ended 14px short on the
+   right. The width has to be stated as well as the margin. */
+.statuskort .tablewrap {
+  margin: 10px -14px 0; border: none; border-radius: 0; overflow-x: auto;
+  max-width: none; width: calc(100% + 28px);
+}
 .jobbtabell tbody tr:nth-child(even) td { background: var(--surface-2); }
 .jobbtabell th:first-child, .jobbtabell td:first-child { padding-left: 14px; }
 .jobbtabell th:last-child, .jobbtabell td:last-child { padding-right: 14px; }
 .statusside table.meta.jobbtabell tbody tr:last-child td { border-bottom: none; }
 .jobbtabell thead th { padding-top: 0; }
+
+/* ---- Import status icons ---- */
+.statusikon { display: inline-flex; line-height: 0; }
+.statusikon.ok     { color: var(--ok); }
+.statusikon.feilet { color: #c0392b; }
+.statusikon.kjorer { color: var(--accent); }
+.statusikon .snurrer { animation: snurr 1.1s linear infinite; transform-origin: 50% 50%; }
+@keyframes snurr { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .statusikon .snurrer { animation-duration: 4s; } }

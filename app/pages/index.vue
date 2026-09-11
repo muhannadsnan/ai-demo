@@ -242,16 +242,25 @@ const FUNKSJONER = computed(() => [
 @media (max-width: 700px) { .forsidesok { width: 100%; } }
 
 .maater { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+/* Both card grids are links, and the grey border made them look like the
+   panels further down that are not. A faint orange ground with a border in the
+   same family says "this goes somewhere" before you hover; hover then deepens
+   the border rather than introducing a colour that was not there. */
+.maate, .inngang {
+  background: var(--accent-soft);
+  border: 1px solid var(--kant-lys);
+  transition: border-color .12s ease;
+}
+.maate:hover, .inngang:hover { border-color: var(--accent); }
+
 .maate {
   display: flex; flex-direction: column; gap: 6px;
   padding: 14px 16px; text-decoration: none; color: inherit;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); transition: border-color .12s ease;
+  border-radius: var(--radius);
 }
-.maate:hover { border-color: var(--accent); }
 /* The semantic search is the one worth pointing at: it is the only one that
    finds a company which used none of the words. */
-.maate.fremhevet { border-color: var(--accent); background: var(--accent-soft); }
+.maate.fremhevet { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 .maate-tittel { font-weight: 650; font-size: 14px; }
 .maate-hva { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
 /* The example is the clickable promise of the card. Blue text, no chip — the
@@ -278,10 +287,8 @@ const FUNKSJONER = computed(() => [
 .inngang {
   display: flex; flex-direction: column; padding: 14px 16px;
   text-decoration: none; color: inherit;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); transition: border-color .12s ease;
+  border-radius: var(--radius);
 }
-.inngang:hover { border-color: var(--accent); }
 .inngang h3 { font-size: 15px; margin: 0 0 2px; color: var(--accent); }
 .inngang-merke {
   display: block; margin-bottom: 6px;

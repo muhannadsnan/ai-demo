@@ -14,6 +14,9 @@
      link orange reads washed out, and this is a marker rather than something
      to click. */
   --punkt: #8f3f13;
+  /* Border to sit on --accent-soft: the same warmth, a step darker, so a
+     card reads as clickable before anyone hovers it. */
+  --kant-lys: #f0d8c7;
   --ok: #2f7d4f;
   --warn: #9a6b12;
   --info: #2563a8;

@@ -141,7 +141,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
     <h2>Tilstand</h2>
     <div class="statusrutenett">
 
-      <section class="statuskort bred">
+      <section class="statuskort halv">
         <h3>Innhold</h3>
         <p class="kortnote">Hva plattformen faktisk inneholder.</p>
         <table class="meta innholdstabell">
@@ -157,83 +157,66 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
         </table>
       </section>
 
-      <section class="statuskort" v-if="data.dekningstall">
+      <section class="statuskort halv" v-if="data.dekningstall">
         <h3>Dekning</h3>
         <p class="kortnote">Hvor stor del av registeret hvert datasett når.</p>
         <dl>
-          <dt>Foretak i registeret</dt><dd>{{ nb(data.dekningstall.foretak) }}</dd>
-          <dt>Har sendt inn regnskap</dt>
-          <dd>{{ nb(data.dekningstall.med_regnskap) }}
-            <span class="andel">{{ pst(data.dekningstall.med_regnskap, data.dekningstall.foretak) }}</span></dd>
-          <dt>Har skrevet en beskrivelse</dt>
-          <dd>{{ nb(data.dekningstall.med_beskrivelse) }}
-            <span class="andel">{{ pst(data.dekningstall.med_beskrivelse, data.dekningstall.foretak) }}</span></dd>
-          <dt>Arkiverte roller</dt>
-          <dd>
-            {{ nb(data.dekningstall.arkiverte_roller) }}
-            <template v-if="data.dekningstall.arkiv_siden">— siden {{ data.dekningstall.arkiv_siden }}</template>
-            <span v-if="!data.dekningstall.arkiverte_roller" class="kortnote">
-              ingen roller har opphørt siden vi begynte å følge med
-            </span>
-          </dd>
-          <dt>Slettet fra registeret</dt><dd>{{ nb(data.dekningstall.slettet) }}</dd>
-          <dt>Savnet i siste fullfil</dt>
-          <dd>{{ nb(data.dekningstall.savnet) }}
-            <span class="kortnote">venter på bekreftelse før de merkes slettet</span></dd>
-        </dl>
+        <div class="rad"><dt>Foretak i registeret</dt><dd>{{ nb(data.dekningstall.foretak) }}</dd></div>
+        <div class="rad"><dt>Har sendt inn regnskap</dt><dd>{{ nb(data.dekningstall.med_regnskap) }} <span class="andel">{{ pst(data.dekningstall.med_regnskap, data.dekningstall.foretak) }}</span></dd></div>
+        <div class="rad"><dt>Har skrevet en beskrivelse</dt><dd>{{ nb(data.dekningstall.med_beskrivelse) }} <span class="andel">{{ pst(data.dekningstall.med_beskrivelse, data.dekningstall.foretak) }}</span></dd></div>
+        <div class="rad"><dt>Arkiverte roller</dt><dd>{{ nb(data.dekningstall.arkiverte_roller) }}<template v-if="data.dekningstall.arkiv_siden"> — siden {{ data.dekningstall.arkiv_siden }}</template></dd>
+          <span class="kortnote"><template v-if="!data.dekningstall.arkiverte_roller">ingen roller har opphørt siden vi begynte å følge med</template></span></div>
+        <div class="rad"><dt>Slettet fra registeret</dt><dd>{{ nb(data.dekningstall.slettet) }}</dd></div>
+        <div class="rad"><dt>Savnet i siste fullfil</dt><dd>{{ nb(data.dekningstall.savnet) }}</dd>
+          <span class="kortnote">venter på bekreftelse før de merkes slettet</span></div>
+      </dl>
       </section>
 
       <section class="statuskort" v-if="data.dekningstall">
         <h3>Datakvalitet</h3>
         <p class="kortnote">Det vi vet er feil eller utelatt, sagt høyt.</p>
         <dl>
-          <dt>Urimelig målestokk</dt>
-          <dd>{{ nb(data.dekningstall.urimelige) }}
-            <span class="kortnote">utelatt fra rangeringer og filtre</span></dd>
-          <dt>Brreg svarer 500</dt>
-          <dd>{{ nb(data.dekningstall.hentefeil) }}
-            <span class="kortnote">finansforetak API-et ikke klarer å levere</span></dd>
-          <dt>Valuta</dt>
-          <dd>
+        <div class="rad"><dt>Urimelig målestokk</dt><dd>{{ nb(data.dekningstall.urimelige) }}</dd>
+          <span class="kortnote">utelatt fra rangeringer og filtre</span></div>
+        <div class="rad"><dt>Brreg svarer 500</dt><dd>{{ nb(data.dekningstall.hentefeil) }}</dd>
+          <span class="kortnote">finansforetak API-et ikke klarer å levere</span></div>
+        <div class="rad bred-rad"><dt>Valuta</dt>
+          <dd class="valutaliste">
             <span v-for="v in valutasum" :key="v.valuta" class="valutabit">{{ v.valuta }} {{ nb(v.rader) }}</span>
-            <span class="kortnote">
-              Historikkfilen oppgir NOK for alt. API-et er uenig for rundt én
-              prosent, og de leses som ti ganger for store til de hentes på nytt.
-            </span>
           </dd>
-          <dt>Markør i endringsstrømmen</dt>
-          <dd><code>{{ data.dekningstall.markor }}</code>
-            <span class="kortnote">{{ tid(data.dekningstall.markor_at) }} — neste kjøring fortsetter herfra</span></dd>
-        </dl>
+          <span class="kortnote">
+            Historikkfilen oppgir NOK for alt. API-et er uenig for rundt én
+            prosent, og de leses som ti ganger for store til de hentes på nytt.
+          </span>
+        </div>
+        <div class="rad"><dt>Markør i endringsstrømmen</dt><dd><code>{{ data.dekningstall.markor }}</code></dd>
+          <span class="kortnote">{{ tid(data.dekningstall.markor_at) }} — neste kjøring fortsetter herfra</span></div>
+      </dl>
       </section>
 
       <section class="statuskort">
         <h3>Regnskapsdekning</h3>
         <dl>
-          <dt>Årsspenn</dt><dd>{{ data.regnskapsdekning.fra }}–{{ data.regnskapsdekning.til }}</dd>
-          <dt>Foretak med regnskap</dt><dd>{{ nb(Number(data.regnskapsdekning.foretak)) }}</dd>
-          <dt>Rader fra Brreg API</dt>
-          <dd>{{ nb(Number(data.regnskapsdekning.fra_api)) }}
-            <span class="kortnote">eksakte tall</span></dd>
-          <dt>Rader fra historikk</dt>
-          <dd>{{ nb(Number(data.regnskapsdekning.fra_historikk)) }}
-            <span class="kortnote">avrundet ved kilden</span></dd>
-        </dl>
+        <div class="rad"><dt>Årsspenn</dt><dd>{{ data.regnskapsdekning.fra }}–{{ data.regnskapsdekning.til }}</dd></div>
+        <div class="rad"><dt>Foretak med regnskap</dt><dd>{{ nb(Number(data.regnskapsdekning.foretak)) }}</dd></div>
+        <div class="rad"><dt>Rader fra Brreg API</dt><dd>{{ nb(Number(data.regnskapsdekning.fra_api)) }}</dd>
+          <span class="kortnote">eksakte tall</span></div>
+        <div class="rad"><dt>Rader fra historikk</dt><dd>{{ nb(Number(data.regnskapsdekning.fra_historikk)) }}</dd>
+          <span class="kortnote">avrundet ved kilden</span></div>
+      </dl>
       </section>
 
       <div class="kortstabel">
       <section class="statuskort" v-if="data.embedding">
         <h3>Semantisk søk</h3>
         <dl>
-          <dt>Beskrivelser</dt>
-          <dd>{{ nb(data.embedding.totalt) }}
-            <span class="sistoppdatert">sist oppd. {{ tid(data.embedding.sist) }}</span></dd>
-          <dt>Lest inn</dt>
-          <dd>
-            <span class="medstolpe">
+          <div class="rad"><dt>Beskrivelser</dt><dd>{{ nb(data.embedding.totalt) }}</dd>
+            <span class="sistoppdatert">sist oppd. {{ tid(data.embedding.sist) }}</span></div>
+          <div class="rad bred-rad"><dt>Lest inn</dt>
+            <dd class="medstolpe">
               <span>{{ nb(data.embedding.andel) }} %</span>
               <span class="framdrift"><i :style="{ width: Math.max(data.embedding.andel, 0.5) + '%' }" /></span>
-            </span>
+            </dd>
             <span class="kortnote">
               <template v-if="data.embedding.ferdig && data.embedding.har_indeks">
                 alt innlest, HNSW-indeksen er bygget
@@ -249,17 +232,16 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
                 første gjennomkjøring pågår — søket virker, men bare i den ferdige delen
               </template>
             </span>
-          </dd>
+          </div>
         </dl>
       </section>
 
       <section class="statuskort">
         <h3>Database</h3>
         <dl>
-          <dt>Størrelse</dt><dd>{{ data.database.storrelse }}</dd>
-          <dt>Siste migrasjon</dt>
-          <dd><code>{{ data.database.siste_migrasjon?.filename ?? '—' }}</code></dd>
-        </dl>
+        <div class="rad"><dt>Størrelse</dt><dd>{{ data.database.storrelse }}</dd></div>
+        <div class="rad"><dt>Siste migrasjon</dt><dd><code>{{ data.database.siste_migrasjon?.filename ?? '—' }}</code></dd></div>
+      </dl>
       </section>
       </div>
 

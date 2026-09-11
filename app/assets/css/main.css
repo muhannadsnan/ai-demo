@@ -1082,3 +1082,39 @@ table.meta.jobbtabell td:first-child { width: 30%; }
 /* Two short cards sharing one grid column rather than each claiming a row.
    The wrapper is the grid item; the cards stack inside it. */
 .kortstabel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+/* ---- Status cards: label and value on one line ---- */
+
+/* Six columns so the top row can be two halves while the rest are thirds.
+   auto-fit cannot do that — it gives every card the same share. */
+.statusrutenett { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+/* Marked explicitly rather than by position: nth-of-type would silently move
+   the halves onto different cards the moment one is reordered. */
+.statuskort.halv { grid-column: span 3; }
+.statusrutenett > .kortstabel,
+.statusrutenett > .statuskort:not(.halv) { grid-column: span 2; }
+@media (max-width: 980px) {
+  .statusrutenett { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .statusrutenett > * { grid-column: span 1 !important; }
+}
+@media (max-width: 620px) {
+  .statusrutenett { grid-template-columns: 1fr; }
+}
+
+/* The label sits left and the value right, as in the content table. A note
+   belongs to the pair rather than to the value, so it spans both and drops
+   underneath. */
+.statuskort .rad {
+  display: grid; grid-template-columns: 1fr auto;
+  column-gap: 12px; align-items: baseline;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.statuskort .rad:last-child { border-bottom: none; }
+.statuskort dt { margin: 0; text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 500; }
+.statuskort dd { margin: 0; text-align: right; }
+.statuskort .rad .kortnote { grid-column: 1 / -1; margin-top: 2px; }
+
+/* Rows whose value needs the whole width — a currency list, a progress bar. */
+.statuskort .bred-rad { grid-template-columns: 1fr; }
+.statuskort .bred-rad dd { text-align: left; margin-top: 4px; }
+.statuskort .valutaliste { line-height: 1.9; }

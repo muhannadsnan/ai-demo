@@ -4,9 +4,6 @@ import { beskrivTabell, beskrivJobb } from "~/utils/datasett"
 
 const { data } = await useFetch('/api/status')
 
-// Jobs whose source is worth naming. Everything else comes from
-// Enhetsregisteret, which the title already implies.
-const VIS_KILDE = new Set(['embedding', 'referansedata', 'enheter', 'fornavn'])
 
 const alder = (sek: number | null) => {
   if (sek == null) return 'aldri'
@@ -103,7 +100,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
                    these jobs — the full file and the change stream hit the same
                    register and the same table by opposite routes. -->
               <span v-if="beskrivJobb(i.kilde).type" class="jobbtype">({{ beskrivJobb(i.kilde).type }})</span>
-              <span v-if="VIS_KILDE.has(i.kilde)" class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
+              <span class="jobbkilde">{{ beskrivJobb(i.kilde).kilde }}</span>
             </td>
             <td>
               <span class="pill" :class="i.status === 'ok' ? 'ok' : i.status === 'feilet' ? 'bad' : 'warn'">
@@ -130,15 +127,15 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
 
     <h2>Innhold</h2>
     <div class="tablewrap">
-      <table class="meta">
+      <table class="meta smaltabell">
         <thead>
-          <tr><th>Datasett</th><th>Kilde</th><th style="text-align:right">Rader</th></tr>
+          <tr><th>Datasett</th><th>Kilde</th><th>Rader</th></tr>
         </thead>
         <tbody>
           <tr v-for="t in data.tabeller" :key="t.tabell">
             <td><span class="jobbnavn">{{ beskrivTabell(t.tabell).tittel }}</span></td>
-            <td class="muted" style="white-space:nowrap">{{ beskrivTabell(t.tabell).kilde }}</td>
-            <td style="text-align:right; white-space:nowrap">{{ tall(t.rader) }}</td>
+            <td class="muted">{{ beskrivTabell(t.tabell).kilde }}</td>
+            <td>{{ tall(t.rader) }}</td>
           </tr>
         </tbody>
       </table>

@@ -977,10 +977,24 @@ nav.tabs a.router-link-active {
    Line one is the job and how the data arrives; line two is the register it
    comes from. `.jobbnavn` stays inline for that — set to block it pushed the
    type onto its own line and made every row three deep. */
-.jobbtabell td:first-child { width: 25%; text-align: left; }
+.jobbtabell td:first-child { width: 30%; }
 .jobbtype { font: 11px/1.5 var(--mono); color: var(--text-dim); margin-left: 5px; }
 
-/* Centred, like the numeric columns already were: a row of eight values reads
-   as one row rather than as eight left edges at different depths. */
-.jobbtabell th, .jobbtabell td { text-align: center; }
-.jobbtabell th:first-child { text-align: left; }
+/* Alignment is per column and applies to the header and the cells together —
+   a centred heading over left-aligned values reads as a mistake. The first
+   column is a name so it starts at the left edge; the last is a number so it
+   ends at the right; everything between is centred.
+   Shared by both tables on this page. */
+.jobbtabell th, .jobbtabell td,
+.smaltabell th, .smaltabell td { text-align: center; }
+.jobbtabell th:first-child, .jobbtabell td:first-child,
+.smaltabell th:first-child, .smaltabell td:first-child { text-align: left; }
+.jobbtabell th:last-child, .jobbtabell td:last-child,
+.smaltabell th:last-child, .smaltabell td:last-child { text-align: right; }
+
+/* Three columns stretched across 1180px leaves the name and its count at
+   opposite ends of the screen. Sized to content instead, so they stay readable
+   as one row. */
+.smaltabell { width: auto; min-width: min(100%, 620px); }
+.smaltabell td, .smaltabell th { padding-right: 32px; white-space: nowrap; }
+.smaltabell td:last-child, .smaltabell th:last-child { padding-right: 0; }

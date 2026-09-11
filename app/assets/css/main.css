@@ -959,7 +959,7 @@ nav.tabs a.router-link-active {
   vertical-align: 1px; margin-right: 8px;
 }
 .indekstabell-antall { font: 11px/1 var(--mono); color: var(--text-dim); }
-.indekstabell-tall { margin-left: auto; font: 11px/1 var(--mono); color: var(--text-dim); }
+.indekstabell-tall { font: 11px/1 var(--mono); color: var(--text-dim); }
 .indeksrad {
   display: flex; align-items: baseline; gap: 10px;
   padding: 1px 0 1px 14px; line-height: 1.45; min-width: 0;
@@ -1073,7 +1073,7 @@ table.meta.jobbtabell td:first-child { width: 30%; }
 /* Name and source in one cell, count in the other. Two columns instead of
    three, and no rules between rows — at this density the lines were doing more
    separating than the content needed. */
-.statusside table.meta.innholdstabell td { border-bottom: none; padding: 4px 0; }
+.statusside table.meta.innholdstabell td { border-bottom: 1px solid var(--border); }
 .statusside table.meta.innholdstabell td:first-child { width: auto; }
 .innholdstabell .jobbnavn { font-weight: 600; }
 .innholdstabell .jobbkilde { display: inline; margin-left: 8px; }
@@ -1118,3 +1118,17 @@ table.meta.jobbtabell td:first-child { width: 30%; }
 .statuskort .bred-rad { grid-template-columns: 1fr; }
 .statuskort .bred-rad dd { text-align: left; margin-top: 4px; }
 .statuskort .valutaliste { line-height: 1.9; }
+
+/* ---- Status cards: banded rows ----
+   Every other row takes a faint tint, starting with the second, so the eye can
+   follow a label across to its value without a rule doing the work. The tint is
+   pulled out to the card's padding edge, otherwise the band stops short of the
+   text on both sides and reads as a highlight rather than a stripe. */
+.statuskort .rad:nth-child(even),
+.innholdstabell tbody tr:nth-child(even) td {
+  background: var(--surface-2);
+}
+.statuskort .rad { padding-left: 14px; padding-right: 14px; margin: 0 -14px; }
+.innholdstabell tbody tr td:first-child { padding-left: 14px; }
+.innholdstabell tbody tr td:last-child { padding-right: 14px; }
+.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }

@@ -105,7 +105,14 @@ export default defineEventHandler(async (event) => {
     // only part of the data — which looks like bad results rather than an
     // unfinished job. Showing the progress makes the difference visible.
     query(`SELECT
-             (SELECT count(*)::int FROM enheter_embedding) AS gjort,
+             -- Counted over the SAME population as totalt below. Counting
+             -- every embedding row instead put the figure at 100.1 %: 818 of
+             -- them belong to companies deregistered since they were embedded,
+             -- and a soft delete leaves the vector in place.
+             (SELECT count(*)::int FROM enheter_embedding em
+               JOIN enheter e USING (organisasjonsnummer)
+              WHERE e.slettet_dato IS NULL
+                AND length(coalesce(e.aktivitet, e.vedtektsfestet_formaal)) >= 12) AS gjort,
              (SELECT count(*)::int FROM enheter
                WHERE slettet_dato IS NULL
                  AND length(coalesce(aktivitet, vedtektsfestet_formaal)) >= 12) AS totalt,

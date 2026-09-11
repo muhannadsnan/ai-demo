@@ -66,13 +66,13 @@ const SOKEMAATER = [
 const TEKNIKK = [
   {
     tittel: 'Kildene, ikke en kopi av dem',
-    hva: 'Åtte importrutiner mot fire offentlige registre. Fullfilene lastes ned på nytt bare når kilden har en nyere versjon, og den daglige jobben leser Brønnøysunds endringsstrøm i stedet for å spørre om alt.',
+    hva: 'Ti importrutiner mot fire offentlige registre. Fullfilene lastes ned på nytt bare når kilden har en nyere versjon. Regnskap hentes for foretak registeret sier har sendt inn et år vi ikke har, i stedet for å spørre om alle på nytt. Topplister og meningssøk regnes ut på nytt hver natt.',
     tall: '10 rutiner · 4 registre · 7 timere'
   },
   {
     tittel: 'Et avbrudd er ikke et hull',
-    hva: 'Importen husker siste hendelse den behandlet. Står maskinen av i en måned, fortsetter neste kjøring fra samme punkt — ingenting hoppes over, ingenting hentes to ganger. Samme kode som en vanlig natt.',
-    tall: 'markørbasert gjenopptaking'
+    hva: 'Den daglige importen leser Brønnøysunds endringsstrøm og husker hvor den slapp, som en markør i strømmen. Står maskinen av i en måned, fortsetter neste kjøring fra samme punkt og henter alt som skjedde i mellomtiden — ingenting hoppes over, ingenting hentes to ganger. Samme kodevei som en vanlig natt, ikke en egen gjenopprettingsrutine.',
+    tall: 'markør i endringsstrømmen'
   },
   {
     tittel: 'Ventetid er ikke arbeid',
@@ -217,23 +217,6 @@ const FUNKSJONER = computed(() => [
       </li>
     </ol>
 
-    <h2>Hvordan dataene holdes ferske</h2>
-    <div class="card ferskhet">
-      <p>
-        Den daglige importen leser Brønnøysunds endringsstrøm og husker hvor den
-        slapp, som en <strong>markør</strong> i strømmen. Står maskinen stille i
-        en måned, fortsetter neste kjøring fra samme punkt og henter alt som
-        skjedde i mellomtiden — ingenting hoppes over, og ingenting hentes to
-        ganger.
-      </p>
-      <p class="muted">
-        Regnskap hentes for foretak registeret sier har sendt inn et år vi ikke
-        har, i stedet for å spørre om alle på nytt. Topplister og meningssøk
-        regnes ut på nytt hver natt.
-        <NuxtLink to="/status">Se siste kjøring →</NuxtLink>
-      </p>
-    </div>
-
     <p class="muted kildenote">
       Kildene er offentlige og gjengis under NLOD. Personopplysninger fra
       Aksjonærregisteret lagres, men vises ikke.
@@ -300,7 +283,5 @@ const FUNKSJONER = computed(() => [
 }
 .inngang p { font-size: 12.5px; color: var(--text-dim); margin: 0; line-height: 1.55; }
 .inngang-eksempel { margin-top: 12px; }
-.ferskhet p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; }
-.ferskhet p:last-child { margin-bottom: 0; }
 .kildenote { margin-top: 22px; }
 </style>

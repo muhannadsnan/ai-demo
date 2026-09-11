@@ -84,20 +84,20 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
       fullfilene ukentlig. Hver kjøring logges, også når den feiler.
     </p>
     <div class="tablewrap">
-      <table class="meta">
+      <table class="meta jobbtabell">
         <thead>
           <tr>
-            <th class="jobbkol">Jobb</th><th>Status</th><th>Sist kjørt</th>
-            <th style="text-align:right">Lest</th>
-            <th style="text-align:right">Nye</th>
-            <th style="text-align:right">Endret</th>
-            <th style="text-align:right">Slettet</th>
-            <th style="text-align:right">Tid</th>
+            <th>Jobb</th><th>Status</th><th>Sist kjørt</th>
+            <th>Lest</th>
+            <th>Nye</th>
+            <th>Endret</th>
+            <th>Slettet</th>
+            <th>Tid</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="i in data.importer" :key="i.kilde">
-            <td class="jobbkol">
+            <td>
               <span class="jobbnavn">{{ beskrivJobb(i.kilde).tittel }}</span>
               <!-- How the data arrives, which is what actually distinguishes
                    these jobs — the full file and the change stream hit the same
@@ -114,11 +114,11 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
               <span :class="fersk(i.alder_sek) ? 'fersk' : 'gammel'">{{ alder(i.alder_sek) }}</span>
               <span class="muted"> · {{ tid(i.ferdig_at ?? i.startet_at) }}</span>
             </td>
-            <td style="text-align:right">{{ i.rader_lest ? tall(Number(i.rader_lest)) : '—' }}</td>
-            <td style="text-align:right">{{ i.rader_nye != null ? tall(Number(i.rader_nye)) : '—' }}</td>
-            <td style="text-align:right">{{ i.rader_endret != null ? tall(Number(i.rader_endret)) : '—' }}</td>
-            <td style="text-align:right">{{ i.rader_slettet != null ? tall(Number(i.rader_slettet)) : '—' }}</td>
-            <td style="text-align:right">{{ varighet(i.varighet_ms) }}</td>
+            <td>{{ i.rader_lest ? tall(Number(i.rader_lest)) : '—' }}</td>
+            <td>{{ i.rader_nye != null ? tall(Number(i.rader_nye)) : '—' }}</td>
+            <td>{{ i.rader_endret != null ? tall(Number(i.rader_endret)) : '—' }}</td>
+            <td>{{ i.rader_slettet != null ? tall(Number(i.rader_slettet)) : '—' }}</td>
+            <td>{{ varighet(i.varighet_ms) }}</td>
           </tr>
           <tr v-if="!data.importer.length"><td colspan="8" class="muted">Ingen importer registrert ennå.</td></tr>
         </tbody>

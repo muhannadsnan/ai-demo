@@ -284,7 +284,10 @@ button.ghost:hover:not(:disabled) { color: var(--text); }
 .stats { font: 12px/1.6 var(--mono); color: var(--text-dim); }
 table.meta { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.meta td { padding: 6px 0; border-bottom: 1px solid var(--border); }
-table.meta td:first-child { color: var(--text-dim); width: 42%; }
+/* The label column in a two-column meta table. 25%, not 42% — at the wider
+   setting a short label like "Fylke" left a third of the row empty before the
+   value started. */
+table.meta td:first-child { color: var(--text-dim); width: 25%; }
 
 /* ---- Norwegian company data ----------------------------------------------- */
 
@@ -970,11 +973,14 @@ nav.tabs a.router-link-active {
 /* A count or size that belongs to the heading it follows, not to the prose. */
 .hodetall { font: 400 12px/1 var(--mono); color: var(--text-dim); }
 
-/* Import routine rows: the name column is a label, not a paragraph — capped so
-   the numbers to its right stay aligned and reachable. */
-/* The name column is a label, not a paragraph. Fixed rather than capped so the
-   numeric columns to its right line up down the table regardless of which job
-   has the longest title. */
-.jobbkol { width: 15ch; max-width: 15ch; }
-.jobbkol .jobbnavn { display: block; }
+/* Import routine rows.
+   Line one is the job and how the data arrives; line two is the register it
+   comes from. `.jobbnavn` stays inline for that — set to block it pushed the
+   type onto its own line and made every row three deep. */
+.jobbtabell td:first-child { width: 25%; text-align: left; }
 .jobbtype { font: 11px/1.5 var(--mono); color: var(--text-dim); margin-left: 5px; }
+
+/* Centred, like the numeric columns already were: a row of eight values reads
+   as one row rather than as eight left edges at different depths. */
+.jobbtabell th, .jobbtabell td { text-align: center; }
+.jobbtabell th:first-child { text-align: left; }

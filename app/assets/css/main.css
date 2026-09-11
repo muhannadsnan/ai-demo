@@ -1205,3 +1205,34 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
 }
 .indeksgruppe[open] > summary::after { content: '▾'; }
 .indeksgruppe[open] > summary { color: var(--accent); }
+
+/* ---- Front page: freshness dots, source lines, engineering cards ---- */
+
+/* A slow pulse on each figure. The data behind these updates nightly and the
+   page has no other way to say so. */
+.ferskprikk {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok); margin-right: 6px; vertical-align: 1px;
+  animation: fersk 2.6s ease-in-out infinite;
+}
+@keyframes fersk { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .ferskprikk { animation: none; } }
+
+.kort-kilde {
+  display: block; font: 11px/1.45 var(--mono); color: var(--accent); margin-top: 3px;
+}
+
+.teknikk {
+  display: grid; gap: 12px; margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+.teknikkort {
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.teknikkort h3 { font-size: 15px; margin: 0 0 6px; }
+.teknikkort p { font-size: 12.5px; line-height: 1.6; margin: 0; color: var(--text-dim); }
+.teknikktall {
+  margin-top: 10px; font: 500 11.5px/1.4 var(--mono); color: var(--info);
+}

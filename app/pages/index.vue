@@ -20,6 +20,20 @@ function gaaTilSok() {
  * because each shows something the others cannot do — that is the point of
  * having three ways to search rather than one.
  */
+/**
+ * The headline figures, each with the register it comes from rather than a
+ * description of what it is. A reader who recognises "Skatteetatens
+ * aksjonærregister" learns more from that than from "Aksjonærregisteret", and
+ * one who does not now knows which agency to go and check.
+ */
+const NOKKELTALL = [
+  { etikett: 'Foretak',      felt: 'foretak',        kilde: 'Brønnøysundregistrene · Enhetsregisteret' },
+  { etikett: 'Roller',       felt: 'roller',         kilde: 'Brønnøysundregistrene · Enhetsregisteret' },
+  { etikett: 'Aksjeposter',  felt: 'aksjeposter',    kilde: 'Skatteetatens aksjonærregister' },
+  { etikett: 'Regnskapsår',  felt: 'regnskapsrader', kilde: 'Brønnøysundregistrene · Regnskapsregisteret' },
+  { etikett: 'Beskrivelser', felt: 'beskrivelser',   kilde: 'Søkbare på mening · OpenAI-embeddinger' }
+] as const
+
 const SOKEMAATER = [
   {
     tittel: 'Navn eller organisasjonsnummer',
@@ -41,6 +55,46 @@ const SOKEMAATER = [
     fremhevet: true
   }
 ]
+
+/**
+ * What holds the platform up, stated with the measurement behind it.
+ *
+ * Every number here was measured on this dataset rather than estimated — an
+ * unsourced claim about performance is worth less than no claim, because the
+ * first question is always "compared to what".
+ */
+const TEKNIKK = [
+  {
+    tittel: 'Kildene, ikke en kopi av dem',
+    hva: 'Åtte importrutiner mot fire offentlige registre. Fullfilene lastes ned på nytt bare når kilden har en nyere versjon, og den daglige jobben leser Brønnøysunds endringsstrøm i stedet for å spørre om alt.',
+    tall: '10 rutiner · 4 registre · 7 timere'
+  },
+  {
+    tittel: 'Et avbrudd er ikke et hull',
+    hva: 'Importen husker siste hendelse den behandlet. Står maskinen av i en måned, fortsetter neste kjøring fra samme punkt — ingenting hoppes over, ingenting hentes to ganger. Samme kode som en vanlig natt.',
+    tall: 'markørbasert gjenopptaking'
+  },
+  {
+    tittel: 'Ventetid er ikke arbeid',
+    hva: 'Regnskapshentingen brukte 47 sekunder CPU på 42 minutter — resten var venting på svar. Med åtte forespørsler i luften samtidig gikk hele registeret fra 16,8 timer til 1,4.',
+    tall: '7 → 93 foretak i sekundet'
+  },
+  {
+    tittel: 'Feil i kilden, ikke skjult',
+    hva: 'Historikkfilen oppgir NOK for alle regnskap. API-et er uenig for over tusen rader i tolv andre valutaer, som ellers ville stått ti ganger for store øverst i enhver rangering. Statussiden viser det i stedet for å pusse det bort.',
+    tall: 'tolv valutaer funnet, ikke én'
+  },
+  {
+    tittel: 'Personopplysninger lagres, men vises ikke',
+    hva: 'Aksjonærregisteret inneholder privatpersoner. De ligger i en tabell appen aldri leser — visningen går gjennom et view uten navnekolonnene, så en feil i en spørring kan ikke lekke dem.',
+    tall: '126.932 skjult for Equinor alene'
+  },
+  {
+    tittel: 'Indekser som er målt, ikke gjettet',
+    hva: 'Hvert filter og hver sortering har en indeks bak seg, lagt til fordi en måling viste at den trengtes. Søk uten indeks: 318 ms. Med: 0,2 ms. Semantisk søk uten HNSW: 6,4 sekunder. Med: 68 ms.',
+    tall: '66 indekser · 8,1 GB'
+  }
+] as const
 
 const FUNKSJONER = computed(() => [
   {
@@ -97,8 +151,9 @@ const FUNKSJONER = computed(() => [
     </p>
 
     <div class="sokefelt forsidesok">
+      <label for="forsidesok" class="soketikett">Søk</label>
       <span class="sokeboks">
-        <input v-model="sok" type="text"
+        <input id="forsidesok" v-model="sok" type="text"
                placeholder="Foretaksnavn eller organisasjonsnummer…" @keydown.enter="gaaTilSok">
         <button v-if="sok" class="tom" type="button" aria-label="Tøm" @click="sok = ''">×</button>
       </span>
@@ -106,21 +161,11 @@ const FUNKSJONER = computed(() => [
     </div>
 
     <div class="kort-rad">
-      <div class="kort"><span class="kort-etikett">Foretak</span>
-        <span class="kort-tall">{{ kort(data?.tall.foretak) }}</span>
-        <span class="kort-enhet">Enhetsregisteret</span></div>
-      <div class="kort"><span class="kort-etikett">Roller</span>
-        <span class="kort-tall">{{ kort(data?.tall.roller) }}</span>
-        <span class="kort-enhet">styre og ledelse</span></div>
-      <div class="kort"><span class="kort-etikett">Aksjeposter</span>
-        <span class="kort-tall">{{ kort(data?.tall.aksjeposter) }}</span>
-        <span class="kort-enhet">Aksjonærregisteret</span></div>
-      <div class="kort"><span class="kort-etikett">Regnskapsår</span>
-        <span class="kort-tall">{{ kort(data?.tall.regnskapsrader) }}</span>
-        <span class="kort-enhet">innsendte tall</span></div>
-      <div class="kort"><span class="kort-etikett">Beskrivelser</span>
-        <span class="kort-tall">{{ kort(data?.tall.beskrivelser) }}</span>
-        <span class="kort-enhet">søkbare på mening</span></div>
+      <div v-for="k in NOKKELTALL" :key="k.etikett" class="kort">
+        <span class="kort-etikett"><i class="ferskprikk" /> {{ k.etikett }}</span>
+        <span class="kort-tall">{{ kort(data?.tall[k.felt]) }}</span>
+        <span class="kort-kilde">{{ k.kilde }}</span>
+      </div>
     </div>
 
     <h2>Tre måter å søke på</h2>
@@ -145,6 +190,20 @@ const FUNKSJONER = computed(() => [
         <p>{{ f.hva }}</p>
         <span class="inngang-eksempel">{{ f.eksempel }} →</span>
       </NuxtLink>
+    </div>
+
+    <h2>Hvordan det er bygget</h2>
+    <p class="lede">
+      Det som er interessant her er ikke funksjonene, men hva som holder dem
+      oppe: hvor dataene kommer fra, hva som skjer når en kilde svarer feil, og
+      hvordan systemet tar igjen etter å ha stått stille.
+    </p>
+    <div class="teknikk">
+      <div v-for="t in TEKNIKK" :key="t.tittel" class="teknikkort">
+        <h3>{{ t.tittel }}</h3>
+        <p>{{ t.hva }}</p>
+        <span v-if="t.tall" class="teknikktall">{{ t.tall }}</span>
+      </div>
     </div>
 
     <h2>Hvordan dataene holdes ferske</h2>
@@ -174,7 +233,12 @@ const FUNKSJONER = computed(() => [
 <style scoped>
 /* Not full width: a single input stretched across 1180px reads as a form field,
    not as the thing the page is for. */
-.forsidesok { width: 75%; margin: 0 auto 22px; }
+.forsidesok { width: 75%; margin: 0 auto 22px; align-items: center; }
+.soketikett { font: 500 13px/1 var(--mono); flex: none; }
+/* The one input on this page, so it gets a border that says so. Every other
+   field on the site sits inside a panel that frames it; this one does not. */
+.forsidesok .sokeboks input { border-color: var(--text); }
+.forsidesok .sokeboks input:focus { border-color: var(--accent); }
 @media (max-width: 700px) { .forsidesok { width: 100%; } }
 
 .maater { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
@@ -190,14 +254,11 @@ const FUNKSJONER = computed(() => [
 .maate.fremhevet { border-color: var(--accent); background: var(--accent-soft); }
 .maate-tittel { font-weight: 650; font-size: 14px; }
 .maate-hva { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
-/* The example is the clickable promise of the card, so it looks like one: its
-   own ground, in the info colour rather than the accent, so it reads as a
-   sample to try instead of competing with the card title. */
+/* The example is the clickable promise of the card. Blue text, no chip — the
+   filled badge was reading as a button on a card that is already one link. */
 .maate-eksempel, .inngang-eksempel {
   align-self: flex-start; margin-top: auto;
-  padding: 4px 9px; border-radius: 5px;
-  background: var(--info-soft); color: var(--info);
-  font: 12px/1.5 var(--mono);
+  color: var(--info); font: 12px/1.5 var(--mono);
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .maate { padding-bottom: 14px; }

@@ -172,8 +172,10 @@ h1 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 6px; }
 /* Section headings carry the same accent bullet as the index tree, so a long
    page reads as a list of sections rather than a wall. */
 h2 { font-size: 18px; letter-spacing: -0.01em; margin: 32px 0 10px; }
+/* currentColor, so the marker is always exactly the heading's colour — it was a
+   separate token, which meant any change to heading colour left it behind. */
 h2::before {
-  content: '●'; color: var(--punkt); font-size: 15px;
+  content: '●'; color: currentColor; font-size: 15px;
   vertical-align: 2px; margin-right: 11px;
 }
 /* Not inside a card or a model's own output — there the heading is the whole
@@ -953,7 +955,7 @@ nav.tabs a.router-link-active {
    to catch the eye at each table boundary. */
 .indekstabell-navn { font-weight: 650; font-size: 13px; }
 .indekstabell-navn::before {
-  content: '●'; color: var(--punkt); font-size: 12px;
+  content: '●'; color: currentColor; font-size: 12px;
   vertical-align: 1px; margin-right: 8px;
 }
 .indekstabell-antall { font: 11px/1 var(--mono); color: var(--text-dim); }
@@ -964,11 +966,12 @@ nav.tabs a.router-link-active {
 }
 .indeksrad:hover { background: var(--surface-2); }
 .indeksnavn { font: 11.5px/1.45 var(--mono); color: var(--accent); flex: 0 0 auto; }
+.indeksrad .indeksbytes { flex: 0 0 62px; text-align: right; }
 .indekskolonner {
   flex: 1; min-width: 0; font: 11.5px/1.45 var(--mono); color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.indeksbytes { flex: none; font: 11px/1.45 var(--mono); color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.indeksbytes { flex: none; font: 11px/1.45 var(--mono); font-variant-numeric: tabular-nums; }
 
 /* A count or size that belongs to the heading it follows, not to the prose. */
 .hodetall { font: 400 12px/1 var(--mono); color: var(--text-dim); }
@@ -1042,3 +1045,25 @@ table.meta.jobbtabell td:first-child { width: 30%; }
 .statuskort, .statuskort .kortnote, .statuskort .andel,
 .jobbtabell td, .smaltabell td,
 .jobbtabell .muted, .smaltabell .muted { color: var(--text); }
+
+/* ---- Status page: no grey ----
+   Everything on this page is a fact worth reading. Size, weight and the accent
+   already separate a label from its value, so the dimmed colour was only making
+   the explanations look like small print. Scoped to the page rather than
+   changing --text-dim, which the rest of the site still uses deliberately. */
+.statusside,
+.statusside .muted,
+.statusside .kortnote,
+.statusside .andel,
+.statusside .jobbkilde ~ *,
+.statusside table.meta td:first-child,
+.statusside .indekstabell-tall,
+.statusside .indekstabell-antall,
+.statusside .indeksbytes,
+.statusside .indekskolonner,
+.statusside .avsnitt,
+.statusside .hodetall,
+/* Qualified, because `table.meta thead th` is (0,1,2) and a bare
+   `.statusside th` is (0,1,1) — it would have lost, the same way the column
+   widths did twice. */
+.statusside table.meta thead th { color: var(--text); }

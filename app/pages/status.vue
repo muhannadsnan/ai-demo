@@ -81,7 +81,7 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
 </script>
 
 <template>
-  <div v-if="data">
+  <div v-if="data" class="statusside">
     <h1>Status</h1>
     <p class="lede">
       Hva plattformen inneholder, og når hver kilde sist ble oppdatert.
@@ -279,9 +279,9 @@ const fersk = (sek: number | null) => sek != null && sek < 48 * 3600
           <span class="indekstabell-tall">{{ storrelse(g.bytes) }}</span>
         </div>
         <div v-for="i in g.indekser" :key="i.navn" class="indeksrad">
-          <code class="indeksnavn">{{ i.navn }}</code>
-          <span class="indekskolonner">{{ kolonnerAv(i.definisjon) }}</span>
           <span class="indeksbytes">{{ storrelse(i.bytes) }}</span>
+          <span class="indeksnavn">{{ i.navn }}</span>
+          <span class="indekskolonner">{{ kolonnerAv(i.definisjon) }}</span>
         </div>
       </template>
     </div>

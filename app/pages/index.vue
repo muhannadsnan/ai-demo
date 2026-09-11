@@ -27,11 +27,11 @@ function gaaTilSok() {
  * one who does not now knows which agency to go and check.
  */
 const NOKKELTALL = [
-  { etikett: 'Foretak',      felt: 'foretak',        kilde: 'Brønnøysundregistrene · Enhetsregisteret' },
-  { etikett: 'Roller',       felt: 'roller',         kilde: 'Brønnøysundregistrene · Enhetsregisteret' },
+  { etikett: 'Foretak',      felt: 'foretak',        kilde: 'Brønnøysundregistrene (Enhetsregisteret)' },
+  { etikett: 'Roller',       felt: 'roller',         kilde: 'Brønnøysundregistrene (Enhetsregisteret)' },
   { etikett: 'Aksjeposter',  felt: 'aksjeposter',    kilde: 'Skatteetatens aksjonærregister' },
-  { etikett: 'Regnskapsår',  felt: 'regnskapsrader', kilde: 'Brønnøysundregistrene · Regnskapsregisteret' },
-  { etikett: 'Beskrivelser', felt: 'beskrivelser',   kilde: 'Søkbare på mening · OpenAI-embeddinger' }
+  { etikett: 'Regnskapsår',  felt: 'regnskapsrader', kilde: 'Brønnøysundregistrene (Regnskapsregisteret)' },
+  { etikett: 'Beskrivelser', felt: 'beskrivelser',   kilde: 'Søkbare på mening (OpenAI-embeddinger)' }
 ] as const
 
 const SOKEMAATER = [
@@ -112,31 +112,31 @@ const FUNKSJONER = computed(() => [
     merke: 'naturlig språk → filter',
     hva: 'En språkmodell oversetter spørsmålet til et filter over faste felter. Den ser aldri databasen og kan ikke navngi et felt som ikke finnes. Tolkningen vises over resultatene, så du ser hvilket spørsmål som faktisk ble besvart.',
     lenke: { path: '/ai-db-search' },
-    eksempel: '«aktive byggefirmaer i Bergen med over 50 ansatte»'
+    eksempel: 'aktive byggefirmaer i Bergen med over 50 ansatte'
   },
   {
     tittel: 'Foretaksprofil',
-    hva: 'Alt om ett foretak, fordelt på faner: nøkkeltall, regnskap år for år med endring fra i fjor, styre og ledelse, aksjonærer og datterselskap — og hvor foretaket sitter i eierskapsnettverket, oppover og nedover.',
+    hva: 'Alt om ett foretak, fordelt på faner: nøkkeltall, regnskap år for år med endring fra i fjor, styre og ledelse, aksjonærer og datterselskap — og hvor foretaket sitter i eierskapsnettverket. Equinor har 32 datterselskap og 4.658 eiere som selv er foretak.',
     lenke: { path: '/foretak/923609016' },
-    eksempel: 'Equinor: 32 datterselskap, 4.658 eiere'
+    eksempel: 'Equinor'
   },
   {
     tittel: 'Topplister',
     hva: 'Rangeringer regnet ut av hele datasettet hver natt, ikke per besøk. Konkurser, regnskap, roller, eierskap og geografi.',
     lenke: { path: '/topplister' },
-    eksempel: `${data.value?.antallLister ?? 21} lister, oppdatert i natt`
+    eksempel: 'Norges mektigste kvinner'
   },
   {
     tittel: 'Assistent',
     hva: 'Svarer på hvordan norsk foretaksregistrering henger sammen — selskapsformer, roller, regnskap. Den har ikke databasetilgang, og sier det, i stedet for å finne på tall.',
     lenke: { path: '/chat' },
-    eksempel: '«Hva er forskjellen på AS, ENK og NUF?»'
+    eksempel: 'Hva er forskjellen på AS, ENK og NUF?'
   },
   {
     tittel: 'Åpen om egen tilstand',
     hva: 'Hver importkjøring logges, også når den feiler. Statussiden viser dekning, kjente feil i kildedataene, og hvor langt vi har kommet i endringsstrømmen.',
     lenke: { path: '/status' },
-    eksempel: 'siste kjøring, dekning og datakvalitet'
+    eksempel: 'Er dataene ferske akkurat nå?'
   }
 ])
 </script>
@@ -191,7 +191,10 @@ const FUNKSJONER = computed(() => [
         <h3>{{ f.tittel }}</h3>
         <span v-if="f.merke" class="inngang-merke">{{ f.merke }}</span>
         <p>{{ f.hva }}</p>
-        <span class="inngang-eksempel">{{ f.eksempel }} →</span>
+        <span class="eksempelblokk">
+          <span class="eksempeletikett">Eks.:</span>
+          <span class="inngang-eksempel">«{{ f.eksempel }}»</span>
+        </span>
       </NuxtLink>
     </div>
 
@@ -264,14 +267,13 @@ const FUNKSJONER = computed(() => [
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /* Quoted and labelled, so the example reads as something you could type rather
-   than as a caption describing the card. */
-.eksempelblokk { margin-top: auto; padding-top: 8px; }
+   than as a caption describing the card. The label sits on the same line — as
+   its own row it took a third line on a card that only needed two. */
+.eksempelblokk { margin-top: auto; padding-top: 10px; display: flex; gap: 8px; align-items: baseline; min-width: 0; }
 .eksempeletikett {
-  display: block; font: 500 10.5px/1.4 var(--mono);
-  text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim);
+  flex: none; font: 500 11px/1.5 var(--mono); color: var(--text-dim);
 }
-.maate-eksempel { display: block; font-weight: 650; }
-.inngang-eksempel { align-self: flex-start; margin-top: auto; }
+.maate-eksempel, .inngang-eksempel { font-weight: 650; min-width: 0; }
 .maate { padding-bottom: 14px; }
 .maate-eksempel { margin-top: 10px; }
 

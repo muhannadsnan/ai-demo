@@ -70,9 +70,9 @@ const TEKNIKK = [
     tall: '10 rutiner · 4 registre · 7 timere'
   },
   {
-    tittel: 'Et avbrudd er ikke et hull',
+    tittel: 'En markør gjør avbrudd ufarlige',
     hva: 'Den daglige importen leser Brønnøysunds endringsstrøm og husker hvor den slapp, som en markør i strømmen. Står maskinen av i en måned, fortsetter neste kjøring fra samme punkt og henter alt som skjedde i mellomtiden — ingenting hoppes over, ingenting hentes to ganger. Samme kodevei som en vanlig natt, ikke en egen gjenopprettingsrutine.',
-    tall: 'markør i endringsstrømmen'
+    tall: 'én måned av = én kjøring ekstra'
   },
   {
     tittel: 'Ventetid er ikke arbeid',
@@ -93,6 +93,12 @@ const TEKNIKK = [
     tittel: 'Indekser som er målt, ikke gjettet',
     hva: 'Hvert filter og hver sortering har en indeks bak seg, lagt til fordi en måling viste at den trengtes. Søk uten indeks: 318 ms. Med: 0,2 ms. Semantisk søk uten HNSW: 6,4 sekunder. Med: 68 ms.',
     tall: '66 indekser · 8,1 GB'
+  },
+  {
+    tittel: 'Alt logges, også det som feilet',
+    hva: 'Hver kjøring av hver rutine skriver en rad når den starter og en når den er ferdig, så en jobb som krasjet ser annerledes ut enn en som aldri kjørte. Statussiden viser siste kjøring per kilde, hvor mye som ble lest og endret, hvor lenge det tok — og kjente feil i kildedataene, i stedet for å pusse dem bort.',
+    tall: 'se statussiden',
+    lenke: '/status'
   }
 ] as const
 
@@ -211,18 +217,12 @@ const FUNKSJONER = computed(() => [
       <li v-for="t in TEKNIKK" :key="t.tittel">
         <div class="teknikk-topp">
           <h3>{{ t.tittel }}</h3>
-          <span v-if="t.tall" class="teknikktall">{{ t.tall }}</span>
+          <NuxtLink v-if="t.lenke" :to="t.lenke" class="teknikktall lenke">{{ t.tall }} →</NuxtLink>
+          <span v-else-if="t.tall" class="teknikktall">{{ t.tall }}</span>
         </div>
         <p>{{ t.hva }}</p>
       </li>
     </ol>
-    <!-- The claims above are checkable, and this is where you check them. The
-         prose section that used to carry this link was folded into the list;
-         the link was the one part of it with nowhere else to go. -->
-    <p class="teknikk-fot">
-      Alt dette logges. <NuxtLink to="/status">Se siste kjøring, dekning og kjente feil →</NuxtLink>
-    </p>
-
     <p class="muted kildenote">
       Kildene er offentlige og gjengis under NLOD. Personopplysninger fra
       Aksjonærregisteret lagres, men vises ikke.

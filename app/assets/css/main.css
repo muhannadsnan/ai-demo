@@ -1257,6 +1257,9 @@ table.meta.innholdstabell { margin: 0 -14px; width: calc(100% + 28px); }
   margin-left: auto; font: 500 11.5px/1.4 var(--mono); color: var(--info);
   white-space: nowrap;
 }
+/* One entry points at the evidence for all of them, so its figure is a link. */
+.teknikktall.lenke { text-decoration: none; }
+.teknikktall.lenke:hover { text-decoration: underline; }
 .teknikk p { font-size: 13px; line-height: 1.6; margin: 0; color: var(--text-dim); max-width: 88ch; }
 @media (max-width: 560px) {
   .teknikk > li { grid-template-columns: 1.8rem 1fr; }

@@ -14,6 +14,19 @@ Description=Nordata import: %i
 After=docker.service network-online.target
 Requires=docker.service
 
+# Wants, not just After.
+#
+# `After=` only orders this behind network-online.target if something else has
+# already pulled that target in; on its own it does not wait for anything.
+# Waking the machine at 08:26 fired the job one second later, before the network
+# was up, and it died with "TypeError: fetch failed" — twice, on two different
+# mornings. `Wants=` is what actually makes systemd bring the target up and hold
+# the job until it is reached.
+#
+# Restart=on-failure below did recover it fifteen minutes later both times, so
+# no data was lost. This removes the failed run rather than the recovery.
+Wants=network-online.target
+
 [Service]
 Type=oneshot
 User=msn

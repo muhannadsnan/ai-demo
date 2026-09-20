@@ -14,6 +14,58 @@ cd "$(dirname "$0")"
 
 export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 
+# ---------------------------------------------------------------- wait for net
+#
+# Every job here talks to a public API, and on this machine they fire the second
+# it wakes from suspend — measured to the second:
+#
+#   11:28:04  Starting nordata@oppdateringer
+#   11:28:04  PM: suspend exit
+#   11:28:05  NetworkManager: enp7s0 unmanaged -> unavailable
+#   11:28:05  Failed with result 'exit-code'
+#   11:28:05  Link is Down
+#
+# The job died before the interface came back. systemd's network-online.target
+# cannot help: it was reached on the last boot and stays active, so it is not
+# re-evaluated on resume and `Wants=`/`After=` are no-ops. Restart=on-failure
+# does recover it, but fifteen minutes later and with a failed run on the
+# status page for something that was never broken.
+#
+# So the check belongs here, where it works for boot and resume alike: ask the
+# host we are about to use whether it is reachable, and wait if it is not.
+# A real endpoint, not the host root: https://data.brreg.no/ resets the
+# connection, so checking it would have failed forever and made every job wait
+# out the timeout — a worse failure than the one being fixed. This one answers
+# 200 in about 120 ms and returns a single row.
+PROVE_URL="https://data.brreg.no/enhetsregisteret/api/kommuner?size=1"
+
+# 60 x 5s = five minutes: longer than any resume takes, short enough that a
+# genuinely offline machine fails today rather than hanging until the unit's
+# two-hour timeout.
+MAKS_FORSOK=60
+PAUSE=5
+
+vent_paa_nett() {
+  local forsok=0
+  until curl -sSf -o /dev/null --max-time 5 "$PROVE_URL" 2>/dev/null; do
+    forsok=$((forsok + 1))
+    if [ "$forsok" -ge "$MAKS_FORSOK" ]; then
+      echo "nettverket kom ikke opp innen $((MAKS_FORSOK * PAUSE))s — avbryter" >&2
+      exit 1
+    fi
+    [ "$forsok" = 1 ] && echo "venter på nettverk …"
+    sleep "$PAUSE"
+  done
+  [ "$forsok" -gt 0 ] && echo "  nettverk oppe etter $((forsok * PAUSE))s"
+  return 0
+}
+
+# Jobs that read only from the local database need no network.
+case "${1:-}" in
+  topplister) ;;
+  *) vent_paa_nett ;;
+esac
+
 case "${1:-}" in
   # Daily. Asks Brreg what changed and fetches only those companies.
   oppdateringer) exec node ingest/import-oppdateringer.mjs --maks 20000 --throttle 120 ;;
